@@ -1,4 +1,0 @@
-/home/ma-user/work/uncertainty-multidomain-project/corpus/multidomain/wmt14_en_de-bin
-/home/ma-user/work/uncertainty-multidomain-project/corpus/multidomain/Tanzil-bin
-/home/ma-user/work/uncertainty-multidomain-project/corpus/multidomain/EMEA-bin
-/home/ma-user/work/uncertainty-multidomain-project/corpus/multidomain/KDE4-bin

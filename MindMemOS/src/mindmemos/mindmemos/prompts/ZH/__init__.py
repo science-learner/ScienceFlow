@@ -1,1 +1,0 @@
-"""Chinese prompt modules."""

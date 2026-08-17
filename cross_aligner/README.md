@@ -1,1 +1,0 @@
-The [paper](https://github.com/huawei-noah/noah-research/tree/master/NLP/cross_aligner) resources have been moved to [this folder](https://github.com/huawei-noah/noah-research/tree/master/NLP/cross_aligner). Thanks!

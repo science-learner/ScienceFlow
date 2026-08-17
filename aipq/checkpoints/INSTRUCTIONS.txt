@@ -1,3 +1,0 @@
-
-Clone or download the contents from this (https://huggingface.co/huawei-noah/aipq) repository into this directory.
-
