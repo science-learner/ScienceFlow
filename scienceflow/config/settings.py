@@ -85,6 +85,8 @@ class StageConfig:
     headers: dict[str, str] = field(default_factory=dict)
     # When true, pass httpx.AsyncClient(proxy=..., verify=False, Proxy-Authorization from env).
     use_proxy: bool = False
+    # Some vLLM chat templates accept only one leading system message.
+    coalesce_system_messages: bool = False
 
 
 @dataclass
@@ -1190,6 +1192,8 @@ def _apply_env(cfg: Config) -> None:
         CODE_MODEL / FEEDBACK_MODEL — per-stage model (code / feedback)
         CODE_MODELS / FEEDBACK_MODELS — comma/space-separated model pool for
             worker-indexed LHR endpoint binding
+        SCIENCEFLOW_COALESCE_SYSTEM_MESSAGES — merge layered system prompts into
+            one leading message for strict OpenAI-compatible chat templates
         HTTP_TIMEOUT — if set (integer seconds), overrides http_timeout for all stages
         SCIENCEFLOW_LLM_STREAM_TIMEOUT — overrides ``scienceflow_llm_stream_timeout_sec``
         SCIENCEFLOW_BASH_TIMEOUT — overrides ``scienceflow_bash_timeout_sec``
@@ -1311,6 +1315,14 @@ def _apply_env(cfg: Config) -> None:
                 stage.api_sticky_primary_index = int(sticky_primary_raw)
             except ValueError:
                 pass
+        coalesce = (
+            os.environ.get(f"{upper}_COALESCE_SYSTEM_MESSAGES", "").strip()
+            or os.environ.get("SCIENCEFLOW_COALESCE_SYSTEM_MESSAGES", "").strip()
+        ).lower()
+        if coalesce in ("1", "true", "yes", "on"):
+            stage.coalesce_system_messages = True
+        elif coalesce in ("0", "false", "no", "off"):
+            stage.coalesce_system_messages = False
         rate_limit_raw = (
             os.environ.get(f"{upper}_LLM_RATE_LIMIT_COOLDOWN_SEC", "").strip()
             or os.environ.get("SCIENCEFLOW_LLM_RATE_LIMIT_COOLDOWN_SEC", "").strip()

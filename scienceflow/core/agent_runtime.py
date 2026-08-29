@@ -492,6 +492,7 @@ def _build_llm(stage: StageConfig) -> PooledLLM | OnlineLLM:
         model=stage.model,
         max_tokens=stage.max_tokens,
         frequency_penalty=stage.frequency_penalty,
+        coalesce_system_messages=stage.coalesce_system_messages,
         stream=True,
         tracker=True,
         **llm_extra_client_kwargs(stage),

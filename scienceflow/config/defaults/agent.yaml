@@ -14,6 +14,7 @@ agent:
     http_timeout: 300
     headers: {}
     use_proxy: false
+    coalesce_system_messages: false
   feedback:
     model: deepseek-v4-flash
     models: []
@@ -26,6 +27,7 @@ agent:
     http_timeout: 300
     headers: {}
     use_proxy: false
+    coalesce_system_messages: false
   # USD per 1M tokens. DeepSeek official pricing checked on 2026-06-19:
   # https://api-docs.deepseek.com/quick_start/pricing
   llm_prices:

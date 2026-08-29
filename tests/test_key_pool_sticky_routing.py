@@ -17,6 +17,9 @@ import asyncio
 import httpx
 from openai import BadRequestError
 
+from deepcraft_core import Message
+from deepcraft_core.llm.online import OnlineLLM
+
 from scienceflow.core import key_pool
 from scienceflow.core.key_pool import PooledLLM
 from scienceflow.config.settings import Config, _apply_env
@@ -138,6 +141,35 @@ def test_apply_env_loads_generic_sticky_routing(monkeypatch) -> None:
     assert cfg.agent.feedback.api_sticky_primary_index == 0
 
 
+def test_apply_env_enables_system_message_coalescing(monkeypatch) -> None:
+    monkeypatch.setenv("SCIENCEFLOW_COALESCE_SYSTEM_MESSAGES", "true")
+    cfg = Config()
+
+    _apply_env(cfg)
+
+    assert cfg.agent.code.coalesce_system_messages is True
+    assert cfg.agent.feedback.coalesce_system_messages is True
+
+
+def test_online_llm_coalesces_layered_system_messages() -> None:
+    llm = OnlineLLM(
+        model="test",
+        api_key="test",
+        base_url="http://localhost:8000/v1",
+        coalesce_system_messages=True,
+    )
+
+    messages = llm._format_request_messages(
+        [Message.user_message("task")],
+        [Message.system_message("core"), Message.system_message("runtime")],
+    )
+
+    assert messages == [
+        {"role": "system", "content": "core\n\nruntime"},
+        {"role": "user", "content": "task"},
+    ]
+
+
 def _reasoning_replay_bad_request() -> BadRequestError:
     request = httpx.Request("POST", "https://llm.example/v1/chat/completions")
     response = httpx.Response(400, request=request)
@@ -177,4 +209,3 @@ def test_reasoning_replay_error_is_not_failed_over(monkeypatch) -> None:
 
     assert first.calls == 1
     assert second.calls == 0
-

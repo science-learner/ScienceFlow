@@ -149,6 +149,10 @@ class BaseLLM(BaseModel, ABC):
     )
     headers: Optional[dict] = Field(default={}, description="headers")
     stream: Optional[bool] = Field(default=True, description="stream")
+    coalesce_system_messages: bool = Field(
+        default=False,
+        description="Merge multiple leading system messages for strict chat templates.",
+    )
     tracker: Optional[bool] = Field(default=False, description="tracker")
     interrupted: Optional[bool] = Field(default=False, description="interrupted")
     reasoning_effort: Optional[str] = Field(
@@ -290,6 +294,28 @@ class BaseLLM(BaseModel, ABC):
                 raise ValueError(f"Invalid role: {msg['role']}")
 
         return formatted_messages
+
+    def _format_request_messages(
+        self,
+        messages: List[Union[dict, Message]],
+        system_msgs: Optional[List[Union[dict, Message]]] = None,
+    ) -> List[dict]:
+        formatted_messages = self.format_messages(messages)
+        if not system_msgs:
+            return formatted_messages
+        formatted_system = self.format_messages(system_msgs)
+        if self.coalesce_system_messages and len(formatted_system) > 1:
+            if any(message.get("role") != "system" for message in formatted_system):
+                raise ValueError("system_msgs entries must use role='system'")
+            contents = [message.get("content") for message in formatted_system]
+            if any(content is not None and not isinstance(content, str) for content in contents):
+                raise TypeError("system message coalescing supports string content only")
+            merged = dict(formatted_system[0])
+            merged["content"] = "\n\n".join(
+                content for content in contents if isinstance(content, str) and content
+            )
+            formatted_system = [merged]
+        return formatted_system + formatted_messages
 
     @abstractmethod
     async def ask(

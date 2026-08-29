@@ -359,11 +359,7 @@ class OnlineLLM(BaseLLM):
             Exception: For unexpected errors
         """
         try:
-            if system_msgs:
-                system_msgs = self.format_messages(system_msgs)
-                messages = system_msgs + self.format_messages(messages)
-            else:
-                messages = self.format_messages(messages)
+            messages = self._format_request_messages(messages, system_msgs)
 
             try:
                 return await self._stream_request(
@@ -415,11 +411,7 @@ class OnlineLLM(BaseLLM):
         """
         try:
             # Format system and user messages
-            if system_msgs:
-                system_msgs = self.format_messages(system_msgs)
-                messages = system_msgs + self.format_messages(messages)
-            else:
-                messages = self.format_messages(messages)
+            messages = self._format_request_messages(messages, system_msgs)
 
             return await self._stream_request_logits(messages, temperature, stream)
 
@@ -466,11 +458,7 @@ class OnlineLLM(BaseLLM):
         """
         try:
             # Format system and user messages
-            if system_msgs:
-                system_msgs = self.format_messages(system_msgs)
-                messages = system_msgs + self.format_messages(messages)
-            else:
-                messages = self.format_messages(messages)
+            messages = self._format_request_messages(messages, system_msgs)
 
             return await self._stream_request_vllm_logits(messages, temperature, stream)
 
@@ -526,11 +514,7 @@ class OnlineLLM(BaseLLM):
         """
         try:
             # Format messages
-            if system_msgs:
-                system_msgs = self.format_messages(system_msgs)
-                messages = system_msgs + self.format_messages(messages)
-            else:
-                messages = self.format_messages(messages)
+            messages = self._format_request_messages(messages, system_msgs)
 
             # Validate tools if provided
             if tools:
@@ -687,11 +671,7 @@ class OnlineLLM(BaseLLM):
         collect_stream_mode = collect_all_tool_calls
 
         try:
-            if system_msgs:
-                system_msgs = self.format_messages(system_msgs)
-                messages = system_msgs + self.format_messages(messages)
-            else:
-                messages = self.format_messages(messages)
+            messages = self._format_request_messages(messages, system_msgs)
 
             if tools:
                 for t in tools:
