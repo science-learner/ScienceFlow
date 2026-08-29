@@ -65,6 +65,21 @@ def test_light_validation_without_sample_still_rejects_blank_cells(tmp_path: Pat
     assert "blank required cell" in message
 
 
+def test_light_validation_accepts_explicit_public_dataset_dir(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    public_dataset = tmp_path / "deep"
+    _write(public_dataset / "sample_submission.csv", "id,target\n1,0\n2,0\n")
+    _write(workspace / "submission.csv", "id,target\n1,0.1\n2,0.2\n")
+
+    ok, message = validate_submission_light(
+        workspace,
+        dataset_dir=public_dataset,
+    )
+
+    assert ok is True
+    assert "sample_submission.csv" in message
+
+
 def test_resolve_exp_id_from_worker_resolved_config(tmp_path: Path) -> None:
     worker_root = tmp_path / "task" / "workers" / "w00"
     workspace = worker_root

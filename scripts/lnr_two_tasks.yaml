@@ -27,7 +27,6 @@ lnr:
 defaults:
   config: scienceflow/config/default.yaml
   workspace_base: ./workspaces/manual_lnr_two_tasks
-  mlebench_data_root_dir: ./data/mlebench_all_data
   repl_max_steps: 1200
   repl_code_organization_hint: beyond_mfiles
   repl_bash_max_output_chars: 8000

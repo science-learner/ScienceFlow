@@ -20,7 +20,6 @@ defaults:
   phase: run
   type: lnr
   workspace_base: ./workspaces/manual_unified_evaluator_examples
-  mlebench_data_root_dir: ./data/mlebench_all_data
   evaluator:
     enabled: true
     backend: task_package

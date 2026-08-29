@@ -20,7 +20,6 @@ lnr:
 defaults:
   config: scienceflow/config/default.yaml
   workspace_base: ./workspaces/manual_lnr_nomad2018_3seed_cpu
-  mlebench_data_root_dir: ./data/mlebench_all_data
 
 tasks:
   - exp_id: nomad2018-predict-transparent-conductors

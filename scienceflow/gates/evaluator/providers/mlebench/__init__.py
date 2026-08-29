@@ -15,11 +15,9 @@
 from scienceflow.gates.evaluator.providers.mlebench.submission_checks import (
     resolve_mlebench_exp_id,
     validate_submission_light,
-    validate_submission_local,
 )
 
 __all__ = [
     "resolve_mlebench_exp_id",
     "validate_submission_light",
-    "validate_submission_local",
 ]

@@ -19,7 +19,6 @@ defaults:
   phase: run
   type: lnr
   workspace_base: ./workspaces/DATE_run/example_lnr_run
-  mlebench_data_root_dir: ./data/mlebench_all_data
   workspace:
     enable_time_trace: true
 

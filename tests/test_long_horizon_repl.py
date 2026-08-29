@@ -269,7 +269,6 @@ def test_lhr_make_agent_keeps_normal_and_slow_bash_caps() -> None:
         exp_id="test",
         repl_bash_max_output_chars=8000,
         repl_bash_max_stream_line_chars=2400,
-        mlebench_data_root_dir="",
     )
     bash_tool = SimpleNamespace(
         bash_timeout_sec=300,
@@ -381,7 +380,6 @@ def _make_metric_snapshot_agent(ws: Path):
     object.__setattr__(agent, "_embedded_full_run_enabled", False)
     object.__setattr__(agent, "_lnr_allow_any_stage_script", False)
     object.__setattr__(agent, "_lnr_mlebench_validate_enabled", True)
-    object.__setattr__(agent, "_mlebench_data_dir", None)
     object.__setattr__(agent, "_mlebench_exp_id", None)
     object.__setattr__(agent, "_scienceflow_task_profile", "mlebench")
     object.__setattr__(agent, "_scienceflow_evaluator_backend", "task_package")
@@ -397,6 +395,37 @@ def _make_metric_snapshot_agent(ws: Path):
     object.__setattr__(agent, "_log_warning", MagicMock())
     object.__setattr__(agent, "memory", mem)
     return agent
+
+
+def test_embedded_mlebench_validation_uses_public_dataset_view(tmp_path: Path) -> None:
+    ws = tmp_path / "workspace"
+    (ws / "dataset").mkdir(parents=True)
+    (ws / "dataset" / "sample_submission.csv").write_text(
+        "id,target\n1,0\n2,0\n",
+        encoding="utf-8",
+    )
+    (ws / "submission.csv").write_text(
+        "id,target\n1,0.1\n2,0.2\n",
+        encoding="utf-8",
+    )
+    agent = ScienceAgent.__new__(ScienceAgent)
+    object.__setattr__(agent, "_workspace_dir", ws)
+    object.__setattr__(agent, "_mlebench_validate_after_embedded_full_run", True)
+    object.__setattr__(agent, "_mlebench_exp_id", "demo")
+    object.__setattr__(agent, "_ws_interaction_log", None)
+    object.__setattr__(agent, "_log_info", MagicMock())
+
+    status, text, append_payload = (
+        agent._run_mlebench_validation_after_embedded_full_run()
+    )
+
+    assert status is True
+    assert "matches sample_submission.csv" in text
+    assert append_payload == (
+        "demo",
+        True,
+        "matches sample_submission.csv; required cells ok",
+    )
 
 
 def test_lhr_agent_metric_only_snapshot_without_submission(tmp_path: Path) -> None:

@@ -427,7 +427,6 @@ class WorkspaceConfig:
     log_dir: Path = field(default_factory=lambda: Path("."))
     submission_dir: Path = field(default_factory=lambda: Path("."))
     exp_id: str = ""
-    mlebench_data_root_dir: str = ""
     # Optional task metadata override when leaderboard information is unavailable.
     custom_metric_name: str = ""
     custom_is_lower_better: bool | None = None
@@ -580,7 +579,6 @@ _WORKSPACE_CONFIG_KEYS: tuple[str, ...] = (
     "log_dir",
     "submission_dir",
     "exp_id",
-    "mlebench_data_root_dir",
     "custom_metric_name",
     "custom_is_lower_better",
     "enable_time_trace",
@@ -1213,7 +1211,6 @@ def _apply_env(cfg: Config) -> None:
         SCIENCEFLOW_BASH_SUCCESS_TAIL_LINES — integer; last N lines of bash stdout kept in LLM memory
         PATH_GUARD_EXTRA_ROOTS — extra absolute path prefixes for ScienceAgent PathGuard
             (colon/semicolon/comma/whitespace-separated); merged with YAML ``path_guard_extra_roots``
-        MLEBENCH_DATA_ROOT_DIR — path to mlebench data root (optional)
         CUSTOM_METRIC_NAME — optional; mirrors ``Config.custom_metric_name`` for grading hints
         CUSTOM_IS_LOWER_BETTER — optional; ``1``/``true``/``yes`` → True, ``0``/``false`` → False
         SCIENCEFLOW_EXP_ID — competition / experiment slug (set by ``parallel`` subprocesses;
@@ -1221,10 +1218,6 @@ def _apply_env(cfg: Config) -> None:
     When a stage has ``use_proxy: true`` (YAML), ``scienceflow.core.llm_http`` also reads
     ``http_proxy`` / ``HTTP_PROXY``, ``USER_NAME``, ``USER_PWD`` (not merged here).
     """
-    mlebench_dir = os.environ.get("MLEBENCH_DATA_ROOT_DIR", "").strip()
-    if mlebench_dir and not cfg.mlebench_data_root_dir:
-        cfg.mlebench_data_root_dir = mlebench_dir
-
     exp_id_env = os.environ.get("SCIENCEFLOW_EXP_ID", "").strip()
     if exp_id_env:
         cfg.exp_id = exp_id_env

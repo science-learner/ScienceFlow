@@ -8547,7 +8547,6 @@ class LnrSolver:
                 "_lnr_runtime_context_provider",
                 lambda: self._runtime_context_for_agent(agent),
             )
-        setattr(agent, "_mlebench_data_dir", str(getattr(self.cfg, "mlebench_data_root_dir", "") or "") or None)
         setattr(agent, "_mlebench_exp_id", str(getattr(self.cfg, "exp_id", "") or "") or None)
         setattr(
             agent,

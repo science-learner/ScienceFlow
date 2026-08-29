@@ -294,7 +294,6 @@ def _runner_config(ctx: EvalContext, spec: TaskPackageSpec, package_sha: str) ->
             "stage_id": str(ctx.stage_id or ""),
             "query_budget_scope": _query_budget_scope(ctx),
         },
-        "mlebench_data_root_dir": str(_cfg(ctx.cfg, "mlebench_data_root_dir", "") or ""),
         "package_sha256": package_sha,
     }
 

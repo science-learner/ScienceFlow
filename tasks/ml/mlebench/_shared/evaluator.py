@@ -18,9 +18,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from scienceflow.gates.evaluator.providers.mlebench import (
-    resolve_mlebench_exp_id,
     validate_submission_light,
-    validate_submission_local,
 )
 
 
@@ -32,15 +30,14 @@ def evaluate(
     dataset_dir: Path,
     config: dict[str, Any],
 ) -> dict[str, Any]:
-    _ = task_dir, dataset_dir
+    _ = task_dir
     metric_event = config.get("metric_event") if isinstance(config.get("metric_event"), Mapping) else {}
     task_cfg = config.get("task") if isinstance(config.get("task"), Mapping) else {}
     metric_cfg = task_cfg.get("metric") if isinstance(task_cfg.get("metric"), Mapping) else {}
     ok, result = _validate_submission(
         workspace_dir=workspace_dir,
         artifact_path=artifact_path,
-        task_id=str(config.get("task_id") or task_cfg.get("id") or ""),
-        data_root=str(config.get("mlebench_data_root_dir") or ""),
+        dataset_dir=dataset_dir,
     )
     is_valid = bool(result.get("is_valid")) if isinstance(result, Mapping) else False
     message = str(result.get("result") or "") if isinstance(result, Mapping) else ""
@@ -92,14 +89,13 @@ def _validate_submission(
     *,
     workspace_dir: Path,
     artifact_path: Path,
-    task_id: str,
-    data_root: str,
+    dataset_dir: Path,
 ) -> tuple[bool, dict[str, Any]]:
-    if data_root:
-        resolved = resolve_mlebench_exp_id(workspace_dir, cfg_exp_id=task_id)
-        if resolved:
-            return validate_submission_local(resolved, artifact_path, data_root)
-    is_valid, message = validate_submission_light(workspace_dir, submission_name=artifact_path.name or "submission.csv")
+    is_valid, message = validate_submission_light(
+        workspace_dir,
+        submission_name=artifact_path.name or "submission.csv",
+        dataset_dir=dataset_dir,
+    )
     return True, {"is_valid": is_valid, "result": message}
 
 

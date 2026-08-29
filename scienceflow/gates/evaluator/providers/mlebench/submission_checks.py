@@ -16,16 +16,12 @@ from __future__ import annotations
 
 import csv
 import json
-import logging
-import sys
 from pathlib import Path
 
 import yaml
 
 from scienceflow.core.artifact_io import wait_for_stable_file
 from scienceflow.utils.node_paths import find_node_context_path
-
-logger = logging.getLogger("scienceflow")
 
 _SAMPLE_SUBMISSION_PATTERNS = (
     "sample_submission.csv",
@@ -65,58 +61,13 @@ def resolve_mlebench_exp_id(workspace_dir: Path, *, cfg_exp_id: str = "") -> str
     return None
 
 
-def validate_submission_local(
-    exp_id: str,
-    submission_path: Path,
-    mlebench_data_dir: str | Path,
-) -> tuple[bool, dict]:
-    """Validate submission format through the local MLEBench SDK."""
-    submission_path = Path(submission_path)
-    data_dir = Path(mlebench_data_dir).resolve()
-    try:
-        from mlebench.grade import validate_submission as mlebench_validate
-        from mlebench.registry import registry
-    except ImportError as exc:
-        logger.info(
-            "mlebench import failed, skipping submission validation (executable=%s): %s",
-            sys.executable,
-            exc,
-        )
-        detail = str(exc).strip() or exc.__class__.__name__
-        return True, {
-            "is_valid": True,
-            "result": f"mlebench not installed, skipped: {detail}",
-        }
-    if not submission_path.is_file():
-        return True, {
-            "is_valid": False,
-            "result": f"Submission file does not exist: {submission_path}",
-        }
-    stable, stable_message = wait_for_stable_file(submission_path)
-    if not stable:
-        return True, {
-            "is_valid": False,
-            "result": stable_message,
-            "transient": True,
-        }
-    try:
-        competition = registry.set_data_dir(data_dir).get_competition(exp_id)
-        is_valid, message = mlebench_validate(submission_path, competition)
-        return True, {"is_valid": is_valid, "result": message}
-    except ValueError as exc:
-        logger.warning("mlebench validation failed (ValueError): %s", exc)
-        return False, {"is_valid": False, "result": str(exc)}
-    except Exception as exc:
-        logger.exception("mlebench validation error: %s", exc)
-        return False, {"is_valid": False, "result": str(exc)}
-
-
 def validate_submission_light(
     workspace_dir: Path,
     *,
     submission_name: str = "submission.csv",
+    dataset_dir: Path | None = None,
 ) -> tuple[bool, str]:
-    """Apply the provider's conservative sample-submission CSV fallback."""
+    """Validate a submission from the public dataset view only."""
     workspace = Path(workspace_dir).resolve()
     submission = workspace / submission_name
     if not submission.is_file():
@@ -130,7 +81,12 @@ def validate_submission_light(
         return False, f"cannot read {submission_name}: {exc}"
     if not raw.strip():
         return False, f"{submission_name} empty"
-    sample = _find_sample_csv(workspace / "dataset")
+    public_dataset = (
+        Path(dataset_dir).resolve()
+        if dataset_dir is not None
+        else workspace / "dataset"
+    )
+    sample = _find_sample_csv(public_dataset)
     try:
         submission_rows = _read_csv_rows(submission)
         sample_rows = _read_csv_rows(sample) if sample is not None else None

@@ -830,7 +830,7 @@ class EmbeddedFullRunMixin:
         block = (
             "\n\n## MLE-bench submission validation (system)\n\n"
             f"- **exp_id**: `{exp_id}`\n"
-            f"- **sdk_call_ok**: {ok_call}\n"
+            f"- **validator_call_ok**: {ok_call}\n"
             f"- **is_valid**: {is_valid}\n\n"
             f"{result_text}\n"
         )
@@ -848,7 +848,7 @@ class EmbeddedFullRunMixin:
     def _run_mlebench_validation_after_embedded_full_run(
         self,
     ) -> tuple[bool | None, str, tuple[str, bool, str] | None]:
-        """After full-run success: local mlebench ``validate_submission``; log only (result.md in caller).
+        """After full-run success, validate against the public dataset view.
 
         Returns ``(status, text, append_payload)``:
         - ``(None, "", None)`` — validation disabled or skipped
@@ -858,35 +858,16 @@ class EmbeddedFullRunMixin:
         """
         if not getattr(self, "_mlebench_validate_after_embedded_full_run", False):
             return None, "", None
-        mdir = getattr(self, "_mlebench_data_dir", None) or ""
-        if not str(mdir).strip():
-            notice = (
-                "\n\n[MLE-bench] validation skipped: `mlebench_data_root_dir` is not set "
-                "(set `mlebench_data_root_dir` in YAML or `MLEBENCH_DATA_ROOT_DIR`).\n"
-            )
-            self._log_info(
-                "[mlebench-validate] skipped: mlebench_data_root_dir empty — no local validation run",
-            )
-            return None, notice, None
         from scienceflow.gates.evaluator.providers.mlebench import (
             resolve_mlebench_exp_id,
-            validate_submission_local,
+            validate_submission_light,
         )
 
         exp_id = resolve_mlebench_exp_id(
             self._workspace_dir,
             cfg_exp_id=getattr(self, "_mlebench_exp_id", None) or "",
-        )
+        ) or "unknown"
         sub = self._workspace_dir / "submission.csv"
-        if not exp_id:
-            notice = (
-                "\n\n[MLE-bench] validation skipped: could not resolve competition `exp_id` "
-                "(set `exp_id` in config or use LNR layout `…/<slug>/wsp/<node>/`).\n"
-            )
-            self._log_info(
-                "[mlebench-validate] skipped: could not resolve exp_id — no local validation run",
-            )
-            return None, notice, None
         if not sub.is_file():
             notice = (
                 "\n\n[MLE-bench] validation skipped: `submission.csv` not found in workspace.\n"
@@ -895,9 +876,11 @@ class EmbeddedFullRunMixin:
                 "[mlebench-validate] skipped: submission.csv missing — no local validation run",
             )
             return None, notice, None
-        ok_call, payload = validate_submission_local(exp_id, sub, mdir)
-        is_valid = bool(payload.get("is_valid"))
-        result_text = str(payload.get("result", ""))
+        is_valid, result_text = validate_submission_light(
+            self._workspace_dir,
+            dataset_dir=self._workspace_dir / "dataset",
+        )
+        ok_call = True
         ws_log = self._ws_interaction_log
         if ws_log is not None:
             ws_log.info(
@@ -908,19 +891,19 @@ class EmbeddedFullRunMixin:
                 result_text[:8000],
             )
         self._log_info(
-            "[mlebench-validate] ran exp_id=%s sdk_call_ok=%s is_valid=%s",
+            "[mlebench-validate] public-view validation ran exp_id=%s call_ok=%s is_valid=%s",
             exp_id,
             ok_call,
             is_valid,
         )
         if not is_valid:
             err_detail = (
-                f"exp_id={exp_id!r} sdk_call_ok={ok_call}\n{result_text}"
+                f"exp_id={exp_id!r} validator_call_ok={ok_call}\n{result_text}"
             )
             return False, err_detail, (exp_id, ok_call, result_text)
         suffix = (
             f"\n\n[MLE-bench submission validation] exp_id={exp_id!r} "
-            f"is_valid={is_valid} sdk_call_ok={ok_call}\n{result_text}"
+            f"is_valid={is_valid} validator_call_ok={ok_call}\n{result_text}"
         )
         return True, suffix, (exp_id, ok_call, result_text)
 
@@ -931,7 +914,7 @@ class EmbeddedFullRunMixin:
     ) -> str | None:
         """If quick-test passed, run full ``python3 solution.py``.
 
-        On **success** (exit 0): optionally run MLE-bench ``validate_submission``; if invalid,
+        On **success** (exit 0): optionally validate against the public dataset view; if invalid,
         still append full-run + validation (``is_valid: false``) to ``result.md`` when enabled,
         then inject a user message, reset the embedded flag, and return ``None`` so the agent can fix.
         If valid or validation skipped, append ``result.md`` and end the session (return message).

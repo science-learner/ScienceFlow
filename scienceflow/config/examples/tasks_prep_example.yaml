@@ -11,7 +11,6 @@ defaults:
   config: scienceflow/config/default.yaml
   phase: prep
   workspace_base: ./workspaces/DATE_run/prep_example
-  mlebench_data_root_dir: ./data/mlebench_all_data
 
 tasks:
   - exp_id: nomad2018-predict-transparent-conductors

@@ -15,7 +15,6 @@ defaults:
   phase: run
   type: lnr
   workspace_base: ./workspaces/DATE_run/example_multi_task
-  mlebench_data_root_dir: ./data/mlebench_all_data
 
 lnr:
   wall_clock_budget_sec: 43200

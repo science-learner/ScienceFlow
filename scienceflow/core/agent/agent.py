@@ -226,7 +226,6 @@ class ScienceAgent(
         lnr_llm_turns_log_path: str | Path | None = None,
         sft_data_log_path: str | Path | None = None,
         mlebench_validate_after_embedded_full_run: bool = False,
-        mlebench_data_dir: str | None = None,
         mlebench_exp_id: str | None = None,
         lnr_mlebench_validate_enabled: bool = True,
         lnr_run_control_max_fix_rounds: int = 5,
@@ -522,8 +521,6 @@ class ScienceAgent(
         self._mlebench_validate_after_embedded_full_run = bool(
             mlebench_validate_after_embedded_full_run,
         )
-        _mdd = mlebench_data_dir
-        self._mlebench_data_dir = str(_mdd).strip() if isinstance(_mdd, str) and _mdd.strip() else None
         _me = mlebench_exp_id
         self._mlebench_exp_id = str(_me).strip() if isinstance(_me, str) and _me.strip() else None
         self._lnr_mlebench_validate_enabled = bool(lnr_mlebench_validate_enabled)

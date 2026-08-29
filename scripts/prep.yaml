@@ -18,7 +18,6 @@ defaults:
   phase: prep
   config: scienceflow/config/default.yaml
   workspace_base: ./workspaces/manual_data_prep
-  mlebench_data_root_dir: ./data/mlebench_all_data
   qa_max_steps: 80
   scienceflow_bash_timeout_sec: 3600
   scienceflow_bash_timeout_slow_sec: 3600

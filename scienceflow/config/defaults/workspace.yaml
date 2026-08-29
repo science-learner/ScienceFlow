@@ -5,6 +5,5 @@ workspace:
   task_workspace_root_dir: .
   input_data_dir: .
   exp_id: ''
-  mlebench_data_root_dir: ''
   enable_time_trace: true
   max_messages: 240
