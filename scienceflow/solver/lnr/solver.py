@@ -9245,7 +9245,16 @@ class LnrSolver:
             or "omitted-history main-agent request" in lower
         ):
             return "context_compact_failed"
-        if "llm_api_error" in lower or "apistatuserror" in lower:
+        if (
+            "llm_api_error" in lower
+            or "apistatuserror" in lower
+            # run3's Cloudflare-tunnel 524 raised InternalServerError whose text
+            # includes "timeout occurred" — without these matches the broad
+            # "timeout" branch below would mislabel it worker_timeout. Keep this
+            # branch ahead of that one.
+            or "internalservererror" in lower
+            or "error code: 5" in lower
+        ):
             return "llm_api_error"
         if (
             "separator is found, but chunk is longer than limit" in lower

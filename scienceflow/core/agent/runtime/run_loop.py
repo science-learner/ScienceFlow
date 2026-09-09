@@ -129,6 +129,80 @@ def _is_retryable_empty_tool_stream_error(exc: BaseException) -> bool:
     return isinstance(exc, httpx.TransportError) and not isinstance(exc, httpx.TimeoutException)
 
 
+# Cap for any retry delay extracted from an error body/header. Upstream gateways
+# may ask for long waits (e.g. 524 with retry_after=120) — honoring them is the
+# whole point, but an unbounded value must never eclipse the training wall clock.
+_LLM_RETRY_DELAY_CAP_SEC = 300.0
+
+
+def _is_retryable_llm_error(exc: BaseException) -> bool:
+    """True for transient LLM-endpoint failures that a same-round retry can fix.
+
+    Superset of :func:`_is_retryable_empty_tool_stream_error` — keeps the two
+    original empty-stream classes and adds:
+
+    - OpenAI API errors with a retryable 5xx status (524/502/503/529 ...);
+    - OpenAI connection errors (endpoint unreachable / reset mid-request);
+    - httpx timeouts (transport level; the streaming call failed before any
+      assistant message entered memory, so replaying the round is side-effect
+      free).
+    """
+    if _is_retryable_empty_tool_stream_error(exc):
+        return True
+    try:
+        import openai
+    except ImportError:  # pragma: no cover - openai is a hard dependency here
+        return False
+    if isinstance(exc, openai.APIStatusError):
+        return int(getattr(exc, "status_code", 0) or 0) >= 500
+    if isinstance(exc, openai.APIConnectionError):
+        return True
+    return isinstance(exc, httpx.TimeoutException)
+
+
+def _retry_after_seconds_from_exc(exc: BaseException) -> float | None:
+    """Extract a retry delay (seconds) the endpoint asked for, if any.
+
+    Checks, in order: the OpenAI SDK exception attributes (``retry_after`` /
+    ``retry-after`` header, per RFC case-insensitivity), then a JSON error body
+    (some gateways put ``retry_after`` only in the body, e.g. Cloudflare-tunnel
+    524 responses). Returns ``None`` when no usable value is found; callers cap
+    the result at :data:`_LLM_RETRY_DELAY_CAP_SEC`.
+    """
+
+    def _coerce(value: Any) -> float | None:
+        try:
+            seconds = float(value)
+        except (TypeError, ValueError):
+            return None
+        return seconds if seconds >= 0 else None
+
+    for attr in ("retry_after", "retry-after"):
+        seconds = _coerce(getattr(exc, attr, None))
+        if seconds is not None:
+            return seconds
+    body = getattr(exc, "body", None)
+    if isinstance(body, dict):
+        seconds = _coerce(body.get("retry_after"))
+        if seconds is None:
+            seconds = _coerce(body.get("retry-after"))
+        if seconds is not None:
+            return seconds
+    response = getattr(exc, "response", None)
+    if response is not None:
+        try:
+            raw = response.json()
+        except Exception:
+            raw = None
+        if isinstance(raw, dict):
+            seconds = _coerce(raw.get("retry_after"))
+            if seconds is None:
+                seconds = _coerce(raw.get("retry-after"))
+            if seconds is not None:
+                return seconds
+    return None
+
+
 class RunLoopMixin:
     """Drive multi-round LLM + tool execution until completion or limit."""
 
@@ -493,7 +567,11 @@ class RunLoopMixin:
         hook_recovery: bool,
         timeout_log_label: str,
     ) -> tuple[Any, bool, float]:
-        """Run ``ask_tool_stream`` with retries on empty-stream failures.
+        """Run ``ask_tool_stream`` with same-round retries on transient failures.
+
+        Retries empty/incomplete streams, retryable 5xx / connection errors and
+        transport timeouts (see :func:`_is_retryable_llm_error`); the backoff
+        honors any ``retry_after`` the endpoint sent, capped at 300 s.
 
         Returns
         -------
@@ -628,20 +706,28 @@ class RunLoopMixin:
                         continue
                 if (
                     attempt + 1 < max_a
-                    and _is_retryable_empty_tool_stream_error(exc)
+                    and _is_retryable_llm_error(exc)
                 ):
+                    asked_delay = _retry_after_seconds_from_exc(exc)
+                    delay = (
+                        min(asked_delay, _LLM_RETRY_DELAY_CAP_SEC)
+                        if asked_delay is not None
+                        else min(base_d * (2**attempt), max_d)
+                    )
                     logger.warning(
                         "[llm-retry] round=%s attempt=%d/%d %s: %r "
-                        "(same round; backoff before retry)",
+                        "(same round; backoff %.1fs before retry)",
                         round_idx,
                         attempt + 1,
                         max_a,
                         type(exc).__name__,
                         exc,
+                        delay,
                     )
                     print(
                         f"[ScienceAgent] LLM stream failed, retrying same round "
-                        f"({attempt + 1}/{max_a}): {type(exc).__name__}: {exc!r}",
+                        f"({attempt + 1}/{max_a}) after {delay:.1f}s: "
+                        f"{type(exc).__name__}: {exc!r}",
                         file=sys.stderr,
                     )
                     if not handle.interrupted:
@@ -654,7 +740,6 @@ class RunLoopMixin:
                         "error",
                         recovery=False,
                     )
-                    delay = min(base_d * (2**attempt), max_d)
                     await asyncio.sleep(delay)
                     continue
                 logger.exception(
