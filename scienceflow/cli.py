@@ -351,6 +351,16 @@ def _install_cleanup_signals() -> None:
     Called once at CLI entry.  The handler sends SIGTERM to every process
     group in the live registry, waits 5 s, then sends SIGKILL to survivors,
     and finally reinstates the default handler so the process exits normally.
+
+    SIGHUP is skipped when it is already SIG_IGN at startup: that disposition
+    was set by the launcher (nohup / ``trap '' HUP``) and survives exec, so
+    installing a handler here would strip the launcher's immunity and let
+    session-teardown SIGHUPs kill the orchestrator (observed: a nohup-launched
+    12h run was silently swept away by a SIGHUP the launcher meant to block).
+    Children are unaffected: they run in their own sessions
+    (start_new_session=True) and carry PR_SET_PDEATHSIG, so terminal SIGHUP
+    never reaches them and orphan cleanup is guaranteed by the kernel if this
+    process dies anyway.
     """
     from scienceflow.core.subprocess_utils import _LIVE_PGIDS
 
@@ -375,6 +385,11 @@ def _install_cleanup_signals() -> None:
 
     for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
         try:
+            # Respect a launcher-installed ignore disposition (nohup's SIGHUP
+            # immunity).  SIG_IGN survives exec; a handler would not, and
+            # installing one silently disarms the launcher's protection.
+            if sig is signal.SIGHUP and signal.getsignal(sig) is signal.SIG_IGN:
+                continue
             signal.signal(sig, _handler)
         except (OSError, ValueError):
             pass  # SIGHUP unavailable on some platforms
