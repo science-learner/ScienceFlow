@@ -445,6 +445,16 @@ class LnrSolver:
         self.initial_workspace_state = ""
         self.last_captured_run_signature = ""
         self.last_stage_commit_ts = 0.0
+        # Plan A (estra-compaction feedback loss): process-local aggregate of
+        # duplicate submissions rejected by the content-hash gate. Incremented
+        # at the same site that emits duplicate_candidate_pre_gate_skipped so
+        # event log and counter can never diverge; restated deterministically
+        # by _build_lhr_state_packet so the fact survives estra memory rebuilds.
+        # NOTE: intentionally NOT rebuilt from disk on init — if worker-level
+        # recovery (improvement 2 D) ever lands, rebuild it from the
+        # duplicate_candidate_pre_gate_skipped count in lhr_stage_events.jsonl.
+        self._duplicate_rejection_count = 0
+        self._last_duplicate_of_stage = ""
         self._s01_eda_prefix_end_index: int | None = None
         self._s01_agent_eda_summary = ""
         self.last_estra_stage_count = 0
@@ -2734,6 +2744,18 @@ class LnrSolver:
                 f"Best known restorable stage: {best or '(unknown)'}",
                 f"ESTRA reason: {self._compact_event_text(reason, max_chars=360)}",
             ]
+            # Plan A: deterministic aggregate fact line (no LLM generation).
+            # Present only when N > 0; zero-duplicate runs pay no character cost.
+            # Header placement survives shrink level 3 (which truncates the tail),
+            # and the line rides every estra decision's resume prompt, strict
+            # and normal strengths alike.
+            dup_count = int(getattr(self, "_duplicate_rejection_count", 0) or 0)
+            if dup_count > 0:
+                lines.append(
+                    f"Submissions: {dup_count} duplicate attempts rejected "
+                    "(content hash unchanged; re-evaluation will not produce "
+                    "a new version)"
+                )
             for label, key in (
                 ("Exploration summary", "exploration_summary"),
                 ("ESTRA bottleneck", "bottleneck"),
@@ -8006,6 +8028,27 @@ class LnrSolver:
                         "stage_policy": "deduplicate_before_gate",
                     },
                 )
+                # Plan A: single write point — counter and event are bumped in
+                # the same branch, structurally unable to diverge. The LHR state
+                # packet (built at each estra decision) restates this aggregate
+                # so the fact survives estra memory rebuilds. The getattr guard
+                # mirrors the read in _build_lhr_state_packet: construction paths
+                # that bypass __init__ (e.g. object.__new__ in tests) must still
+                # increment cleanly instead of raising AttributeError.
+                self._duplicate_rejection_count = (
+                    int(getattr(self, "_duplicate_rejection_count", 0) or 0) + 1
+                )
+                self._last_duplicate_of_stage = str(prior_snapshot.stage_id or "")
+                # 2026-09-04 rollback: this branch used to return
+                # SUBMISSION_FEEDBACK text (6.1), which single.py then injected
+                # into agent memory on every duplicate — but a duplicate capture
+                # is not an agent action (every successful bash triggers the
+                # callback), so the feedback had nothing to correct and each
+                # injection only bought an interrupted round plus a fresh LLM
+                # turn to process it (run4: 475x). Reverted to silent skip;
+                # the event log line and the counter above are kept (log and
+                # context-compaction channels). See
+                # doc/scienceflow_debug_2026-09-04_evaluator_primary_capture_trigger.md.
                 return None
             if observed_artifact_sha and observed_artifact_sha == str(
                 getattr(self, "_last_metric_missing_gate_artifact_sha", "") or ""
@@ -10093,10 +10136,24 @@ class LnrSolver:
                 if resume_early_out is not None:
                     out = resume_early_out
                     resume_early_out = None
+                    run_return_source = "resume_early_out"
                 else:
                     out = await agent.run(request)
                     self._accumulate_main_run_tokens(agent)
-                _ = out
+                    run_return_source = "agent_run"
+                # Auditable discard: the REPL deliberately consumes no return
+                # value of agent.run() (conversation memory is the channel),
+                # but log what crossed it so delivery failures like the 6.1
+                # duplicate-rejection feedback are visible in the event trail.
+                self._jsonl(
+                    "lhr_repl_events.jsonl",
+                    {
+                        "event": "repl_agent_run_returned",
+                        "source": run_return_source,
+                        "early_out": bool(out),
+                        "preview": str(out or "")[:200],
+                    },
+                )
                 request = None
                 if self.evaluator_stop_requested:
                     stop_reason = (
