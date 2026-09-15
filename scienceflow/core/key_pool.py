@@ -18,7 +18,10 @@ distributes requests across multiple (base_url, api_key) pairs.
 When every key returns a rate limit in one pass, the pool waits until the
 earliest cooldown expires (bounded by ``SCIENCEFLOW_POOL_RL_MAX_WAIT_SEC``,
 default 300s) instead of failing immediately — useful when several keys share
-one upstream RPM limit.
+one upstream RPM limit. The same wait-and-retry applies when every key fails
+with a retryable 5xx / connection error (bounded by
+``SCIENCEFLOW_POOL_5XX_RETRY_BUDGET_SEC``, default 600s; the two budgets share
+one wall-clock deadline per call).
 
 Typical usage::
 
@@ -55,6 +58,23 @@ COOLDOWN_CONNECTION = 15.0
 # After every key hits rate limit in one pass, wait until the earliest slot unlocks and retry
 # (bounded by this wall-clock budget per _call_with_failover invocation).
 _DEFAULT_POOL_RL_MAX_WAIT_SEC = 300.0
+# Wall-clock budget for the wait-and-retry when every key fails with a
+# retryable 5xx / connection error in one pass (a shared upstream gateway
+# outage takes all keys down at once). Shares the per-call deadline with
+# SCIENCEFLOW_POOL_RL_MAX_WAIT_SEC.
+_DEFAULT_POOL_5XX_RETRY_BUDGET_SEC = 600.0
+# Cooldown applied to a key after a retryable 5xx when the error itself does
+# not name a retry_after. Shorter than the rate-limit cooldown: 5xx on a
+# shared gateway usually clears on the order of its own retry_after (or well
+# under a minute for a transient flap).
+COOLDOWN_SERVER_ERROR = 30.0
+# Sleep used when all keys failed with retryable 5xx but no retry_after is
+# available anywhere.
+_5XX_FALLBACK_WAIT_SEC = 60.0
+# No error body may ever make the pool wait longer than this per pass —
+# the deadline budget guards the total, but a single absurd value must not
+# consume it in one sleep.
+_POOL_WAIT_CAP_SEC = 300.0
 # Same-key soft-retry delay (seconds). After a transient connection-class error
 # we wait briefly and retry the same key once before cooling it down. Targets
 # the keep-alive death case where the first attempt reuses a stale socket but
@@ -154,6 +174,66 @@ def _retry_after_seconds(exc: BaseException, default: float) -> float:
             return default
 
 
+def _retry_after_seconds_full(exc: BaseException, default: float) -> float:
+    """Retry-After from headers, OpenAI SDK attrs, or the JSON error body.
+
+    Some gateways only put ``retry_after`` in the response body (run3's
+    Cloudflare-tunnel 524 sent ``{'retryable': True, 'retry_after': 120}``
+    with no usable header) — a headers-only lookup would throw that hint away.
+    """
+    value = getattr(exc, "retry_after", None) or getattr(exc, "retry-after", None)
+    if value is None:
+        body = getattr(exc, "body", None)
+        if isinstance(body, dict):
+            value = body.get("retry_after")
+            if value is None:
+                value = body.get("retry-after")
+    if value is not None:
+        try:
+            return max(0.0, float(value))
+        except (TypeError, ValueError):
+            pass
+    response = getattr(exc, "response", None)
+    if response is not None:
+        json_getter = getattr(response, "json", None)
+        if callable(json_getter):
+            try:
+                raw = json_getter()
+            except Exception:
+                raw = None
+            if isinstance(raw, dict):
+                value = raw.get("retry_after")
+                if value is None:
+                    value = raw.get("retry-after")
+                if value is not None:
+                    try:
+                        return max(0.0, float(value))
+                    except (TypeError, ValueError):
+                        pass
+    return _retry_after_seconds(exc, default)
+
+
+def _is_retryable_5xx_error(exc: BaseException) -> bool:
+    """True for server-side failures where waiting and retrying can succeed.
+
+    Retryable here means a 5xx status (524/502/503/529 ...) or a
+    connection-level failure of the same shared upstream — exactly the case
+    where every key in the pool fails at once and immediate failure is wrong.
+    Client errors (4xx), including rate limits (handled by their own branch),
+    are NOT retryable here.
+    """
+    from openai import APIConnectionError, APIStatusError
+
+    if isinstance(exc, APIConnectionError):
+        return True
+    if isinstance(exc, APIStatusError):
+        try:
+            return int(getattr(exc, "status_code", 0) or 0) >= 500
+        except (TypeError, ValueError):
+            return False
+    return False
+
+
 class PooledLLM:
     """Drop-in replacement for ``OnlineLLM`` that rotates across multiple keys.
 
@@ -174,6 +254,7 @@ class PooledLLM:
         sticky_primary_index: int | None = None,
         rate_limit_cooldown_sec: float = COOLDOWN_RATE_LIMIT,
         connection_cooldown_sec: float = COOLDOWN_CONNECTION,
+        server_error_cooldown_sec: float = COOLDOWN_SERVER_ERROR,
     ):
         if not instances:
             raise ValueError("PooledLLM requires at least one OnlineLLM instance")
@@ -196,6 +277,7 @@ class PooledLLM:
             self._primary_idx = max(0, min(int(sticky_primary_index), self._pool.size - 1))
         self._rate_limit_cooldown_sec = max(0.0, float(rate_limit_cooldown_sec))
         self._connection_cooldown_sec = max(0.0, float(connection_cooldown_sec))
+        self._server_error_cooldown_sec = max(0.0, float(server_error_cooldown_sec))
         self._last_call_pool_index: int | None = None
         self._last_call_routing_mode = self._routing_mode
         self._last_call_failover_count = 0
@@ -229,6 +311,7 @@ class PooledLLM:
                 "sticky_primary_index",
                 "rate_limit_cooldown_sec",
                 "connection_cooldown_sec",
+                "server_error_cooldown_sec",
             )
             if name in llm_kwargs
         }
@@ -273,9 +356,21 @@ class PooledLLM:
         If *all* keys return rate-limit in one sweep, wait until the earliest cooldown
         expires (up to ``SCIENCEFLOW_POOL_RL_MAX_WAIT_SEC``, default 300) and retry, so a
         short RPM burst does not fail the whole agent step when keys share one upstream.
+
+        If *all* keys instead fail with retryable 5xx / connection errors in one
+        sweep (a shared upstream gateway outage takes every key down at once),
+        sleep for the longest retry_after asked for (or 60 s when none) and retry
+        — bounded by ``SCIENCEFLOW_POOL_5XX_RETRY_BUDGET_SEC`` (default 600),
+        sharing the same wall-clock deadline as the rate-limit budget.
         """
         max_wait = float(os.getenv("SCIENCEFLOW_POOL_RL_MAX_WAIT_SEC", str(_DEFAULT_POOL_RL_MAX_WAIT_SEC)))
-        deadline = time.monotonic() + max(0.0, max_wait)
+        budget_5xx = float(
+            os.getenv(
+                "SCIENCEFLOW_POOL_5XX_RETRY_BUDGET_SEC",
+                str(_DEFAULT_POOL_5XX_RETRY_BUDGET_SEC),
+            )
+        )
+        deadline = time.monotonic() + max(0.0, max_wait, budget_5xx)
         last_err: Exception | None = None
         failover_count = 0
 
@@ -310,13 +405,8 @@ class PooledLLM:
                             "treating as rate limit (upstream may wrap quota errors)."
                         )
                     logger.warning(f"[PooledLLM] Key #{idx} rate-limited, trying next...")
-                except (
-                    APIError,
-                    ConnectionError,
-                    OSError,
-                    TimeoutError,
-                    httpx.ReadTimeout,
-                ) as e:
+                except (APIError, ConnectionError, OSError, TimeoutError, httpx.ReadTimeout) as e:
+                    e_is_retryable_5xx = _is_retryable_5xx_error(e)
                     if is_missing_reasoning_replay_error(e):
                         last_err = e
                         logger.warning(
@@ -326,6 +416,26 @@ class PooledLLM:
                             idx,
                         )
                         raise
+                    # Same-key soft retry once before cooldown. Targets keep-alive
+                    # death: the first attempt may reuse a stale connection, but a
+                    # second attempt (after the brief pause) opens a fresh one.
+                    # Without this, a single dead idle connection per key cools
+                    # all 6 keys within seconds (observed on az.gptplus5.com after
+                    # teleport node transitions). A retryable 5xx already received
+                    # a full response — skip the soft retry (sleeping twice is
+                    # pure waste); its all-keys wait happens after the sweep.
+                    if e_is_retryable_5xx:
+                        cooldown = _retry_after_seconds_full(e, self._server_error_cooldown_sec)
+                        self._pool.cooldown(idx, cooldown)
+                        last_err = e
+                        logger.warning(
+                            "[PooledLLM] Key #%d retryable server error (%s, status=%s), "
+                            "trying next...",
+                            idx,
+                            type(e).__name__,
+                            getattr(e, "status_code", "?"),
+                        )
+                        continue
                     # Same-key soft retry once before cooldown. Targets keep-alive
                     # death: the first attempt may reuse a stale connection, but a
                     # second attempt (after the brief pause) opens a fresh one.
@@ -357,7 +467,15 @@ class PooledLLM:
                         TimeoutError,
                         httpx.ReadTimeout,
                     ) as e2:
-                        self._pool.cooldown(idx, self._connection_cooldown_sec)
+                        # 5xx failures after the soft retry still join the
+                        # all-keys wait below; they get the server-error
+                        # cooldown, not the connection cooldown.
+                        cooldown = (
+                            _retry_after_seconds_full(e2, self._server_error_cooldown_sec)
+                            if _is_retryable_5xx_error(e2)
+                            else self._connection_cooldown_sec
+                        )
+                        self._pool.cooldown(idx, cooldown)
                         last_err = e2
                         logger.warning(
                             "[PooledLLM] Key #%d error after soft-retry (%s), trying next...",
@@ -378,6 +496,24 @@ class PooledLLM:
 
             if last_err is None:
                 raise RuntimeError("PooledLLM: no keys available")
+            if _is_retryable_5xx_error(last_err):
+                # Shared-upstream outage: every key failed with a retryable 5xx
+                # (or connection error after soft-retry). Wait until the earliest
+                # cooldown unlocks — cooldowns already honor the longest
+                # retry_after seen — then re-sweep inside the deadline loop.
+                wait = self._pool.seconds_until_earliest_unlock()
+                now = time.monotonic()
+                slip = min(wait + 0.25, _POOL_WAIT_CAP_SEC, max(0.0, deadline - now))
+                if slip > 0.05 and now + slip <= deadline:
+                    logger.info(
+                        "[PooledLLM] All keys hit retryable server errors this pass; "
+                        "waiting %.1fs (5xx budget %.0fs)",
+                        slip,
+                        budget_5xx,
+                    )
+                    await asyncio.sleep(slip)
+                    continue
+                raise last_err
             if isinstance(last_err, RateLimitError):
                 wait = self._pool.seconds_until_earliest_unlock()
                 now = time.monotonic()
@@ -395,7 +531,7 @@ class PooledLLM:
 
         if last_err is not None:
             raise last_err
-        raise RuntimeError("PooledLLM: rate-limit wait budget exhausted")
+        raise RuntimeError("PooledLLM: wait budget exhausted (rate-limit / retryable 5xx)")
 
     # ------------------------------------------------------------------
     # Public API — mirrors OnlineLLM
