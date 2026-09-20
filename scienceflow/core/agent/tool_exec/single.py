@@ -799,6 +799,18 @@ class SingleToolExecMixin:
             ):
                 lhr_out = await lhr_stage_cb(agent=self, args=args, tool_result=tool_result)
                 if lhr_out:
+                    # The LNR REPL may discard the run() return value (`_ = out`
+                    # in solver._run_single), so the feedback must also live in
+                    # the conversation memory to reach the agent on the next
+                    # round (e.g. duplicate-candidate rejection, 6.1). Follows
+                    # the existing guard-injection pattern below.
+                    self._add_message_after_current_tool_bundle(
+                        Message.user_message(str(lhr_out)),
+                    )
+                    self._log_info(
+                        "[stage-capture-feedback] %s",
+                        truncate_for_interaction_log(str(lhr_out)),
+                    )
                     self._sync_last_run_token_totals()
                     return (str(lhr_out), effective_max)
             if (
