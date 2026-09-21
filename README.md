@@ -158,8 +158,8 @@ Pinning the version prevents a test environment from changing when a later previ
 Container and Compose usage lives in [`deploy/README.md`](deploy/README.md).
 
 ```bash
-pip install scienceflow==0.2.0b2
-pip install "scienceflow[full]"==0.2.0b2
+pip install scienceflow==0.2.0b3
+pip install "scienceflow[full]"==0.2.0b3
 ```
 
 ## Configuration essentials
