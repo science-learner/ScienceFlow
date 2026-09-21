@@ -25,16 +25,16 @@ TUI and Web monitor.
 <p align="justify"><strong>Requirements:</strong> Python 3.11+ and access to a supported model API.</p>
 
 ```bash
-uv tool install scienceflow==0.2.0b3
+uv tool install scienceflow==0.2.0b4
 scienceflow config init
 scienceflow config path     # edit the generated private model registry
 scienceflow tui --workspace "$PWD/sf_workspace"
 ```
 
 <p align="justify">
-<code>pipx install scienceflow==0.2.0b3</code> is an equivalent isolated installation.
+<code>pipx install scienceflow==0.2.0b4</code> is an equivalent isolated installation.
 Inside an activated virtual environment, use
-<code>python -m pip install scienceflow==0.2.0b3</code>. On Debian and Ubuntu, avoid
+<code>python -m pip install scienceflow==0.2.0b4</code>. On Debian and Ubuntu, avoid
 bypassing PEP 668 with <code>--break-system-packages</code>.
 </p>
 
@@ -153,7 +153,7 @@ dependencies only when needed:
 </p>
 
 ```bash
-python -m pip install "scienceflow[full]"==0.2.0b3
+python -m pip install "scienceflow[full]"==0.2.0b4
 ```
 
 <p align="justify">
