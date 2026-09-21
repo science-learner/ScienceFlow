@@ -14,17 +14,17 @@ from __future__ import annotations
 
 import pytest
 
-from scienceflow.core.tools.bash_tool import _parse_progress_signals
-from scienceflow.solver.lnr.global_merge.fallback import infer_lower_is_better
-from scienceflow.solver.lnr.resource_runtime.metric_history import is_metric_history_line
-from scienceflow.solver.lnr.resource_runtime.review.efficiency import (
+from scienceflow.runtime.safety.tooling.bash import _parse_progress_signals
+from scienceflow.research.quality.finalization.selection.ranking import infer_lower_is_better
+from scienceflow.research.solver.lnr.resources.runtime.execution.state.metric_history import is_metric_history_line
+from scienceflow.research.solver.lnr.resources.runtime.review.decision.efficiency import (
     assess_resource_efficiency,
     cpu_set_count,
 )
-from scienceflow.solver.lnr.resource_runtime.review.execution_facts import (
+from scienceflow.research.solver.lnr.resources.runtime.review.decision.execution_facts import (
     build_execution_facts,
 )
-from scienceflow.solver.lnr.resource_runtime.review.state_generation import (
+from scienceflow.research.solver.lnr.resources.runtime.review.evidence.state_generation import (
     build_resource_state_generation,
 )
 from tests.lnr_resource_test_utils import make_observer

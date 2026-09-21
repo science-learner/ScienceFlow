@@ -19,13 +19,13 @@ import re
 
 import pytest
 
-from scienceflow.core.tools.bash_tool import BashTool, _parse_progress_signals
-from scienceflow.core.tools.resource_classifier import (
+from scienceflow.runtime.safety.tooling.bash import BashTool, _parse_progress_signals
+from scienceflow.runtime.safety.tooling.resource_management.resource_policy import (
     RESOURCE_HEAVY_CPU_CANDIDATE,
     RESOURCE_HEAVY_GPU_CANDIDATE,
     classify_bash_command,
 )
-from scienceflow.solver.lnr.resource_runtime.unified_store import (
+from scienceflow.research.solver.lnr.resources.runtime.execution.state.unified_store import (
     UnifiedResourceStore,
     format_resource_run_summary,
     summarize_resource_run,
@@ -389,7 +389,7 @@ def test_idle_gpu_lease_guard_releases_by_default_when_safe(tmp_path, monkeypatc
             ],
         }
 
-    monkeypatch.setattr("scienceflow.solver.lnr.resource_runtime.runtime.sample_nvidia_smi", fake_sample)
+    monkeypatch.setattr("scienceflow.research.solver.lnr.resources.runtime.execution.facade.sample_nvidia_smi", fake_sample)
     observer, sm = make_observer(
         tmp_path,
         worker_id="W00",
@@ -447,9 +447,9 @@ def test_gpu_active_bucket_requires_job_process_gpu_usage(tmp_path, monkeypatch)
             "violations": [],
         }
 
-    monkeypatch.setattr("scienceflow.solver.lnr.resource_runtime.runtime.sample_nvidia_smi", busy_card_sample)
+    monkeypatch.setattr("scienceflow.research.solver.lnr.resources.runtime.execution.facade.sample_nvidia_smi", busy_card_sample)
     monkeypatch.setattr(
-        "scienceflow.solver.lnr.resource_runtime.observer.controller.process_tree_gpu_placement_snapshot",
+        "scienceflow.research.solver.lnr.resources.runtime.observer.controller.process_tree_gpu_placement_snapshot",
         no_process_gpu_usage,
     )
     observer, sm = make_observer(
@@ -541,7 +541,7 @@ def test_runtime_red_pressure_allows_cpu_support_but_blocks_gpu_train(tmp_path, 
             ],
         }
 
-    monkeypatch.setattr("scienceflow.solver.lnr.resource_runtime.runtime.sample_nvidia_smi", busy_sample)
+    monkeypatch.setattr("scienceflow.research.solver.lnr.resources.runtime.execution.facade.sample_nvidia_smi", busy_sample)
     observer.resource_runtime.record_queue_timeout_pressure(
         job_id="gpu-train-1",
         resource_class=RESOURCE_HEAVY_GPU_CANDIDATE,
@@ -602,7 +602,7 @@ def test_red_pressure_reconciles_when_gpu_is_observed_free(tmp_path, monkeypatch
             ],
         }
 
-    monkeypatch.setattr("scienceflow.solver.lnr.resource_runtime.runtime.sample_nvidia_smi", fake_sample)
+    monkeypatch.setattr("scienceflow.research.solver.lnr.resources.runtime.execution.facade.sample_nvidia_smi", fake_sample)
 
     decision = observer.resource_runtime.pressure_gate_decision(
         resource_class=RESOURCE_HEAVY_GPU_CANDIDATE,

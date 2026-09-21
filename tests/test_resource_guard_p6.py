@@ -16,9 +16,9 @@ import json
 
 import pytest
 
-from scienceflow.core.tools.bash_tool import BashTool, _executed_resource_termination_feedback
-from scienceflow.core.tools.resource_classifier import RESOURCE_PURE_TT_CPU
-from scienceflow.solver.lnr.resource_runtime.source_hints import ResourceSourceHint
+from scienceflow.runtime.safety.tooling.bash import BashTool, _executed_resource_termination_feedback
+from scienceflow.runtime.safety.tooling.resource_management.resource_policy import RESOURCE_PURE_TT_CPU
+from scienceflow.research.solver.lnr.resources.runtime.control.policy.source_hints import ResourceSourceHint
 from tests.lnr_resource_test_utils import event_types, make_observer, payloads
 
 
@@ -308,7 +308,7 @@ def test_idle_gpu_lease_guard_can_terminate_without_queue_pressure(tmp_path, mon
             ],
         }
 
-    monkeypatch.setattr("scienceflow.solver.lnr.resource_runtime.runtime.sample_nvidia_smi", fake_sample)
+    monkeypatch.setattr("scienceflow.research.solver.lnr.resources.runtime.execution.facade.sample_nvidia_smi", fake_sample)
     observer, _sm = make_observer(
         tmp_path,
         worker_id="W00",
@@ -350,7 +350,7 @@ def test_dataloader_bottleneck_guard_can_terminate_low_gpu_high_cpu(tmp_path, mo
             ],
         }
 
-    monkeypatch.setattr("scienceflow.solver.lnr.resource_runtime.runtime.sample_nvidia_smi", fake_sample)
+    monkeypatch.setattr("scienceflow.research.solver.lnr.resources.runtime.execution.facade.sample_nvidia_smi", fake_sample)
     observer, _sm = make_observer(
         tmp_path,
         worker_id="W00",
@@ -549,7 +549,7 @@ def test_idle_gpu_lease_release_keeps_cpu_only_process_alive_path(tmp_path, monk
             ],
         }
 
-    monkeypatch.setattr("scienceflow.solver.lnr.resource_runtime.runtime.sample_nvidia_smi", fake_sample)
+    monkeypatch.setattr("scienceflow.research.solver.lnr.resources.runtime.execution.facade.sample_nvidia_smi", fake_sample)
     (tmp_path / "train.py").write_text("print('cpu xgboost style train')\n", encoding="utf-8")
     observer, sm = make_observer(
         tmp_path,
@@ -615,7 +615,7 @@ def test_idle_gpu_lease_release_blocks_when_gpu_mem_not_small(tmp_path, monkeypa
             ],
         }
 
-    monkeypatch.setattr("scienceflow.solver.lnr.resource_runtime.runtime.sample_nvidia_smi", fake_sample)
+    monkeypatch.setattr("scienceflow.research.solver.lnr.resources.runtime.execution.facade.sample_nvidia_smi", fake_sample)
     observer, _sm = make_observer(
         tmp_path,
         worker_id="W00",
@@ -675,7 +675,7 @@ def test_idle_gpu_lease_release_allows_cuda_source_when_idle_small_mem(tmp_path,
             ],
         }
 
-    monkeypatch.setattr("scienceflow.solver.lnr.resource_runtime.runtime.sample_nvidia_smi", fake_sample)
+    monkeypatch.setattr("scienceflow.research.solver.lnr.resources.runtime.execution.facade.sample_nvidia_smi", fake_sample)
     (tmp_path / "train.py").write_text("import torch\nmodel = torch.nn.Linear(1, 1).to('cuda')\n", encoding="utf-8")
     observer, _sm = make_observer(
         tmp_path,

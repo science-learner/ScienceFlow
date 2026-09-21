@@ -15,8 +15,11 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from scienceflow.config.settings import Config, apply_parallel_manifest_agent_overrides
-from scienceflow.solver.lnr.solver import LnrSolver
+from scienceflow.foundation.config.schema.settings import (
+    Config,
+    apply_parallel_manifest_agent_overrides,
+)
+from scienceflow.research.solver.lnr.orchestration.solver import LnrSolver
 
 
 def _solver_for_worker(cfg: Config, *, worker_index: int, worker_count: int = 4):
@@ -75,6 +78,35 @@ def test_worker_code_models_cycle_shorter_lists_and_broadcast_single_url() -> No
     assert stage.api_keys == ["key-a", "key-b", "key-c", "key-a", "key-b", "key-c"]
     assert stage.base_url == "https://shared.example/v1"
     assert stage.base_urls == ["https://shared.example/v1"] * 6
+
+
+def test_worker_spreads_aliases_while_retaining_each_models_endpoints(tmp_path) -> None:
+    registry = tmp_path / "models.json"
+    registry.write_text(json.dumps({
+        "models": {
+            "deepseek": {
+                "model": "deepseek-v4-flash",
+                "endpoints": [
+                    {"url": "https://a.example/v1", "key": "a"},
+                    {"url": "https://b.example/v1", "key": "b"},
+                ],
+            },
+            "qwen": {
+                "model": "qwen3-coder",
+                "endpoints": [{"url": "https://c.example/v1", "key": "c"}],
+            },
+        }
+    }))
+    cfg = Config()
+    cfg.agent.code.model_aliases = ["deepseek", "qwen"]
+    cfg.agent.code.model_config_path = str(registry)
+
+    solver, _events = _solver_for_worker(cfg, worker_index=1)
+    stage = solver._worker_llm_stage_override()
+
+    assert stage.model_aliases == ["qwen", "deepseek"]
+    assert stage.models == ["qwen3-coder", "deepseek-v4-flash", "deepseek-v4-flash"]
+    assert stage.api_keys == ["c", "a", "b"]
 
 
 def test_worker_without_models_preserves_existing_sticky_key_pool_behavior() -> None:

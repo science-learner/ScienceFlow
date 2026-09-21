@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-from scienceflow.config.settings import load_cfg
+from scienceflow.foundation.config.schema.settings import load_cfg
 
 
 def test_config_include_relative_paths_and_local_override(tmp_path: Path):

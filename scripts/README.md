@@ -27,36 +27,37 @@ system-side evaluator at `tasks/<category>/<suite>/<task>/evaluator.py` or
 `tasks/<category>/<task>/evaluator.py`, and use the `task_package` backend in the
 manifest.
 
-Historical opt-solver command manifests are kept only as archived records; legacy
-evaluator wrappers are no longer maintained. To reproduce an experiment, migrate the
-old manifest to a `task_package` evaluator first. Data preparation runs through the
-data-prep agent of `scienceflow prep`, and task-shape rules live in `.scienceflow/skills/`.
+Historical and date-stamped experiment manifests are intentionally not kept here.
+Recover them from Git history or rebuild them in an experiment workspace when needed.
+Developer-facing architecture and contract checks live in `tools/`. Data preparation
+runs through the data-prep agent of `scienceflow prep`, and task-shape rules live in
+`.scienceflow/skills/`.
 
 ## Examples
 
 ```bash
-uv run python -m scienceflow.cli parallel -m scripts/prep.yaml -j 1
+uv run python -m scienceflow.interfaces.cli parallel -m scripts/prep.yaml -j 1
 
 # For tasks that need prep output, set later LNR input_data_dir to:
 # ./workspaces/manual_data_prep/<run_id>/<exp_id>/dataset
 
-uv run python -m scienceflow.cli parallel -m scripts/lnr.yaml -j 1
+uv run python -m scienceflow.interfaces.cli parallel -m scripts/lnr.yaml -j 1
 
-uv run python -m scienceflow.cli parallel -m scripts/lnr_nomad2018_3seed_cpu.yaml -j 3
+uv run python -m scienceflow.interfaces.cli parallel -m scripts/lnr_nomad2018_3seed_cpu.yaml -j 3
 
 ./scripts/monitor_lnr.sh scripts/lnr.yaml 5
 
 ./scripts/lnr_kill_resume.sh /path/to/<run_id>/<exp_id> \
-  --config scienceflow/config/default.yaml \
+  --config scienceflow/foundation/config/default.yaml \
   --input-data-dir ./data/mlebench_all_data/<exp_id>/prepared/public
 
-uv run python -m scienceflow.cli parallel -m scripts/lnr_two_tasks.yaml -j 2
+uv run python -m scienceflow.interfaces.cli parallel -m scripts/lnr_two_tasks.yaml -j 2
 ```
 
 ## Monitor Entry
 
 `monitor_lnr.sh` is the monitoring entry for LNR run status, not a task execution
-entry. It takes a manifest path, invokes the current `scienceflow.cli monitor`,
+entry. It takes a manifest path, invokes the current `scienceflow.interfaces.cli monitor`,
 reads the LNR logs from the task directory the manifest points to, and refreshes
 the display.
 
@@ -67,14 +68,14 @@ the display.
 - `<manifest.yaml>`: an LNR manifest that has already started or is about to be monitored.
 - `[refresh_sec]`: optional refresh interval, default `5` seconds.
 - The script only reads task logs/resource events/stage CSVs; it never starts, stops, or modifies tasks.
-- Experiments are still launched with `uv run python -m scienceflow.cli parallel -m ...`.
+- Experiments are still launched with `uv run python -m scienceflow.interfaces.cli parallel -m ...`.
 
 ## Configuration Notes
 
 - A `scripts/` manifest only records run deltas: tasks, workspace, resource isolation,
   budget, and the LNR/REPL parameters you actually need to override. Stable values such
   as REPL profile, bash tool, workspace git, stage capture, estra, resource monitor,
-  and log level come from `scienceflow/config/default.yaml`.
+  and log level come from `scienceflow/foundation/config/default.yaml`.
 - Resource management in canonical manifests only exposes `lnr.resource_control_mode`;
   the default is `resource_smart_llm`. Do not expand low-level switches such as
   arbiter/advisory/GPU share at the script top level.

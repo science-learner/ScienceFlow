@@ -19,12 +19,10 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from deepcraft_core import Message
-from deepcraft_core.tool import ToolCall
-from deepcraft_core.tool.base import Function
+from inquirycraft.memory import Function, Message, ToolCall
 
-from scienceflow.core.agent_runtime import create_agent_memory
-from scienceflow.core.mem.memory_context import (
+from scienceflow.research.state.knowledge.memory.records.agent_records import create_agent_memory
+from scienceflow.research.state.knowledge.context.memory_context import (
     MemoryContextManager,
     apply_clone_inherit_compression,
     apply_clone_minimal_slice_to_memory,

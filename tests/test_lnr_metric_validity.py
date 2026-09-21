@@ -18,21 +18,24 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from inquirycraft.memory import Message
 
-from scienceflow.solver.lnr.stage.metric_adjudication import (
+from scienceflow.research.solver.lnr.lifecycle.stage.metrics.metric_adjudication import (
     MetricValidityJudgment,
     adjudicate_metric_validity,
     parse_metric_output_interpretation_text,
     parse_metric_validity_judgment_text,
 )
-from scienceflow.solver.lnr.prompts import (
+from scienceflow.research.solver.lnr.support.prompts import (
     build_metric_output_interpreter_prompt,
     build_metric_output_interpreter_system_prompt,
     build_metric_validity_adjudicator_prompt,
     build_metric_validity_adjudicator_system_prompt,
 )
-from scienceflow.solver.lnr.stage.score_summary import build_stage_performance_score_summary
-from scienceflow.solver.lnr.solver import LnrSolver
+from scienceflow.research.solver.lnr.lifecycle.stage.metrics.score_summary import (
+    build_stage_performance_score_summary,
+)
+from scienceflow.research.solver.lnr.orchestration.solver import LnrSolver
 
 
 FIELDS = [
@@ -72,7 +75,9 @@ def _write_perf(path: Path, rows: list[dict[str, object]]) -> None:
             writer.writerow(row)
 
 
-def test_schema_fix_metric_validity_low_excluded_from_valid_best(tmp_path: Path) -> None:
+def test_schema_fix_metric_validity_low_excluded_from_valid_best(
+    tmp_path: Path,
+) -> None:
     perf = tmp_path / "lhr_stage_performance.csv"
     _write_perf(
         perf,
@@ -134,7 +139,9 @@ def test_schema_fix_metric_validity_low_excluded_from_valid_best(tmp_path: Path)
     assert summary["recommended_action"] == "metric_source_review"
 
 
-def test_same_validation_reason_code_excluded_from_valid_best_even_with_evaluator_ok(tmp_path: Path) -> None:
+def test_same_validation_reason_code_excluded_from_valid_best_even_with_evaluator_ok(
+    tmp_path: Path,
+) -> None:
     perf = tmp_path / "lhr_stage_performance.csv"
     _write_perf(
         perf,
@@ -204,7 +211,9 @@ def test_same_validation_reason_code_excluded_from_valid_best_even_with_evaluato
     assert summary["capture_gap"] is True
 
 
-def test_metric_adjudicator_system_veto_overrides_explicit_high_same_validation_meta() -> None:
+def test_metric_adjudicator_system_veto_overrides_explicit_high_same_validation_meta() -> (
+    None
+):
     fields = {
         "metric_value": 0.964891,
         "metric_name": "Final Validation Score",
@@ -448,7 +457,9 @@ def test_metric_adjudicator_llm_high_cannot_upgrade_unknown_protocol() -> None:
 
     assert adjudicated["metric_validity"] == "medium"
     assert adjudicated["selection_eligible"] is False
-    assert "conservative_merge_from_high_to_medium" in adjudicated["metric_validity_note"]
+    assert (
+        "conservative_merge_from_high_to_medium" in adjudicated["metric_validity_note"]
+    )
 
 
 def test_metric_validity_adjudicator_parses_direction_fields() -> None:
@@ -487,7 +498,9 @@ def test_metric_output_interpreter_parses_and_renders() -> None:
     assert interpretation.metric_value == 0.641136
     assert interpretation.evidence_line == "Best Validation wAUC: 0.641136"
     system = build_metric_output_interpreter_system_prompt()
-    user = build_metric_output_interpreter_prompt({"stdout_tail": "Best Validation wAUC: 0.641136"})
+    user = build_metric_output_interpreter_prompt(
+        {"stdout_tail": "Best Validation wAUC: 0.641136"}
+    )
     assert "MetricOutputInterpreter" in system
     assert "untrusted" in system
     assert "Best Validation wAUC" in user
@@ -519,10 +532,29 @@ def test_metric_output_interpreter_callback_uses_isolated_feedback_llm() -> None
     solver._metric_validity_feedback_llm = fake_llm
     solver._jsonl = lambda *_args, **_kwargs: None
     solver._accumulate_ephemeral_tokens = lambda *_args, **_kwargs: None
+    vars(solver).update(
+        {
+            "_next_stage_id_for_logging": lambda: "S02",
+            "_lineage_uid_prefix": lambda: "L01",
+            "_stage_node_uid": (lambda stage_id, **_kwargs: f"W00:L01:{stage_id}"),
+        }
+    )
+
+    async def run_ephemeral(prompt, **kwargs):
+        response = await (kwargs.get("llm_override") or fake_llm).ask_tool_stream(
+            messages=[Message.user_message(prompt)],
+            system_msgs=kwargs.get("system_messages") or [],
+            timeout=kwargs.get("timeout"),
+            tools=[],
+            tool_choice="none",
+            parallel_tool_calls=False,
+            collect_all_tool_calls=True,
+        )
+        return response.content
 
     result = asyncio.run(
         solver._metric_output_interpretation_callback(
-            agent=SimpleNamespace(),
+            agent=SimpleNamespace(run_ephemeral_agentic_route_prompt=run_ephemeral),
             stdout="best_val_wauc=0.641136\n",
             script_label="solution.py",
         )

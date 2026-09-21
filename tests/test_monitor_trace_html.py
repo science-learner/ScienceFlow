@@ -16,8 +16,8 @@ import csv
 import json
 from pathlib import Path
 
-from scienceflow.ui.monitor_trace.builder import _format_llm_display, build_monitor_trace_report
-from scienceflow.ui.monitor_trace.runner import run_monitor_trace
+from scienceflow.interfaces.ui.monitor_trace.presentation.builder import _format_llm_display, build_monitor_trace_report
+from scienceflow.interfaces.ui.monitor_trace.presentation.runner import run_monitor_trace
 
 
 def _write_csv(path: Path, rows: list[dict[str, object]]) -> None:

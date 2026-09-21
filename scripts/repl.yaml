@@ -1,14 +1,14 @@
 # Canonical compact REPL manifest. Runtime defaults come from
-# scienceflow/config/default.yaml; this file only keeps run-specific overrides.
+# scienceflow/foundation/config/default.yaml; this file only keeps run-specific overrides.
 #
 # Launch:
-#   uv run python -m scienceflow.cli repl -m scripts/repl.yaml
+#   uv run python -m scienceflow.interfaces.cli repl -m scripts/repl.yaml
 #
 # If the task needs semantic data preparation, run scripts/prep.yaml first and
 # point input_data_dir below to that prep workspace's dataset/ directory.
 
 defaults:
-  config: scienceflow/config/default.yaml
+  config: scienceflow/foundation/config/default.yaml
   workspace_base: ./workspaces/manual_repl
   qa_max_steps: 100000
   scienceflow_bash_timeout_sec: 3600

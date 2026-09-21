@@ -14,8 +14,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from scienceflow.solver.lnr.stage.stage_ledger import StageCard
-from scienceflow.solver.lnr.stage_memory import build_stage_memory_view, sync_current_segment
+from scienceflow.research.solver.lnr.lifecycle.stage.records.stage_ledger import StageCard
+from scienceflow.research.solver.lnr.lifecycle.records.stage_memory import build_stage_memory_view, sync_current_segment
 
 
 def _card(idx: int, *, metric: float | None = None, why_size: int = 700) -> StageCard:

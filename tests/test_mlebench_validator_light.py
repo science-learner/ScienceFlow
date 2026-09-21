@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from scienceflow.gates.evaluator.providers.mlebench import (
+from scienceflow.research.quality.evaluator.providers.mlebench import (
     resolve_mlebench_exp_id,
     validate_submission_light,
 )

@@ -12,9 +12,9 @@
 
 import pytest
 
-from scienceflow.core.monitor.process_tracker import ProcessInfo, ProcessStatus, ProcessTracker
-from scienceflow.core.monitor.cpu_monitor import CPUMetrics
-from scienceflow.core.monitor.gpu_monitor import GPUMetrics
+from scienceflow.runtime.observability.monitoring.process.process_tracker import ProcessInfo, ProcessStatus, ProcessTracker
+from scienceflow.runtime.observability.monitoring.metrics.cpu_monitor import CPUMetrics
+from scienceflow.runtime.observability.monitoring.metrics.gpu_monitor import GPUMetrics
 
 
 class TestProcessTracker:

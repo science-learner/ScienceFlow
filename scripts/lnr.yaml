@@ -1,7 +1,7 @@
 # Canonical LNR single-task manifest.
 #
 # Launch:
-#   uv run python -m scienceflow.cli parallel -m scripts/lnr.yaml -j 1
+#   uv run python -m scienceflow.interfaces.cli parallel -m scripts/lnr.yaml -j 1
 #
 # If the task needs semantic data preparation, run scripts/prep.yaml first and
 # point input_data_dir below to that prep workspace's dataset/ directory.
@@ -21,8 +21,9 @@ lnr:
   resource_control_mode: resource_smart_llm
 
 defaults:
-  config: scienceflow/config/default.yaml
+  config: scienceflow/foundation/config/default.yaml
   workspace_base: ./workspaces/manual_lnr
+  mlebench_data_root_dir: ./data/mlebench_all_data
 
 tasks:
   - exp_id: nomad2018-predict-transparent-conductors

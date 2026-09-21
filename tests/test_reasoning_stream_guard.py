@@ -12,10 +12,10 @@ from types import SimpleNamespace
 
 import httpx
 import pytest
-from deepcraft_core import Memory
-from deepcraft_core.llm.base import GuardStreamChunk, StreamHandle
+from inquirycraft.memory import Memory
+from inquirycraft.llm import GuardStreamChunk, StreamHandle
 
-from scienceflow.core.agent import ScienceAgent
+from scienceflow.agent import ScienceAgent
 
 
 async def _sleep_noop(*_args: object, **_kwargs: object) -> None:
@@ -123,7 +123,7 @@ def _chat_chunk(
 
 @pytest.mark.asyncio
 async def test_online_llm_routes_reasoning_to_hidden_guard_channel() -> None:
-    from deepcraft_core.llm.online import OnlineLLM
+    from inquirycraft.llm import OnlineLLM
 
     async with httpx.AsyncClient(trust_env=False) as http_client:
         llm = OnlineLLM(
@@ -174,7 +174,7 @@ async def test_reasoning_guard_retries_real_sse_transport(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    from deepcraft_core.llm.online import OnlineLLM
+    from inquirycraft.llm import OnlineLLM
 
     monkeypatch.setattr(asyncio, "sleep", _sleep_noop)
     state = _SSEState(mode)
@@ -330,32 +330,43 @@ async def test_non_main_streams_also_use_reasoning_guard_and_retry(
 
 @pytest.mark.asyncio
 async def test_hidden_reasoning_soft_limit_is_guarded_but_not_logged(tmp_path: Path) -> None:
+    private_reasoning = "private diverse reasoning " * 20
+
+    class _ReasoningLLM:
+        model = "reasoning-soft-limit"
+
+        async def ask_tool_stream(self, **kwargs: object) -> object:
+            handle = kwargs["handle"]
+            await handle.put_guard(private_reasoning, channel="reasoning")
+            handle.finish()
+            return SimpleNamespace(content="", reasoning_content=private_reasoning)
+
     agent = ScienceAgent(
-        llm=SimpleNamespace(model="unused"),
+        llm=_ReasoningLLM(),
         memory=Memory(max_messages=10),
         workspace_dir=tmp_path,
         stream_repetition_detection=False,
         stream_max_output_chars_soft=256,
+        stream_repetition_retry_max=0,
     )
     interaction_path = tmp_path / "interaction.log"
     logger = logging.getLogger(f"reasoning-guard-{id(agent)}")
     logger.propagate = False
     handler = logging.FileHandler(interaction_path)
     logger.addHandler(handler)
-    private_reasoning = "private diverse reasoning " * 20
-    handle = StreamHandle()
-    await handle.put_guard(private_reasoning, channel="reasoning")
-    handle.finish()
-
     try:
-        await agent._consume_stream(handle, logger)
+        with pytest.raises(RuntimeError, match="output_soft_limit"):
+            await agent._ask_tool_stream_guarded(
+                messages=[],
+                system_msgs=[],
+                timeout=10,
+                tools=[],
+                tool_choice="none",
+                interaction_logger=logger,
+            )
     finally:
         handler.close()
         logger.removeHandler(handler)
 
     log_text = interaction_path.read_text(encoding="utf-8")
-    assert handle.interrupted is True
-    assert agent._last_stream_guard_reason == "output_soft_limit"
-    assert "channel=reasoning" in agent._last_stream_guard_detail
     assert private_reasoning not in log_text
-    assert "channel=reasoning output_soft_limit" in log_text

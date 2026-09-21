@@ -14,4 +14,4 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCIENCEFLOW_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$SCIENCEFLOW_ROOT"
 
-uv run python -m scienceflow.cli monitor --manifest "$MANIFEST" --refresh "$REFRESH_SEC"
+uv run python -m scienceflow.interfaces.cli monitor --manifest "$MANIFEST" --refresh "$REFRESH_SEC"

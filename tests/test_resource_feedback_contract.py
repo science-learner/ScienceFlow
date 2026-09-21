@@ -10,7 +10,7 @@
 # The name of Huawei and the contributors may not be used to endorse or promote
 # products derived from this software without specific prior written permission.
 
-from scienceflow.solver.lnr.resource_feedback_contract import eta_bucket, resource_feedback_text
+from scienceflow.research.solver.lnr.resources.resource_feedback_contract import eta_bucket, resource_feedback_text
 
 
 def test_eta_bucket_edges() -> None:

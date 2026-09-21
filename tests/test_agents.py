@@ -12,7 +12,7 @@
 
 import pytest
 
-from scienceflow.core.agent.registry import (
+from scienceflow.agent.core.runtime.registry import (
     _AGENT_REGISTRY,
     get_agent_class,
     list_agents,

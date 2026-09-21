@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import pytest
 
-from scienceflow.core.tools.bash_tool import BashTool
+from scienceflow.runtime.safety.tooling.bash import BashTool
 from tests.lnr_resource_test_utils import event_types, make_observer
 
 

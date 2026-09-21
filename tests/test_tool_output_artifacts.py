@@ -14,12 +14,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from scienceflow.core.agent.tools.tool_output_artifacts import (
+from scienceflow.runtime.safety.policy.agent_policies.artifacts import (
     ToolOutputArtifactStore,
     attach_tool_output_reference,
     reduce_tool_feedback_for_memory,
 )
-from scienceflow.core.agent.memory.resource_feedback_memory import (
+from scienceflow.research.state.knowledge.memory.agent.resource_feedback_memory import (
     RESOURCE_STATE_SUMMARY_MARKER,
     ResourceFeedbackMemoryDeduper,
 )
@@ -60,10 +60,14 @@ def test_tool_output_artifact_store_mirrors_split_traj_outputs(tmp_path: Path) -
     traj = tmp_path / ".logs" / "traj_interaction" / "tool_outputs"
     assert (local / "tool_000001_bash.txt").read_text(encoding="utf-8") == raw
     assert (traj / "S02_tool_000001_bash.txt").read_text(encoding="utf-8") == raw
-    assert "source_raw_id=tool_000001_bash.txt" in (traj / "index.txt").read_text(encoding="utf-8")
+    assert "source_raw_id=tool_000001_bash.txt" in (traj / "index.txt").read_text(
+        encoding="utf-8"
+    )
 
 
-def test_attach_tool_output_reference_keeps_write_first_line_and_snapshot_suffix() -> None:
+def test_attach_tool_output_reference_keeps_write_first_line_and_snapshot_suffix() -> (
+    None
+):
     feedback = (
         "File `solution.py` written successfully (2 lines, sha256~abc).\n\n"
         "[auto-snapshot after successful write: solution.py]\n"
@@ -78,9 +82,17 @@ def test_attach_tool_output_reference_keeps_write_first_line_and_snapshot_suffix
         reducer="write_snapshot_existing",
     )
 
-    assert out.splitlines()[0] == "File `solution.py` written successfully (2 lines, sha256~abc)."
-    assert "[tool-output raw_id=tool_000001_write.txt raw_chars=123 reducer=write_snapshot_existing]" in out
-    assert out.index("[tool-output raw_id=") < out.index("[auto-snapshot after successful write:")
+    assert (
+        out.splitlines()[0]
+        == "File `solution.py` written successfully (2 lines, sha256~abc)."
+    )
+    assert (
+        "[tool-output raw_id=tool_000001_write.txt raw_chars=123 reducer=write_snapshot_existing]"
+        in out
+    )
+    assert out.index("[tool-output raw_id=") < out.index(
+        "[auto-snapshot after successful write:"
+    )
 
 
 def test_bash_reducer_preserves_training_signals_and_tail() -> None:
@@ -296,6 +308,7 @@ def test_glob_ls_reducer_keeps_small_output_unchanged() -> None:
     assert reducer == "none"
     assert reduced == feedback
 
+
 def test_resource_feedback_dedup_repeats_materially_unchanged_state() -> None:
     deduper = ResourceFeedbackMemoryDeduper()
     feedback = (
@@ -407,4 +420,3 @@ def test_resource_feedback_dedup_collapses_worker_deliverable_schema_gate() -> N
     assert "unlock_condition=submission_schema_valid" in summary
     assert "schema_state=invalid" in summary
     assert "repeat_count=2" in summary
-

@@ -19,9 +19,9 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
-from deepcraft_core import Memory
+from inquirycraft.memory import Memory
 
-from scienceflow.core.agent import (
+from scienceflow.agent import (
     ScienceAgent,
     _bash_command_parallel_safe,
     _default_system_prompt,
@@ -102,7 +102,7 @@ def test_normalize_parallel_bash_mode(tmp_path) -> None:
         _make_tc("bash", "ls"),
         _make_tc("bash", "wc -l dataset/train.csv"),
     ]
-    mode, out = agent._normalize_tool_calls_for_execution(calls)
+    mode, out = agent._host_ports.normalize_tool_calls(calls)
     assert mode == "parallel_bash"
     assert len(out) == 2
 
@@ -113,7 +113,7 @@ def test_normalize_parallel_bash_disabled_sequential(tmp_path) -> None:
         _make_tc("bash", "ls"),
         _make_tc("bash", "wc -l dataset/train.csv"),
     ]
-    mode, _ = agent._normalize_tool_calls_for_execution(calls)
+    mode, _ = agent._host_ports.normalize_tool_calls(calls)
     assert mode == "sequential"
 
 
@@ -123,7 +123,7 @@ def test_normalize_python_bash_sequential(tmp_path) -> None:
         _make_tc("bash", "ls"),
         _make_tc("bash", "python3 -c 'print(1)'"),
     ]
-    mode, _ = agent._normalize_tool_calls_for_execution(calls)
+    mode, _ = agent._host_ports.normalize_tool_calls(calls)
     assert mode == "sequential"
 
 
@@ -143,7 +143,7 @@ def test_normalize_blocks_multi_tool_bundle_containing_write_or_edit(
 ) -> None:
     agent = _agent(tmp_path, parallel_bash_enabled=True)
     calls = [_make_tc(name, "ls") for name in names]
-    mode, out = agent._normalize_tool_calls_for_execution(calls)
+    mode, out = agent._host_ports.normalize_tool_calls(calls)
     assert mode == "blocked_write_edit_bundle"
     assert out == calls
 
@@ -152,6 +152,6 @@ def test_normalize_blocks_multi_tool_bundle_containing_write_or_edit(
 def test_normalize_allows_single_write_or_edit(tmp_path, name: str) -> None:
     agent = _agent(tmp_path, parallel_bash_enabled=True)
     calls = [_make_tc(name, "ls")]
-    mode, out = agent._normalize_tool_calls_for_execution(calls)
+    mode, out = agent._host_ports.normalize_tool_calls(calls)
     assert mode == "single"
     assert out == calls

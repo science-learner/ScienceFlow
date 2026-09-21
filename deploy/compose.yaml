@@ -1,0 +1,28 @@
+name: scienceflow
+
+services:
+  scienceflow:
+    image: scienceflow:${SCIENCEFLOW_TARGET:-core}
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      target: ${SCIENCEFLOW_TARGET:-core}
+    init: true
+    stdin_open: true
+    tty: true
+    working_dir: /workspace
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    volumes:
+      - ${SCIENCEFLOW_WORKSPACE:-../workspace}:/workspace
+    secrets:
+      - source: scienceflow_models
+        target: /home/scienceflow/.config/scienceflow/models.json
+        uid: "10001"
+        gid: "10001"
+        mode: 0400
+    command: ["repl"]
+
+secrets:
+  scienceflow_models:
+    file: ${SCIENCEFLOW_MODEL_CONFIG:-../models.json}

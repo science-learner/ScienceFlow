@@ -12,13 +12,13 @@
 
 from __future__ import annotations
 
-from scienceflow.core.tools.resource_classifier import (
+from scienceflow.runtime.safety.tooling.resource_management.resource_policy import (
     RESOURCE_GPU_FEATURE_EXTRACT,
     RESOURCE_GPU_LIGHT_TRAIN,
     RESOURCE_HEAVY_GPU_TRAIN,
     classify_bash_command,
 )
-from scienceflow.solver.lnr.resource_runtime.gpu_sharing import build_gpu_share_config, evaluate_share_phase_a
+from scienceflow.research.solver.lnr.resources.runtime.control.gpu.gpu_sharing import build_gpu_share_config, evaluate_share_phase_a
 
 
 def _observation(*, phase: str, resource_class: str, child_cpu_pct: float = 0.0, busy_child_count: int = 0):
@@ -640,4 +640,3 @@ def test_non_trial_share_still_requires_standard_warmup() -> None:
     assert observed["share_candidate"] is False
     assert observed["share_eligible"] is False
     assert observed["hard_gates"]["primary_runtime_sec_gte_warmup"] is False
-

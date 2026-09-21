@@ -1,0 +1,13 @@
+{
+  "name": "scienceflow-web-monitor-tests",
+  "private": true,
+  "scripts": {
+    "test": "node --test *.test.cjs",
+    "format:check": "prettier --check ../../scienceflow/interfaces/ui/web_monitor/assets/ *.cjs package.json",
+    "format": "prettier --write ../../scienceflow/interfaces/ui/web_monitor/assets/ *.cjs package.json"
+  },
+  "devDependencies": {
+    "jsdom": "30.0.1",
+    "prettier": "3.6.2"
+  }
+}

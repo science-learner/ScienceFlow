@@ -17,12 +17,9 @@ import asyncio
 import httpx
 from openai import BadRequestError
 
-from deepcraft_core import Message
-from deepcraft_core.llm.online import OnlineLLM
-
-from scienceflow.core import key_pool
-from scienceflow.core.key_pool import PooledLLM
-from scienceflow.config.settings import Config, _apply_env
+from scienceflow.foundation.config.llm import llm_pool as key_pool
+from scienceflow.foundation.config.llm.llm_pool import PooledLLM
+from scienceflow.foundation.config.schema.settings import Config, _apply_env
 
 
 class DummyLLM:
@@ -49,7 +46,7 @@ class DummyLLM:
 
 def test_sticky_failover_returns_to_primary_after_cooldown(monkeypatch) -> None:
     monkeypatch.setattr(key_pool, "_SOFT_RETRY_DELAY_SEC", 0.0)
-    primary = DummyLLM("primary", fail_first_calls=2)
+    primary = DummyLLM("primary", fail_first_calls=3)
     secondary = DummyLLM("secondary")
     pool = PooledLLM(
         [primary, secondary],
@@ -60,7 +57,7 @@ def test_sticky_failover_returns_to_primary_after_cooldown(monkeypatch) -> None:
     )
 
     assert asyncio.run(pool.ask([])) == "secondary"
-    assert primary.calls == 2
+    assert primary.calls == 3
     assert secondary.calls == 1
     assert pool._last_call_pool_index == 1
     assert pool._last_call_failover_count == 1
@@ -70,7 +67,7 @@ def test_sticky_failover_returns_to_primary_after_cooldown(monkeypatch) -> None:
     time.sleep(0.02)
 
     assert asyncio.run(pool.ask([])) == "primary"
-    assert primary.calls == 3
+    assert primary.calls == 4
     assert secondary.calls == 1
     assert pool._last_call_pool_index == 0
 
@@ -114,17 +111,6 @@ def test_from_endpoints_keeps_per_endpoint_models(monkeypatch) -> None:
     assert [inst.model for inst in pool._instances] == ["model-a", "model-b"]
     assert [inst.api_key for inst in pool._instances] == ["key-a", "key-b"]
 
-def test_apply_env_loads_code_models_pool(monkeypatch) -> None:
-    monkeypatch.setenv("CODE_MODELS", "model-a,model-b model-c")
-    monkeypatch.setenv("FEEDBACK_MODELS", "judge-a,judge-b")
-    cfg = Config()
-
-    _apply_env(cfg)
-
-    assert cfg.agent.code.models == ["model-a", "model-b", "model-c"]
-    assert cfg.agent.feedback.models == ["judge-a", "judge-b"]
-
-
 def test_apply_env_loads_generic_sticky_routing(monkeypatch) -> None:
     monkeypatch.setenv("SCIENCEFLOW_LLM_ROUTING_MODE", "sticky_failover")
     monkeypatch.setenv("SCIENCEFLOW_LLM_STICKY_ID", "run-a")
@@ -139,35 +125,6 @@ def test_apply_env_loads_generic_sticky_routing(monkeypatch) -> None:
     assert cfg.agent.feedback.api_routing_mode == "sticky_failover"
     assert cfg.agent.feedback.api_sticky_id == "run-a"
     assert cfg.agent.feedback.api_sticky_primary_index == 0
-
-
-def test_apply_env_enables_system_message_coalescing(monkeypatch) -> None:
-    monkeypatch.setenv("SCIENCEFLOW_COALESCE_SYSTEM_MESSAGES", "true")
-    cfg = Config()
-
-    _apply_env(cfg)
-
-    assert cfg.agent.code.coalesce_system_messages is True
-    assert cfg.agent.feedback.coalesce_system_messages is True
-
-
-def test_online_llm_coalesces_layered_system_messages() -> None:
-    llm = OnlineLLM(
-        model="test",
-        api_key="test",
-        base_url="http://localhost:8000/v1",
-        coalesce_system_messages=True,
-    )
-
-    messages = llm._format_request_messages(
-        [Message.user_message("task")],
-        [Message.system_message("core"), Message.system_message("runtime")],
-    )
-
-    assert messages == [
-        {"role": "system", "content": "core\n\nruntime"},
-        {"role": "user", "content": "task"},
-    ]
 
 
 def _reasoning_replay_bad_request() -> BadRequestError:

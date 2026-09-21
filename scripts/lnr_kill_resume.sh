@@ -3,7 +3,7 @@
 #
 # Usage:
 #   ./scripts/lnr_kill_resume.sh /path/to/<run_id>/<exp_id> \
-#       --config scienceflow/config/default.yaml \
+#       --config scienceflow/foundation/config/default.yaml \
 #       --input-data-dir ./data/mlebench_all_data/<exp_id>/prepared/public
 #   # Or pass a data-prep output directory:
 #   #   --input-data-dir /path/to/data_prep/<run_id>/<exp_id>/dataset
@@ -29,7 +29,7 @@ fi
 WORKSPACE="$(cd "$1" && pwd)"
 shift
 
-CONFIG="scienceflow/config/default.yaml"
+CONFIG="scienceflow/foundation/config/default.yaml"
 INPUT_DATA_DIR=""
 RESUME_STEP=""
 MODE=""
@@ -97,21 +97,21 @@ echo "[info] config=$CONFIG_ABS"
 
 kill_matches() {
   local pid cmdline found=0
-  for pid in $(pgrep -f "scienceflow.cli" 2>/dev/null || true); do
+  for pid in $(pgrep -f "scienceflow.interfaces.cli" 2>/dev/null || true); do
     [[ -z "$pid" ]] && continue
     cmdline=$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null || true)
     if [[ "$cmdline" != *"--workspace"* ]] || [[ "$cmdline" != *"$WORKSPACE"* ]]; then
       continue
     fi
     found=1
-    echo "[kill] pid=$pid scienceflow.cli workspace match"
+    echo "[kill] pid=$pid scienceflow.interfaces.cli workspace match"
     if [[ "$MODE" != "--dry-run" ]]; then
       kill "$pid" 2>/dev/null || true
     fi
   done
 
   if [[ "$found" -eq 0 ]]; then
-    echo "[info] no scienceflow.cli process matched this workspace"
+    echo "[info] no scienceflow.interfaces.cli process matched this workspace"
     return 0
   fi
   if [[ "$MODE" == "--dry-run" ]]; then
@@ -119,7 +119,7 @@ kill_matches() {
   fi
 
   sleep 1
-  for pid in $(pgrep -f "scienceflow.cli" 2>/dev/null || true); do
+  for pid in $(pgrep -f "scienceflow.interfaces.cli" 2>/dev/null || true); do
     cmdline=$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null || true)
     if [[ "$cmdline" == *"--workspace"*"$WORKSPACE"* ]] || [[ "$cmdline" == *"--workspace $WORKSPACE"* ]]; then
       echo "[warn] pid=$pid still running, SIGKILL" >&2
@@ -136,7 +136,7 @@ run_resume() {
   local -a python_cmd cmd
   read -r -a python_cmd <<< "$PYTHON_BIN"
   cmd=(
-    "${python_cmd[@]}" -m scienceflow.cli run
+    "${python_cmd[@]}" -m scienceflow.interfaces.cli run
     --task "$task_body"
     --workspace "$WORKSPACE"
     --type lnr
@@ -150,7 +150,7 @@ run_resume() {
     cmd+=(--resume-step "$RESUME_STEP")
   fi
 
-  echo "[info] exec: ${PYTHON_BIN} -m scienceflow.cli run --type lnr --resume --workspace $WORKSPACE"
+  echo "[info] exec: ${PYTHON_BIN} -m scienceflow.interfaces.cli run --type lnr --resume --workspace $WORKSPACE"
   exec "${cmd[@]}"
 }
 
@@ -161,7 +161,7 @@ case "${MODE:-}" in
     ;;
   "--dry-run")
     kill_matches
-    echo "[dry-run] would resume with: ${PYTHON_BIN} -m scienceflow.cli run --type lnr --resume --workspace $WORKSPACE"
+    echo "[dry-run] would resume with: ${PYTHON_BIN} -m scienceflow.interfaces.cli run --type lnr --resume --workspace $WORKSPACE"
     ;;
   "--kill-only")
     MODE=""

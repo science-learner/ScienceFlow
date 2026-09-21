@@ -20,9 +20,9 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
-from deepcraft_core import Memory, Message
+from inquirycraft.memory import Memory
 
-from scienceflow.core.agent import ScienceAgent
+from scienceflow.agent import ScienceAgent
 
 
 class _FakeLLMStream:
@@ -50,7 +50,7 @@ class _FakeLLMStream:
 
 
 class _CompactLLM:
-    """llm.ask used by MemoryContextManager.compact."""
+    """Plain backend adapted by the unified runtime during compaction."""
 
     def __init__(self) -> None:
         self._last_call_input_tokens: int | None = None
@@ -95,13 +95,52 @@ async def test_on_llm_call_ask_tool_stream_turn_qa(tmp_path: Path) -> None:
         max_steps=3,
         on_llm_call=hook,
     )
+    agent._scienceflow_stage_id = "S02"
+    agent._scienceflow_lineage_id = "L03"
+    agent._scienceflow_node_uid = "W00:L03:S02"
     await agent.run("hi")
     ask_rows = [p for p in payloads if p.get("operation") == "ask_tool_stream"]
     assert len(ask_rows) == 1
+    assert ask_rows[0].get("tokens_input") == 100
+    assert ask_rows[0].get("tokens_output") == 7
     assert ask_rows[0].get("tokens_cached") == 80
     assert agent.last_run_tokens_cached == 80
     assert ask_rows[0].get("turn_kind") == "qa"
     assert ask_rows[0].get("first_tool_name") is None
+    provider_rows = [
+        json.loads(line)
+        for line in (tmp_path / ".logs" / "agent_provider_calls.jsonl")
+        .read_text()
+        .splitlines()
+    ]
+    assert provider_rows[0]["usage_status"] == "known"
+    assert provider_rows[0]["cache_rate"] == 0.8
+    assert len(provider_rows[0]["stable_prefix_hash"]) == 64
+    assert len(provider_rows[0]["provider_context_hash"]) == 64
+    assert provider_rows[0]["provider_message_count"] > 0
+    correlation = provider_rows[0]["correlation"]
+    assert provider_rows[0]["call_id"] == correlation["call_id"]
+    assert provider_rows[0]["stage_id"] == correlation["stage_id"] == "S02"
+    assert provider_rows[0]["lineage_id"] == correlation["lineage_id"] == "L03"
+    assert provider_rows[0]["node_uid"] == correlation["node_uid"] == "W00:L03:S02"
+
+    journal_path = next(
+        (tmp_path / ".logs" / "agent_runtime_operations").glob("*.jsonl")
+    )
+    operations = [json.loads(line) for line in journal_path.read_text().splitlines()]
+    llm_intent = next(
+        row for row in operations if row["kind"] == "llm" and row["phase"] == "intent"
+    )
+    assert llm_intent["payload"]["correlation"] == correlation
+
+    events = [
+        json.loads(line)
+        for line in (tmp_path / ".logs" / "agent_runtime_events.jsonl")
+        .read_text()
+        .splitlines()
+    ]
+    requested = next(row for row in events if row["type"] == "llm.requested")
+    assert requested["payload"]["correlation"] == correlation
 
 
 @pytest.mark.asyncio

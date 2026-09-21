@@ -1,0 +1,1 @@
+"""Architecture and structure checks."""

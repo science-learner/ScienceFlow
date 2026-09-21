@@ -10,10 +10,69 @@
 # The name of Huawei and the contributors may not be used to endorse or promote
 # products derived from this software without specific prior written permission.
 
+from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 
-from scienceflow.solver.lnr.solver import LnrSolver
+from scienceflow.research.solver.lnr.orchestration.coordinator.run import construction
+
+
+@dataclass
+class _SkillOwnerFixture:
+    lhr: SimpleNamespace
+    cfg: SimpleNamespace
+    orchestrator: SimpleNamespace
+
+    def _repo_root(self) -> Path:
+        return construction._repo_root(self)
+
+    def _skill_library_dir(self) -> Path:
+        return construction._skill_library_dir(self)
+
+    def _lnr_skill_category_source_path(self) -> Path:
+        return construction._lnr_skill_category_source_path(self)
+
+    def _load_lnr_task_category_label(self) -> str:
+        return construction._load_lnr_task_category_label(self)
+
+    def _extract_lnr_auto_skill_hint(self, rendered: str) -> str:
+        return construction._extract_lnr_auto_skill_hint(rendered)
+
+    def _lnr_compact_skill_rendered(
+        self,
+        meta: Any,
+        rendered: str,
+        *,
+        max_chars: int,
+    ) -> str:
+        return construction._lnr_compact_skill_rendered(
+            meta, rendered, max_chars=max_chars
+        )
+
+    def _lnr_auto_read_skill_block(self) -> str:
+        return construction._lnr_auto_read_skill_block(self)
+
+
+def _skill_owner(
+    categories: Path,
+    exp_id: str,
+    registry: Any,
+    **options: Any,
+) -> _SkillOwnerFixture:
+    defaults = {
+        "lnr_skill_tool_enabled": True,
+        "lnr_skill_tool_mode": "category_only",
+        "lnr_skill_category_source": str(categories),
+        "lnr_skill_visible_max": 1,
+        "lnr_skill_allow_generic_wildcard": False,
+    }
+    defaults.update(options)
+    return _SkillOwnerFixture(
+        lhr=SimpleNamespace(**defaults),
+        cfg=SimpleNamespace(exp_id=exp_id),
+        orchestrator=SimpleNamespace(skill_registry=registry),
+    )
 
 
 class _FakeRegistry:
@@ -29,44 +88,30 @@ class _FakeRegistry:
 def test_lnr_skill_category_resolves_siim_allowlist(tmp_path) -> None:
     categories = tmp_path / "competition_categories.json"
     categories.write_text('{"siim-isic-melanoma-classification": "Medical Imaging"}')
-    solver = object.__new__(LnrSolver)
-    solver.lhr = SimpleNamespace(
-        lnr_skill_tool_enabled=True,
-        lnr_skill_tool_mode="category_only",
-        lnr_skill_category_source=str(categories),
-        lnr_skill_visible_max=1,
-        lnr_skill_allow_generic_wildcard=False,
+    owner = _skill_owner(
+        categories,
+        "siim-isic-melanoma-classification",
+        _FakeRegistry(),
     )
-    solver.cfg = SimpleNamespace(exp_id="siim-isic-melanoma-classification")
-    solver.orchestrator = SimpleNamespace(skill_registry=_FakeRegistry())
 
-    solver._configure_lnr_category_skill()
+    construction._configure_lnr_category_skill(owner)
 
-    assert solver.skill_category_status == "enabled"
-    assert solver.skill_task_category == "Medical Imaging"
-    assert solver.skill_allow_names == ("cat_medical_imaging",)
-    assert solver._lnr_skill_hint().startswith("A category-specific skill")
+    assert owner.skill_category_status == "enabled"
+    assert owner.skill_task_category == "Medical Imaging"
+    assert owner.skill_allow_names == ("cat_medical_imaging",)
+    assert construction._lnr_skill_hint(owner).startswith("A category-specific skill")
 
 
 def test_lnr_skill_category_missing_disables_tool(tmp_path) -> None:
     categories = tmp_path / "competition_categories.json"
     categories.write_text('{}')
-    solver = object.__new__(LnrSolver)
-    solver.lhr = SimpleNamespace(
-        lnr_skill_tool_enabled=True,
-        lnr_skill_tool_mode="category_only",
-        lnr_skill_category_source=str(categories),
-        lnr_skill_visible_max=1,
-        lnr_skill_allow_generic_wildcard=False,
-    )
-    solver.cfg = SimpleNamespace(exp_id="unknown-task")
-    solver.orchestrator = SimpleNamespace(skill_registry=_FakeRegistry())
+    owner = _skill_owner(categories, "unknown-task", _FakeRegistry())
 
-    solver._configure_lnr_category_skill()
+    construction._configure_lnr_category_skill(owner)
 
-    assert solver.skill_category_status == "skill_category_missing"
-    assert solver.skill_registry is None
-    assert solver.skill_allow_names == ()
+    assert owner.skill_category_status == "skill_category_missing"
+    assert owner.skill_registry is None
+    assert owner.skill_allow_names == ()
 
 
 class _FakeTaskRegistry:
@@ -89,49 +134,37 @@ class _FakeTaskRegistry:
 def test_lnr_skill_category_includes_task_skill_when_available(tmp_path) -> None:
     categories = tmp_path / "competition_categories.json"
     categories.write_text('{"hubmap-kidney-segmentation": "Segmentation"}')
-    solver = object.__new__(LnrSolver)
-    solver.lhr = SimpleNamespace(
-        lnr_skill_tool_enabled=True,
-        lnr_skill_tool_mode="category_only",
-        lnr_skill_category_source=str(categories),
-        lnr_skill_visible_max=1,
-        lnr_skill_allow_generic_wildcard=False,
+    owner = _skill_owner(
+        categories,
+        "hubmap-kidney-segmentation",
+        _FakeTaskRegistry(),
     )
-    solver.cfg = SimpleNamespace(exp_id="hubmap-kidney-segmentation")
-    solver.orchestrator = SimpleNamespace(skill_registry=_FakeTaskRegistry())
 
-    solver._configure_lnr_category_skill()
+    construction._configure_lnr_category_skill(owner)
 
-    assert solver.skill_category_status == "enabled"
-    assert solver.skill_task_category == "Segmentation"
-    assert solver.skill_allow_names == (
+    assert owner.skill_category_status == "enabled"
+    assert owner.skill_task_category == "Segmentation"
+    assert owner.skill_allow_names == (
         "cat_segmentation",
         "task_hubmap_kidney_segmentation",
     )
-    assert solver.skill_visible_max == 2
-    assert solver._lnr_skill_hint().startswith("Category- and task-specific skills")
+    assert owner.skill_visible_max == 2
+    assert construction._lnr_skill_hint(owner).startswith(
+        "Category- and task-specific skills"
+    )
 
 
 def test_lnr_default_skill_registry_does_not_load_doc_skill_archives(tmp_path) -> None:
     categories = tmp_path / "competition_categories.json"
     categories.write_text('{"hubmap-kidney-segmentation": "Segmentation"}')
-    solver = object.__new__(LnrSolver)
-    solver.lhr = SimpleNamespace(
-        lnr_skill_tool_enabled=True,
-        lnr_skill_tool_mode="category_only",
-        lnr_skill_category_source=str(categories),
-        lnr_skill_visible_max=1,
-        lnr_skill_allow_generic_wildcard=False,
-    )
-    solver.cfg = SimpleNamespace(exp_id="hubmap-kidney-segmentation")
-    solver.orchestrator = SimpleNamespace(skill_registry=None)
+    owner = _skill_owner(categories, "hubmap-kidney-segmentation", None)
 
-    solver._configure_lnr_category_skill()
+    construction._configure_lnr_category_skill(owner)
 
-    assert solver.skill_category_status == "skill_category_unmapped"
-    assert solver.skill_task_category == "Segmentation"
-    assert solver.skill_registry is None
-    assert solver.skill_allow_names == ()
+    assert owner.skill_category_status == "skill_category_unmapped"
+    assert owner.skill_task_category == "Segmentation"
+    assert owner.skill_registry is None
+    assert owner.skill_allow_names == ()
 
 
 class _FakeSkill:
@@ -181,23 +214,18 @@ class _FakeSiimTaskRegistry:
 def test_lnr_skill_auto_read_includes_category_and_siim_task_skill(tmp_path) -> None:
     categories = tmp_path / "competition_categories.json"
     categories.write_text('{"siim-isic-melanoma-classification": "Medical Imaging"}')
-    solver = object.__new__(LnrSolver)
-    solver.lhr = SimpleNamespace(
-        lnr_skill_tool_enabled=True,
-        lnr_skill_tool_mode="category_only",
-        lnr_skill_category_source=str(categories),
-        lnr_skill_visible_max=1,
-        lnr_skill_allow_generic_wildcard=False,
+    owner = _skill_owner(
+        categories,
+        "siim-isic-melanoma-classification",
+        _FakeSiimTaskRegistry(),
         lnr_skill_auto_read=True,
         lnr_skill_auto_read_max_chars=2000,
     )
-    solver.cfg = SimpleNamespace(exp_id="siim-isic-melanoma-classification")
-    solver.orchestrator = SimpleNamespace(skill_registry=_FakeSiimTaskRegistry())
 
-    solver._configure_lnr_category_skill()
-    hint = solver._lnr_skill_hint()
+    construction._configure_lnr_category_skill(owner)
+    hint = construction._lnr_skill_hint(owner)
 
-    assert solver.skill_allow_names == (
+    assert owner.skill_allow_names == (
         "cat_medical_imaging",
         "task_siim_isic_melanoma_classification",
     )
@@ -221,21 +249,16 @@ def test_lnr_skill_auto_read_prefers_auto_load_hint(tmp_path) -> None:
                 "# Medical\n\n## Auto-load hint\n\n- short route hint\n\n## Full details\nlong tutorial text should stay out of auto context",
             )
 
-    solver = object.__new__(LnrSolver)
-    solver.lhr = SimpleNamespace(
-        lnr_skill_tool_enabled=True,
-        lnr_skill_tool_mode="category_only",
-        lnr_skill_category_source=str(categories),
-        lnr_skill_visible_max=1,
-        lnr_skill_allow_generic_wildcard=False,
+    owner = _skill_owner(
+        categories,
+        "siim-isic-melanoma-classification",
+        RegistryWithLongSkill(),
         lnr_skill_auto_read=True,
         lnr_skill_auto_read_max_chars=2000,
     )
-    solver.cfg = SimpleNamespace(exp_id="siim-isic-melanoma-classification")
-    solver.orchestrator = SimpleNamespace(skill_registry=RegistryWithLongSkill())
 
-    solver._configure_lnr_category_skill()
-    hint = solver._lnr_skill_hint()
+    construction._configure_lnr_category_skill(owner)
+    hint = construction._lnr_skill_hint(owner)
 
     assert "short route hint" in hint
     assert "source=auto_hint" in hint

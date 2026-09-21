@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-from scienceflow.core.tools.bash_tool import _parse_progress_signals
+from scienceflow.runtime.safety.tooling.bash import _parse_progress_signals
 from tests.lnr_resource_test_utils import make_observer
 
 

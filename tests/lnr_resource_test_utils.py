@@ -15,7 +15,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from scienceflow.solver.lnr.resource_observer import LHRResourceObserver
+from scienceflow.research.solver.lnr.resources.resource_observer import LHRResourceObserver
 
 
 class FakeStateMachine:

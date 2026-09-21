@@ -11,7 +11,7 @@ A valid candidate must satisfy:
 - every coordinate and radius is finite;
 - every radius is non-negative;
 - every circle is fully inside the unit square;
-- no two circles overlap, up to the evaluator tolerance in `dataset/problem.json`.
+- no two circles overlap, up to the evaluator tolerance declared by this built-in task.
 
 ## Objective
 
@@ -27,4 +27,4 @@ Write `artifacts/best_solution.json`:
 
 The list must contain exactly 26 `[x, y, radius]` triples.
 
-Use the configured `artifact_command` evaluator as the only authoritative score. Do not create `train.py` or `submission.csv`.
+This task is self-contained and needs no dataset. Use the configured task-package evaluator as the only authoritative score. Do not create `train.py` or `submission.csv`.

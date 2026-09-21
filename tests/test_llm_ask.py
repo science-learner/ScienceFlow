@@ -19,7 +19,7 @@
     python tests/test_llm_ask.py --config path/to.yaml --stage code
     python tests/test_llm_ask.py -p "用一句话回答：1+1等于几？"
 
-依赖：已安装 ScienceFlow / deepcraft，且 ``API_KEY``+``BASE_URL`` 或 YAML 中已配置对应 stage。
+依赖：已安装 ScienceFlow / InquiryCraft，且 ``API_KEY``+``BASE_URL`` 或 YAML 中已配置对应 stage。
 """
 
 from __future__ import annotations
@@ -31,12 +31,12 @@ import sys
 from pathlib import Path
 from pprint import pformat
 
-from deepcraft_core import Message
+from inquirycraft.memory import Message
 
-from scienceflow.config.settings import Config, StageConfig, load_cfg
-from scienceflow.core.key_pool import parse_key_env
-from scienceflow.core.llm_http import aclose_llm_clients, llm_extra_client_kwargs
-from scienceflow.core.agent_runtime import _build_llm
+from scienceflow.foundation.config.schema.settings import Config, StageConfig, load_cfg
+from scienceflow.foundation.config.llm.llm_factory import build_stage_llm as _build_llm
+from scienceflow.foundation.config.llm.llm_http import aclose_llm_clients, llm_extra_client_kwargs
+from scienceflow.foundation.config.llm.llm_pool import parse_key_env
 
 
 def _bootstrap_env() -> None:
@@ -76,7 +76,7 @@ def _summarize_stage(stage: StageConfig) -> str:
 
 
 def _shared_llm_kwargs(stage: StageConfig) -> dict[str, object]:
-    """与 ``scienceflow.core.agent_runtime._build_llm`` 中传入 OnlineLLM 的共享参数一致。"""
+    """与 ``scienceflow.foundation.config.llm.llm_factory.build_stage_llm`` 的共享参数一致。"""
     return dict(
         model=stage.model,
         max_tokens=stage.max_tokens,
@@ -179,7 +179,7 @@ def main() -> int:
         "--config",
         "-c",
         default=None,
-        help="YAML 路径；默认 scienceflow/config/default.yaml",
+        help="YAML 路径；默认 scienceflow/foundation/config/default.yaml",
     )
     parser.add_argument(
         "--stage",

@@ -12,7 +12,7 @@
 
 from __future__ import annotations
 
-from scienceflow.solver.lnr.resource_runtime.metric_history import (
+from scienceflow.research.solver.lnr.resources.runtime.execution.state.metric_history import (
     extract_metric_history_lines,
     metric_history_line_from_progress_signals,
     metric_history_text,

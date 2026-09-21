@@ -12,9 +12,9 @@
 
 from __future__ import annotations
 
-from deepcraft_core.tool import ToolResult
+from inquirycraft.tools import ToolResult
 
-from scienceflow.core.agent.tools.tool_guards import NoSuccessfulSolutionRunGuard
+from scienceflow.runtime.safety.policy.agent_policies.guards import NoSuccessfulSolutionRunGuard
 
 
 def test_no_success_soft_then_hard_and_reset_on_success() -> None:

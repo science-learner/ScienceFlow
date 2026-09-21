@@ -12,7 +12,7 @@
 
 from __future__ import annotations
 
-from scienceflow.solver.lnr.resource_runtime.source_hints import detect_resource_source_hint
+from scienceflow.research.solver.lnr.resources.runtime.control.policy.source_hints import detect_resource_source_hint
 
 
 def test_readonly_python_source_inspection_does_not_request_gpu(tmp_path) -> None:

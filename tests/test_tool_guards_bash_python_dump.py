@@ -14,9 +14,9 @@
 
 from __future__ import annotations
 
-from deepcraft_core.tool import ToolResult
+from inquirycraft.tools import ToolResult
 
-from scienceflow.core.agent.tools.tool_guards import BashPythonSourceDumpGuard
+from scienceflow.runtime.safety.policy.agent_policies.guards import BashPythonSourceDumpGuard
 
 
 def test_parallel_bash_py_dumps_inject_once() -> None:

@@ -1,7 +1,7 @@
 # Canonical data-prep manifest.
 #
 # Launch:
-#   uv run python -m scienceflow.cli parallel -m scripts/prep.yaml -j 1
+#   uv run python -m scienceflow.interfaces.cli parallel -m scripts/prep.yaml -j 1
 #
 # Output dataset:
 #   ./workspaces/manual_data_prep/hm-data-prep/h-and-m-personalized-fashion-recommendations/dataset
@@ -16,8 +16,9 @@ resume: false
 
 defaults:
   phase: prep
-  config: scienceflow/config/default.yaml
+  config: scienceflow/foundation/config/default.yaml
   workspace_base: ./workspaces/manual_data_prep
+  mlebench_data_root_dir: ./data/mlebench_all_data
   qa_max_steps: 80
   scienceflow_bash_timeout_sec: 3600
   scienceflow_bash_timeout_slow_sec: 3600

@@ -12,9 +12,9 @@
 
 from __future__ import annotations
 
-from deepcraft_core.tool import ToolResult
+from inquirycraft.tools import ToolResult
 
-from scienceflow.core.agent.tools.tool_guards import EditFailureGuard
+from scienceflow.runtime.safety.policy.agent_policies.guards import EditFailureGuard
 
 
 def test_edit_short_old_str_hint_on_not_found() -> None:

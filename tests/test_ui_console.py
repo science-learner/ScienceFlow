@@ -12,7 +12,7 @@
 
 """Display helpers for Rich terminal UI."""
 
-from scienceflow.ui.console import shorten_long_lines, truncate_middle, RichUI
+from scienceflow.interfaces.ui.console import shorten_long_lines, truncate_middle, RichUI
 
 
 def test_truncate_middle_short_unchanged():

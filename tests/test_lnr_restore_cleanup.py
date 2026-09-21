@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from scienceflow.solver.lnr.snapshot_store import SnapshotStore
+from scienceflow.research.solver.lnr.lifecycle.snapshots.snapshot_store import SnapshotStore
 
 
 def test_snapshot_store_restore_preserves_tmp_dir(tmp_path: Path) -> None:

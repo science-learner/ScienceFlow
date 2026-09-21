@@ -15,12 +15,12 @@ import asyncio
 import pytest
 from pathlib import Path
 
-from scienceflow.core.tools.skill_tool import SkillTool
-from scienceflow.core.skills.base import Skill
-from scienceflow.core.skills.injector import SkillInjector
-from scienceflow.core.skills.matcher import SkillMatcher
-from scienceflow.core.skills.paths import default_skill_library_dir
-from scienceflow.core.skills.registry import SkillRegistry
+from scienceflow.research.state.knowledge.skills.runtime.tool import SkillTool
+from scienceflow.research.state.knowledge.skills.catalog.base import Skill
+from scienceflow.research.state.knowledge.skills.runtime.injector import SkillInjector
+from scienceflow.research.state.knowledge.skills.catalog.matcher import SkillMatcher
+from scienceflow.research.state.knowledge.skills.catalog.paths import default_skill_library_dir
+from scienceflow.research.state.knowledge.skills.catalog.registry import SkillRegistry
 
 SAMPLE_SKILL_MD = """\
 ---

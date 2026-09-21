@@ -7,15 +7,18 @@
   ·
   <a href="https://arxiv.org/abs/2608.14354"><b>Paper (arXiv)</b></a>
   ·
-  <a href="doc/README_CN.md"><b>Chinese</b></a>
+  <a href="docs/public/README_CN.md"><b>Chinese</b></a>
 </p>
 
 ScienceFlow is an end-to-end autoresearch agent framework for productive, stable, and goal-aligned research over hours or days. It organizes research around recoverable executable workspaces, coupling persistent state, adaptive exploration, and evidence-aware execution control so agents can continue, redirect, or recover without losing validated progress.
 
+ScienceFlow documentation uses **iqcraft** as the short name for InquiryCraft. Package,
+import, and CLI examples continue to use the canonical `inquirycraft` name.
+
 Across machine learning, scientific modeling, and mathematical optimization, ScienceFlow sustains effective long-horizon research and reaches **70.22 ± 1.18% Any-Medal** on the full 75-task MLE-bench within a 24-hour budget, exceeding the strongest reported baseline by **4.92 percentage points**.
 
 <p align="center">
-  <img src="doc/scienceflow/assets/mlebench_top10_any_medal.png" alt="Representative full MLE-bench Any-Medal leaderboard" width="100%">
+  <img src="docs/public/scienceflow/assets/mlebench_top10_any_medal.png" alt="Representative full MLE-bench Any-Medal leaderboard" width="100%">
 </p>
 <p align="center"><sub><b>Figure 1a. Full MLE-bench Any-Medal leaderboard.</b> Mean ± SEM over three independent runs for ScienceFlow.</sub></p>
 
@@ -35,7 +38,7 @@ Across machine learning, scientific modeling, and mathematical optimization, Sci
 ## System architecture
 
 <p align="center">
-  <img src="doc/scienceflow/assets/scienceflow_system_architecture.png" alt="ScienceFlow system architecture" width="100%">
+  <img src="docs/public/scienceflow/assets/scienceflow_system_architecture.png" alt="ScienceFlow system architecture" width="100%">
 </p>
 <p align="center"><sub><b>Figure 2. ScienceFlow system architecture.</b> Research workers operate over recoverable executable states and adapt long-horizon trajectories through boundary-triggered ESTRA transitions, while evidence-aware execution control coordinates physical resource allocation and runtime execution.</sub></p>
 
@@ -51,82 +54,104 @@ Across machine learning, scientific modeling, and mathematical optimization, Sci
 
 ```text
 ScienceFlow/
-├── scienceflow/                         # Framework runtime
-│   ├── core/                            # Agent runtime, tools, memory, and execution
-│   ├── solver/                          # LNR, Stage lifecycle, ESTRA, resume, and merge
-│   ├── gates/                           # Stage Gate and Evaluator plugins
-│   ├── safety/                          # Evidence-aware resource and execution control
-│   ├── ui/                              # Monitor and trace interfaces
-│   ├── config/                          # Defaults and example manifests
-│   ├── utils/                           # Shared runtime utilities
-│   └── cli.py                           # Command-line entry point
+├── scienceflow/                         # Framework package
+│   ├── agent/                           # InquiryCraft host ports, construction, and sessions
+│   ├── foundation/                      # Architecture rules, typed config, and contracts
+│   │   ├── architecture/                # Executable dependency and size policies
+│   │   ├── config/                      # LLM/runtime/schema config and packaged profiles
+│   │   └── contracts/                   # Stable cross-domain values
+│   ├── research/                        # Research-domain decisions and persistent state
+│   │   ├── control/                     # Admission, ESTRA, execution-value, and resources
+│   │   ├── quality/                     # Assessment, Evaluator, Gate, and finalization
+│   │   ├── solver/lnr/                  # Long-horizon solver, split into five responsibilities
+│   │   │   ├── lifecycle/               # Stage, workspace, records, and snapshots
+│   │   │   ├── orchestration/           # Coordinator and worker execution
+│   │   │   ├── resources/               # Resource feedback and physical runtime
+│   │   │   ├── support/                 # Context and prompt support
+│   │   │   └── transitions/             # ESTRA, resume, and recovery
+│   │   └── state/                       # Dataset, knowledge, and workspace state
+│   ├── runtime/                         # Physical execution and operational boundaries
+│   │   ├── core/                        # Kernel, process, stage, and shared runtime support
+│   │   ├── observability/               # Agent I/O, monitoring, correlation, and traces
+│   │   ├── safety/                      # Agent, shell, process, and resource safeguards
+│   │   └── parallel/                    # Task scheduling and subprocess execution
+│   ├── interfaces/                      # User-facing adapters
+│   │   ├── cli/                         # Command composition
+│   │   └── ui/                          # Read-only monitor and trace presentation
+│   └── cli.py                           # Stable `python -m scienceflow.cli` entry point
 ├── tasks/                               # Task packages and evaluators
-├── scripts/                             # Maintained run and monitor manifests
+├── scripts/                             # Five canonical manifests and two lifecycle launchers
+├── tools/                               # Architecture, contract, and parity developer tools
 ├── .scienceflow/skills/data_processing/ # Data-preparation skills
-└── doc/scienceflow/                     # Detailed architecture documentation
+└── docs/                                # Public docs, architecture, plans, benchmarks, and evidence
 ```
 
-## Installation
+The package root is intentionally limited to five ownership namespaces: `foundation`,
+`agent`, `research`, `runtime`, and `interfaces`. Foundation defines stable contracts and
+configuration; research owns policy and recoverable state; runtime owns physical effects,
+safety, and observation; agent and interfaces adapt external interaction. InquiryCraft
+remains behind typed ports in `scienceflow/agent`, so ScienceFlow policy does not leak into
+the generic agent runtime. The default fan-out limit at every depth is five immediate
+subdirectories and five direct business modules (`__init__.py` excluded). A small number of
+cohesive product surfaces have explicit path-specific ceilings; increases require review in
+`tests/test_leaf_package_structure_v5_2.py` rather than changing the global default.
+
+## Install and run
 
 **Requirements:** Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 
-```bash
-# Install uv if you do not have it yet
-curl -LsSf https://astral.sh/uv/install.sh | sh   # or: pip install uv
-
-# Clone the repository and enter the project
-git clone https://github.com/huawei-noah/noah-research.git
-cd noah-research/ScienceFlow
-
-# Configure LLM credentials
-cp env.example .env   # then edit .env: set API_KEY and BASE_URL for your provider
-
-# Create .venv and install the locked environment
-uv sync
-```
-
-Notes:
-
-- `uv sync` installs the locked `uv.lock` environment, including the in-repo `deepcraft` subpackages, the official `mlebench` Git revision, and the full test/ML stack.
-- PyTorch wheels default to the **cu128** index (for CUDA 12.8-era drivers). Adjust `[[tool.uv.index]]` in `pyproject.toml` if you need a different CUDA build.
-- SciModelingBench support is an optional extra: `uv sync --extra scientific-design`.
-- Run commands either via `uv run ...` or by using `.venv/bin/python` directly.
-
-## Quick start
-
-Start an interactive research REPL:
+InquiryCraft `0.9.0` is published on the public package index and pinned by the ScienceFlow
+lock file. Create the source environment directly from the reviewed dependency set:
 
 ```bash
-uv run python -m scienceflow.cli repl
+cd ScienceFlow
+uv sync --python 3.12 --group dev
+source .venv/bin/activate
 ```
 
-Run the maintained two-worker Nomad2018 example:
+The Light runtime without test dependencies uses `uv sync`. The Full profile is
+`uv sync --extra full --group dev`.
+
+Create the private model registry once, edit it, and start the TUI:
 
 ```bash
-uv run python -m scienceflow.cli parallel -m scripts/lnr.yaml -j 1
+scienceflow config init
+scienceflow config path
+scienceflow tui --workspace /path/to/workspace
 ```
 
-Monitor an existing run:
+The default registry is `~/.config/scienceflow/models.json` with mode `600`. Use
+`--model-config PATH` to test another registry. API keys stay in the registry and are not copied
+into manifests, sessions, or reports. See [model configuration](docs/public/LLM_CONFIGURATION.md).
+
+Activation is per shell. To expose this checkout without activation, ensure `~/.local/bin` is on
+`PATH` and create a user-level link:
 
 ```bash
-uv run python -m scienceflow.cli monitor --manifest scripts/lnr.yaml --refresh 5
+mkdir -p ~/.local/bin
+ln -sfn "$PWD/.venv/bin/scienceflow" ~/.local/bin/scienceflow
+scienceflow tui --workspace /path/to/workspace
 ```
 
-Prepare a dataset with the dedicated data-prep agent:
+ScienceFlow embeds InquiryCraft as its sole generic Agent Runtime; no second process is required.
+Useful entry points are:
 
 ```bash
-uv run python -m scienceflow.cli parallel -m scripts/prep.yaml -j 1
+scienceflow agent tools list
+scienceflow repl
+scienceflow parallel -m scripts/lnr.yaml -j 1
+scienceflow monitor --manifest scripts/lnr.yaml --refresh 5
+scienceflow web --workspace /path/to/workspace
 ```
 
-Run the self-contained Circle Packing math-optimization example (no dataset or optional extra required):
+For packaged releases, install `scienceflow` or `scienceflow[full]` from PyPI after the release
+notes declare InquiryCraft `0.9.0` and the lock file aligned. Container and Compose usage lives in
+[`deploy/README.md`](deploy/README.md).
 
 ```bash
-uv run python tasks/opt_solver/_tools/prepare_math_opt_solver_tasks.py
-uv run python -m scienceflow.cli parallel \
-  -m scienceflow/config/examples/tasks_circle_packing_example.yaml -j 1
+pip install scienceflow
+pip install "scienceflow[full]"
 ```
-
-The prepare step writes a tiny task package (`problem.json` plus a valid baseline) under `./data/opt_solver/`. The agent then iteratively improves `artifacts/best_solution.json`, and the system-side evaluator authoritatively validates each candidate and scores it by the sum of radii.
 
 ## Configuration essentials
 
@@ -148,7 +173,7 @@ The prepare step writes a tiny task package (`problem.json` plus a valid baselin
 
 ## Documentation
 
-[Architecture overview](doc/scienceflow/index.html) · [Recoverable states and LNR](doc/scienceflow/module-lnr.html) · [Evidence-aware execution control](doc/scienceflow/module-resource.html) · [Adding optimization tasks](doc/scienceflow/module-opt-solver-onboarding.html) · [SciModelingBench](tasks/sci_modeling_bench/README.md)
+[Documentation index](docs/README.md) · [Architecture overview](docs/public/scienceflow/index.html) · [Recoverable states and LNR](docs/public/scienceflow/module-lnr.html) · [Evidence-aware execution control](docs/public/scienceflow/module-resource.html) · [Adding optimization tasks](docs/public/scienceflow/module-opt-solver-onboarding.html) · [Current plans](docs/plans/current/) · [SciModelingBench](tasks/sci_modeling_bench/README.md)
 
 ## Paper task coverage
 
@@ -158,18 +183,60 @@ The paper evaluates the same ScienceFlow workflow across three classes of execut
 - **Scientific modeling and design:** 12 [SciModelingBench tasks on Hugging Face](https://huggingface.co/datasets/sci-modeling-bench/design-bench) through the candidate-optimization interface.
 - **Mathematical and engineering optimization:** [Circle Packing](https://github.com/algorithmicsuperintelligence/openevolve/tree/main/examples/circle_packing), [Ratio Minimization](https://github.com/algorithmicsuperintelligence/openevolve/tree/main/examples/alphaevolve_math_problems/minimizing_max_min_dist), [Uncertainty Inequality](https://github.com/algorithmicsuperintelligence/openevolve/tree/main/examples/alphaevolve_math_problems/uncertainty_ineq), and the easy, medium, and hard [SpOC4 KTTSP](https://www.esa.int/gsp/ACT/news/spoc-2026/) tracks through the candidate-optimization interface.
 
-All task families share the Stage Gate and Evaluator contract. Each `task.yaml` keeps provider/profile, artifact schema, metric direction, evaluator backend, authoritative status, and Gate policy outside the generic solver.
+All task families share the Stage Gate and Evaluator contract. Each `task.yaml` keeps provider/profile, artifact schema, evaluator backend, authoritative status, and Gate policy outside the generic solver. MLE-bench tasks may leave metric direction open for the runtime to resolve from task, stage, and evaluation evidence.
 
-## Operational notes
+## TUI and managed research
 
-- MLE-bench tasks require the data root, task `exp_id`, and `submission.csv` contract to be aligned.
-- Do not resume old workspaces across different task profiles, or prompts, datasets, or artifact dimensions may be inherited incorrectly.
-- `stopped_by_user` marks a resumable terminal state from a manual stop, not a failure; a later resume should continue from the accumulated budget in `state.json` and the workspace stages.
+`scienceflow tui` starts a new chat session by default; add `--resume` to restore the latest
+session for the same workspace. Ordinary text uses InquiryCraft's Agent Runtime. The main
+ScienceFlow commands are:
+
+| Command | Purpose |
+|---|---|
+| `/models` | Select the chat model and show the registry path. |
+| `/long-research DESCRIPTION` | Prepare a task, confirm resources and models, preflight, and launch it. |
+| `/tasks`, `/status N` | List tasks or inspect one persistent task number. |
+| `/stop N`, `/resume N`, `/attach N` | Control or attach to a research task. |
+| `/research-usage N`, `/resources` | Show model usage/cost or host and running-task resources. |
+| `/web`, `/web stop` | Start or stop the workspace Web monitor. |
+
+Closing the TUI detaches from supervised research; it does not stop workers. Chat cancellation
+also does not stop research—use `/stop`. Managed-run records live under
+`~/.local/state/scienceflow/managed_runs/`, while chat sessions live under
+`<workspace>/.scienceflow/sessions/`.
+
+`/resources` keeps each `starting` or `running` task on one line. Stopping tasks are hidden, but
+their reservations remain excluded from `Available` until the processes release them.
+
+The CLI exposes the same lifecycle when a full-screen terminal is not wanted:
+
+```bash
+scienceflow run circle-packing --tui --workspace /path/to/experiment
+scienceflow status --all
+scienceflow stop RUN_ID
+scienceflow resume RUN_ID --tui
+```
+
+Do not resume a workspace with a different task profile, dataset, prompt, or artifact contract.
+MLE-bench additionally requires the data root, `exp_id`, and `submission.csv` contract to agree.
+Model pricing is optional and lives only in `models.<alias>.pricing`; missing prices display
+`Cost —` rather than silently using a built-in estimate.
+
+The Web monitor shows task status, workers, metric history, Stage lineage, ESTRA/EEC, usage, and
+final reports. See [Web monitor behavior](docs/web-monitor.md) for local and SSH access.
 
 ## Verification
 
+Run tests through the active development environment while InquiryCraft `0.9.0` remains
+unpublished:
+
 ```bash
-uv run pytest -q
+.venv/bin/pytest -q \
+  tests/test_inquirycraft_dependency_boundary.py \
+  tests/test_inquirycraft_cli_composition.py \
+  tests/test_long_research_interaction.py
 ```
 
-The project uses Python 3.11+, Pydantic, OmegaConf, Click, and Rich. The official `mlebench` dependency is pinned to a Git revision in `uv.lock`; the optional `scientific-design` extra provides SciModelingBench, Datasets, and PyArrow support. Command-based optimization tasks may use a separate Python environment injected through the evaluator configuration, with task-specific schema/scoring logic kept inside the `tasks/<category>/...` task package.
+After the public dependency and lock file are aligned, the release regression command is
+`uv run --locked pytest -q`. Optional ML, GPU, MLE-bench, and scientific-design tests require
+their corresponding extras.

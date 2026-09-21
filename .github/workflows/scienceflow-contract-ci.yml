@@ -1,0 +1,75 @@
+name: ScienceFlow Contract CI
+
+on:
+  push:
+    paths-ignore:
+      - "website/**"
+  pull_request:
+    paths-ignore:
+      - "website/**"
+
+jobs:
+  core-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Compose deployment
+        run: docker compose --env-file deploy/env.example -f deploy/compose.yaml config --quiet
+      - uses: docker/setup-buildx-action@v3
+      - name: Build CPU-only image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/Dockerfile
+          target: core
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  minimal-install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install CPU-only control plane from project metadata
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python -m pip check
+      - name: Smoke test lightweight CLI and runtime imports
+        run: |
+          scienceflow --help
+          scienceflow agent tools list
+          python -c "from scienceflow.research.solver.lnr import LnrSolver; from scienceflow.research.solver.lnr.resources.runtime import ResourceRuntime"
+
+  compatibility-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install lightweight ScienceFlow contract environment
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install httpx numpy tenacity lazy-loader pytest pytest-asyncio
+          python -m pip install 'inquirycraft[openai,tui]==0.9.0'
+          python -m pip install -e .
+      - name: Verify CLI and provider adapters
+        run: >-
+          python -m pytest -q
+          tests/test_inquirycraft_cli_composition.py
+          tests/test_llm_system_message_compat.py
+          tests/test_workspace_contract_fixtures.py
+          tests/test_key_pool_sticky_routing.py
+          tests/test_product_deployment_profiles.py
+      - name: Verify ScienceAgent prompt/runtime contracts
+        run: >-
+          python -m pytest -q
+          tests/test_science_agent_repl_construction.py
+          tests/test_science_agent_repl_memory.py
+          tests/test_science_agent_repl_run_loop.py
+          tests/test_science_agent_repl_tools.py
+          tests/test_run_loop_tool_stream_retry.py

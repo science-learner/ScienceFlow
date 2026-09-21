@@ -1,0 +1,2 @@
+{"uuid":"00000000-0000-0000-0000-000000000001","message":{"__class__":"Message","role":"user","content":"continue the existing task"},"role":"user","extra_info":{},"timestamp":1700000000.0,"agent_id":""}
+{"uuid":"00000000-0000-0000-0000-000000000002","message":{"__class__":"Message","role":"assistant","content":"run the saved command","tool_calls":[{"id":"call-legacy-resume","type":"function","function":{"name":"bash","arguments":"{\"command\":\"python solution.py\"}"}}]},"role":"assistant","extra_info":{},"timestamp":1700000001.0,"agent_id":""}

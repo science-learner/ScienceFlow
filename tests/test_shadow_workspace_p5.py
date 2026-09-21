@@ -14,8 +14,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import scienceflow.core.tools.shadow_workspace as shadow_workspace_module
-from scienceflow.core.tools.shadow_workspace import ShadowWorkspaceManager
+import scienceflow.runtime.safety.tooling.workspace.shadow_workspace as shadow_workspace_module
+from scienceflow.runtime.safety.tooling.workspace.shadow_workspace import ShadowWorkspaceManager
 
 
 def test_shadow_workspace_copies_files_without_polluting_real_workspace(tmp_path) -> None:

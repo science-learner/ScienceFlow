@@ -14,19 +14,7 @@
 
 import pytest
 
-from scienceflow.config.settings import Config, _apply_env
-from scienceflow.safety.execution_policy import format_full_run_log_body
-from scienceflow.utils.workspace_interaction_log import (
-    BashStreamFilter,
-    ConsecutiveLineDeduper,
-    FullRunLightGBMStreamDeduper,
-    collapse_consecutive_lightgbm_warnings_in_text,
-    collapse_consecutive_repeated_lines_in_text,
-    normalize_lightgbm_warning_line,
-    strip_interaction_ansi,
-)
-
-from scienceflow.core.agent import (
+from scienceflow.agent import (
     _WS_LOG_BODY_CAP,
     _WS_LOG_MAX_LINES,
     format_tool_call_lines_for_interaction_log,
@@ -35,6 +23,17 @@ from scienceflow.core.agent import (
     tool_result_text_for_interaction_log,
     truncate_for_interaction_log,
 )
+from scienceflow.foundation.config.schema.settings import Config, _apply_env
+from scienceflow.runtime.observability.interaction_log import (
+    BashStreamFilter,
+    ConsecutiveLineDeduper,
+    FullRunLightGBMStreamDeduper,
+    collapse_consecutive_lightgbm_warnings_in_text,
+    collapse_consecutive_repeated_lines_in_text,
+    normalize_lightgbm_warning_line,
+    strip_interaction_ansi,
+)
+from scienceflow.runtime.safety.policy.execution_policy import format_full_run_log_body
 
 
 def test_write_multiline_and_truncation_when_not_full() -> None:
@@ -142,7 +141,7 @@ def test_apply_env_scienceflow_interaction_log_level(monkeypatch: pytest.MonkeyP
     assert cfg.scienceflow_interaction_log_level == "verbose"
 
 
-def test_apply_env_feedback_api_keys_do_not_pollute_code(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_apply_env_ignores_feedback_model_endpoints(monkeypatch: pytest.MonkeyPatch) -> None:
     for name in (
         "API_KEY",
         "API_KEYS",
@@ -166,11 +165,15 @@ def test_apply_env_feedback_api_keys_do_not_pollute_code(monkeypatch: pytest.Mon
 
     assert cfg.agent.code.api_keys == []
     assert cfg.agent.code.api_key == ""
-    assert cfg.agent.feedback.api_keys == ["fb-a", "fb-b"]
-    assert cfg.agent.feedback.base_url == "https://feedback.example/v1"
+    assert cfg.agent.feedback.api_keys == []
+    assert cfg.agent.feedback.api_key == ""
+    assert cfg.agent.feedback.base_urls == []
+    assert cfg.agent.feedback.base_url == ""
 
 
-def test_apply_env_code_and_feedback_stage_specific_endpoints(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_apply_env_ignores_code_and_feedback_model_endpoints(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     for name in ("API_KEY", "API_KEYS", "BASE_URL", "BASE_URLS"):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("CODE_API_KEY", "code-key")
@@ -181,10 +184,10 @@ def test_apply_env_code_and_feedback_stage_specific_endpoints(monkeypatch: pytes
     cfg = Config()
     _apply_env(cfg)
 
-    assert cfg.agent.code.api_key == "code-key"
-    assert cfg.agent.code.base_url == "https://code.example/v1"
-    assert cfg.agent.feedback.api_key == "feedback-key"
-    assert cfg.agent.feedback.base_url == "https://feedback.example/v1"
+    assert cfg.agent.code.api_key == ""
+    assert cfg.agent.code.base_url == ""
+    assert cfg.agent.feedback.api_key == ""
+    assert cfg.agent.feedback.base_url == ""
 
 
 def test_bash_command_preview_normal_shows_short_command() -> None:

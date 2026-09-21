@@ -18,14 +18,14 @@ import time
 
 import pytest
 
-from scienceflow.core.tools.bash_tool import (
+from scienceflow.runtime.safety.tooling.bash import (
     BashTool,
     _resource_admission_tool_result,
     _resource_policy_preflight_result,
 )
-from scienceflow.core.tools.resource_classifier import RESOURCE_GPU_TT_LIGHT, RESOURCE_HEAVY_GPU_CANDIDATE, RESOURCE_UNKNOWN_GPU_EXEC
-from scienceflow.solver.lnr.resource_runtime.admission import should_request_admission_llm
-from scienceflow.solver.lnr.resource_runtime.startup_trial import classify_preflight_block
+from scienceflow.runtime.safety.tooling.resource_management.resource_policy import RESOURCE_GPU_TT_LIGHT, RESOURCE_HEAVY_GPU_CANDIDATE, RESOURCE_UNKNOWN_GPU_EXEC
+from scienceflow.research.solver.lnr.resources.runtime.control.admission.admission import should_request_admission_llm
+from scienceflow.research.solver.lnr.resources.runtime.control.policy.startup_trial import classify_preflight_block
 from tests.lnr_resource_test_utils import FakeStateMachine, event_types, make_observer, payloads
 
 
@@ -260,7 +260,7 @@ def test_stale_pressure_preflight_allows_when_gpu_is_observed_free(tmp_path, mon
         command_digest="old-digest",
     )
     monkeypatch.setattr(
-        "scienceflow.solver.lnr.resource_runtime.runtime.sample_nvidia_smi",
+        "scienceflow.research.solver.lnr.resources.runtime.execution.facade.sample_nvidia_smi",
         _fake_free_gpu_sample,
     )
 
@@ -413,7 +413,7 @@ async def test_resource_wait_timeout_suppresses_same_state_reoffer(tmp_path) -> 
 
 @pytest.mark.asyncio
 async def test_resource_wait_invalid_token_returns_compact_feedback(tmp_path) -> None:
-    from scienceflow.core.tools.resource_wait_tool import ResourceWaitTool
+    from scienceflow.runtime.safety.tooling.resource_management.resource_wait import ResourceWaitTool
 
     queued, _ = make_observer(tmp_path, worker_id="W01", gpu_pool=["0"])
     tool = ResourceWaitTool(resource_observer=queued)
@@ -461,7 +461,7 @@ async def test_lnr_admission_llm_can_replan_blocked_gpu_task(tmp_path) -> None:
 
 @pytest.mark.asyncio
 async def test_lnr_admission_llm_can_grant_partial_gpu_subset(tmp_path, monkeypatch) -> None:
-    from scienceflow.solver.lnr.resource_runtime import runtime as runtime_mod
+    from scienceflow.research.solver.lnr.resources.runtime.execution import facade as runtime_mod
 
     monkeypatch.setattr(runtime_mod, "sample_nvidia_smi", _fake_low_util_sample)
     sm = FakeStateMachine()
@@ -518,7 +518,7 @@ async def test_lnr_admission_llm_can_grant_partial_gpu_subset(tmp_path, monkeypa
 
 @pytest.mark.asyncio
 async def test_lnr_admission_llm_run_now_falls_back_when_atomic_grant_fails(tmp_path, monkeypatch) -> None:
-    from scienceflow.solver.lnr.resource_runtime import runtime as runtime_mod
+    from scienceflow.research.solver.lnr.resources.runtime.execution import facade as runtime_mod
 
     monkeypatch.setattr(runtime_mod, "sample_nvidia_smi", _fake_low_util_sample)
     sm = FakeStateMachine()
@@ -781,7 +781,9 @@ async def test_bash_tool_rule_pending_without_wait_option_keeps_queue_wait(tmp_p
     monkeypatch.setattr(queued.resource_runtime, "create_resource_wait_option", no_wait_option)
 
     train_py = tmp_path / "train.py"
-    train_py.write_text("import torch\nprint('ran-train')\n", encoding="utf-8")
+    # Keep the classifier's torch signal without making this queue-semantics test
+    # depend on a cold torch import fitting inside the deliberately tiny 5s timeout.
+    train_py.write_text("if False:\n    import torch\nprint('ran-train')\n", encoding="utf-8")
     tool = BashTool(
         workspace_dir=tmp_path,
         bash_timeout_sec=5.0,
@@ -963,7 +965,7 @@ def test_lnr_heavy_waiter_blocked_by_non_heavy_holder_marks_trial_candidate(tmp_
 
 @pytest.mark.asyncio
 async def test_lnr_deterministic_trial_admission_grants_without_llm(tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr("scienceflow.solver.lnr.resource_runtime.runtime.sample_nvidia_smi", _fake_low_util_sample)
+    monkeypatch.setattr("scienceflow.research.solver.lnr.resources.runtime.execution.facade.sample_nvidia_smi", _fake_low_util_sample)
     sm = FakeStateMachine()
     holder, _ = make_observer(
         tmp_path,
@@ -1015,7 +1017,7 @@ async def test_lnr_deterministic_trial_admission_grants_without_llm(tmp_path, mo
 
 @pytest.mark.asyncio
 async def test_lnr_admission_share_review_grants_waiter_shared_trial(tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr("scienceflow.solver.lnr.resource_runtime.runtime.sample_nvidia_smi", _fake_low_util_sample)
+    monkeypatch.setattr("scienceflow.research.solver.lnr.resources.runtime.execution.facade.sample_nvidia_smi", _fake_low_util_sample)
     sm = FakeStateMachine()
     decisions = []
 
@@ -1078,7 +1080,7 @@ async def test_lnr_admission_share_review_grants_waiter_shared_trial(tmp_path, m
 
 @pytest.mark.asyncio
 async def test_lnr_admission_share_review_denies_to_waiter_cpu_support(tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr("scienceflow.solver.lnr.resource_runtime.runtime.sample_nvidia_smi", _fake_low_util_sample)
+    monkeypatch.setattr("scienceflow.research.solver.lnr.resources.runtime.execution.facade.sample_nvidia_smi", _fake_low_util_sample)
     sm = FakeStateMachine()
 
     async def arbiter_decide(_proposal):
@@ -1126,7 +1128,7 @@ async def test_lnr_admission_share_review_denies_to_waiter_cpu_support(tmp_path,
 @pytest.mark.skipif(sys.platform != "linux", reason="taskset CPU pinning is Linux-only")
 @pytest.mark.asyncio
 async def test_bash_tool_admission_share_grant_runs_waiter_without_queue_timeout(tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr("scienceflow.solver.lnr.resource_runtime.runtime.sample_nvidia_smi", _fake_low_util_sample)
+    monkeypatch.setattr("scienceflow.research.solver.lnr.resources.runtime.execution.facade.sample_nvidia_smi", _fake_low_util_sample)
     sm = FakeStateMachine()
 
     async def arbiter_decide(_proposal):

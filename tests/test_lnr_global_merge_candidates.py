@@ -13,15 +13,21 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from pathlib import Path
 
-from scienceflow.solver.lnr.global_merge.candidate_evidence import (
+from scienceflow.research.quality.finalization.selection.coverage import (
+    build_final_coverage_plan,
+    order_candidates_for_coverage,
+)
+from scienceflow.research.quality.finalization.candidates.evidence import (
     apply_candidate_evidence,
+    load_archived_artifact_candidates,
     load_peer_candidate_evidence,
     recover_candidate_artifact,
 )
-from scienceflow.solver.lnr.global_merge.candidate_pack import pack_candidates
-from scienceflow.solver.lnr.global_merge.fallback import ranked_candidates
+from scienceflow.research.quality.finalization.candidates.pack import pack_candidates
+from scienceflow.research.quality.finalization.selection.ranking import ranked_candidates
 
 
 def _write(path: Path, text: str) -> None:
@@ -82,6 +88,68 @@ def test_candidate_without_sha_does_not_claim_current_workspace_artifact(
 
     assert recovered["candidate_ready"] is False
     assert "artifact_source" not in recovered
+
+
+def test_archived_validated_artifact_is_recovered_without_committed_stage(
+    tmp_path: Path,
+) -> None:
+    worker = tmp_path / "workers" / "w00"
+    (worker / "workspace").mkdir(parents=True)
+    artifact = worker / "logs" / "submission_snapshots" / "iter_0002_submission.csv"
+    _write(artifact, "id,target\n1,0.42\n")
+    sha = hashlib.sha256(artifact.read_bytes()).hexdigest()
+    archive_record = {
+        "artifact_path": "submission.csv",
+        "artifact_sha256": sha,
+        "capture_type": "candidate_artifact_persisted",
+        "snapshot_path": "../logs/submission_snapshots/iter_0002_submission.csv",
+    }
+    evaluator_event = {
+        "event": "evaluator_metric_event",
+        "worker_id": "W00",
+        "candidate_id": "W00:S02",
+        "stage_id": "S02",
+        "artifact_path": "submission.csv",
+        "artifact_sha": sha,
+        "candidate_ready": True,
+        "validation_ok": True,
+        "selection_eligible": False,
+        "evaluator_backend": "task_package",
+        "evaluator_status": "validated_no_metric",
+        "metric_validity": "medium",
+        "metric_value": None,
+    }
+    _write(
+        worker / "logs" / "checkpoints" / "artifact_archive.jsonl",
+        json.dumps(archive_record) + "\n",
+    )
+    _write(
+        worker / "logs" / "evaluator_events.jsonl",
+        json.dumps(evaluator_event) + "\n",
+    )
+
+    candidates = load_archived_artifact_candidates(
+        worker,
+        worker_id="W00",
+        artifact_path="submission.csv",
+    )
+
+    assert len(candidates) == 1
+    candidate = candidates[0]
+    assert candidate["candidate_ready"] is True
+    assert candidate["final_artifact_only"] is True
+    assert candidate["selection_eligible"] is False
+    assert candidate["submission_sha"] == sha
+    assert Path(candidate["artifact_source"]) == artifact.resolve()
+
+    packed = pack_candidates(
+        merge_dir=tmp_path / "merge",
+        merge_workspace=tmp_path / "merge_workspace",
+        candidates=candidates,
+        artifact_path="submission.csv",
+        ledger_filename=".run_results.md",
+    )
+    assert [item["submission_sha"] for item in packed] == [sha]
 
 
 def test_json_recovery_prefers_artifact_sha_over_conflicting_submission_sha(
@@ -193,3 +261,54 @@ def test_meta_fit_candidate_ranks_after_comparable_candidate() -> None:
         "W01:S01",
         "W00:S01",
     ]
+
+
+def test_final_coverage_reserves_safe_medium_route_without_admitting_low() -> None:
+    def candidate(
+        candidate_id: str,
+        *,
+        metric: float,
+        validity: str,
+        reason: str = "",
+    ) -> dict[str, object]:
+        return {
+            "candidate_id": candidate_id,
+            "candidate_ready": True,
+            "submission_sha": candidate_id,
+            "selection_eligible": validity != "low",
+            "metric_validity": validity,
+            "metric_validity_reason_code": reason,
+            "metric_value": metric,
+            "lower_is_better": True,
+        }
+
+    ranked = ranked_candidates(
+        [
+            candidate("high-best", metric=0.10, validity="high"),
+            candidate("high-second", metric=0.20, validity="high"),
+            candidate("medium-safe", metric=0.05, validity="medium"),
+            candidate(
+                "medium-meta-fit",
+                metric=0.01,
+                validity="medium",
+                reason="same_validation_meta_fit",
+            ),
+            candidate("low", metric=0.001, validity="low"),
+        ]
+    )
+    plan = build_final_coverage_plan(ranked, final_slots=3)
+    ordered = order_candidates_for_coverage(
+        ranked,
+        plan=plan,
+        coverage_first=False,
+    )
+
+    assert plan.enabled is True
+    assert plan.reserved_slots == 1
+    assert plan.coverage_candidate_id == "medium-safe"
+    assert [row["candidate_id"] for row in ordered[:3]] == [
+        "high-best",
+        "medium-safe",
+        "high-second",
+    ]
+    assert "low" not in {row["candidate_id"] for row in ordered}

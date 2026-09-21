@@ -45,7 +45,7 @@ PUBLIC_INPUT_PRODUCER_VERSION = 3
 
 
 def prepare(task_id: str, output_dir: Path) -> dict[str, Any]:
-    from scienceflow.core.task_package import find_task_package
+    from scienceflow.runtime.task_package import find_task_package
 
     spec = find_task_package(task_id)
     if spec is None:

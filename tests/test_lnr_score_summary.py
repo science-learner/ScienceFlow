@@ -15,7 +15,7 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
-from scienceflow.solver.lnr.stage.score_summary import (
+from scienceflow.research.solver.lnr.lifecycle.stage.metrics.score_summary import (
     build_stage_performance_score_summary,
     format_score_summary_context,
     metric_lower_is_better_hint,

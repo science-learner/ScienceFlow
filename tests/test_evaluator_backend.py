@@ -14,7 +14,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from scienceflow.gates.evaluator import EvalContext, EvaluatorManager
+from scienceflow.foundation.contracts import EvalContext
+from scienceflow.research.quality.evaluator import EvaluatorManager
 
 
 def _write(path: Path, text: str) -> None:

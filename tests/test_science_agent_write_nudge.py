@@ -18,11 +18,11 @@ import ast
 import hashlib
 from pathlib import Path
 
-from deepcraft_core.tool import ToolResult
+from inquirycraft.tools import ToolResult
 
 
 def _bare_agent(tmp_path: Path):
-    from scienceflow.core.agent import ScienceAgent
+    from scienceflow.agent import ScienceAgent
 
     agent = ScienceAgent.__new__(ScienceAgent)
     agent._workspace_dir = tmp_path
@@ -154,19 +154,13 @@ def test_write_failure_short_content_hint_without_syntax_phrase(tmp_path: Path) 
 
 def test_extract_unfenced_with_trailing_prose() -> None:
     """Code followed by natural-language explanation should still be extracted."""
-    from scienceflow.core.agent.prompts.write_coaching import (
+    from scienceflow.agent.prompts.write_coaching import (
         _extract_python_code_from_assistant_text,
     )
 
     pad = "x\n" * 100
     body = "    print('hello')\n" * 30
-    text = (
-        pad
-        + "import os\n"
-        + "def main():\n"
-        + body
-        + "\nThis code prints hello."
-    )
+    text = pad + "import os\n" + "def main():\n" + body + "\nThis code prints hello."
     result = _extract_python_code_from_assistant_text(text)
     assert result is not None
     ast.parse(result)
@@ -176,7 +170,7 @@ def test_extract_unfenced_with_trailing_prose() -> None:
 
 def test_extract_unfenced_multiple_candidates() -> None:
     """If first candidate fails, try the next import/def start line."""
-    from scienceflow.core.agent.prompts.write_coaching import (
+    from scienceflow.agent.prompts.write_coaching import (
         _extract_python_code_from_assistant_text,
     )
 
@@ -197,9 +191,10 @@ def test_extract_unfenced_multiple_candidates() -> None:
 # WriteNudgeGuard (tool_guards.py) — streak nudge and bash reset
 # ---------------------------------------------------------------------------
 
+
 def _make_write_nudge_guard(tmp_path: Path, initial_sha: str | None = None):
     """Build a WriteNudgeGuard with a tmp workspace."""
-    from scienceflow.core.agent.tools.tool_guards import WriteNudgeGuard
+    from scienceflow.runtime.safety.policy.agent_policies.guards import WriteNudgeGuard
 
     def current_sha():
         p = tmp_path / "solution.py"
@@ -217,20 +212,24 @@ def _make_write_nudge_guard(tmp_path: Path, initial_sha: str | None = None):
 
 
 def test_write_nudge_guard_bash_resets_streak(tmp_path: Path) -> None:
-    from deepcraft_core.tool import ToolResult
+    from inquirycraft.tools import ToolResult
 
     guard = _make_write_nudge_guard(tmp_path)
     guard._consecutive_solution_writes = 5
-    guard.on_tool_result("bash", {"command": "python3 solution.py"}, ToolResult(output="ok"))
+    guard.on_tool_result(
+        "bash", {"command": "python3 solution.py"}, ToolResult(output="ok")
+    )
     assert guard._consecutive_solution_writes == 0
 
 
 def test_write_nudge_guard_no_nudge_before_threshold(tmp_path: Path) -> None:
-    from deepcraft_core.tool import ToolResult
-    from scienceflow.core.agent.shared.constants import _WRITE_STREAK_NUDGE_THRESHOLD
+    from inquirycraft.tools import ToolResult
+    from scienceflow.foundation.config.runtime.agent_constants import _WRITE_STREAK_NUDGE_THRESHOLD
 
     (tmp_path / "solution.py").write_text("print(1)", encoding="utf-8")
-    guard = _make_write_nudge_guard(tmp_path, initial_sha=hashlib.sha256(b"other").hexdigest())
+    guard = _make_write_nudge_guard(
+        tmp_path, initial_sha=hashlib.sha256(b"other").hexdigest()
+    )
     for _ in range(_WRITE_STREAK_NUDGE_THRESHOLD - 1):
         result = guard.on_tool_result(
             "write", {"path": "solution.py"}, ToolResult(output="ok")
@@ -239,11 +238,13 @@ def test_write_nudge_guard_no_nudge_before_threshold(tmp_path: Path) -> None:
 
 
 def test_write_nudge_guard_streak_nudge_at_threshold(tmp_path: Path) -> None:
-    from deepcraft_core.tool import ToolResult
-    from scienceflow.core.agent.shared.constants import _WRITE_STREAK_NUDGE_THRESHOLD
+    from inquirycraft.tools import ToolResult
+    from scienceflow.foundation.config.runtime.agent_constants import _WRITE_STREAK_NUDGE_THRESHOLD
 
     (tmp_path / "solution.py").write_text("print(42)", encoding="utf-8")
-    guard = _make_write_nudge_guard(tmp_path, initial_sha=hashlib.sha256(b"other").hexdigest())
+    guard = _make_write_nudge_guard(
+        tmp_path, initial_sha=hashlib.sha256(b"other").hexdigest()
+    )
     guard._consecutive_solution_writes = _WRITE_STREAK_NUDGE_THRESHOLD - 1
     result = guard.on_tool_result(
         "write", {"path": "solution.py"}, ToolResult(output="ok")
@@ -256,14 +257,18 @@ def test_write_nudge_guard_streak_nudge_at_threshold(tmp_path: Path) -> None:
 
 
 def test_write_nudge_guard_streak_resets_after_bash(tmp_path: Path) -> None:
-    from deepcraft_core.tool import ToolResult
-    from scienceflow.core.agent.shared.constants import _WRITE_STREAK_NUDGE_THRESHOLD
+    from inquirycraft.tools import ToolResult
+    from scienceflow.foundation.config.runtime.agent_constants import _WRITE_STREAK_NUDGE_THRESHOLD
 
     (tmp_path / "solution.py").write_text("print(0)", encoding="utf-8")
-    guard = _make_write_nudge_guard(tmp_path, initial_sha=hashlib.sha256(b"other").hexdigest())
+    guard = _make_write_nudge_guard(
+        tmp_path, initial_sha=hashlib.sha256(b"other").hexdigest()
+    )
     guard._consecutive_solution_writes = _WRITE_STREAK_NUDGE_THRESHOLD
     # bash resets counter
-    guard.on_tool_result("bash", {"command": "python3 solution.py"}, ToolResult(output="ok"))
+    guard.on_tool_result(
+        "bash", {"command": "python3 solution.py"}, ToolResult(output="ok")
+    )
     assert guard._consecutive_solution_writes == 0
     # next write is below threshold — no streak nudge
     result = guard.on_tool_result(

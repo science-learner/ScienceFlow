@@ -1,7 +1,7 @@
 # Canonical LNR two-task parallel manifest.
 #
 # Launch:
-#   uv run python -m scienceflow.cli parallel -m scripts/lnr_two_tasks.yaml -j 2
+#   uv run python -m scienceflow.interfaces.cli parallel -m scripts/lnr_two_tasks.yaml -j 2
 #
 # If a task needs semantic data preparation, run scripts/prep.yaml first and
 # point that task's input_data_dir below to the prep workspace's dataset/.
@@ -25,8 +25,9 @@ lnr:
   resource_control_mode: resource_smart_llm
 
 defaults:
-  config: scienceflow/config/default.yaml
+  config: scienceflow/foundation/config/default.yaml
   workspace_base: ./workspaces/manual_lnr_two_tasks
+  mlebench_data_root_dir: ./data/mlebench_all_data
   repl_max_steps: 1200
   repl_code_organization_hint: beyond_mfiles
   repl_bash_max_output_chars: 8000

@@ -12,9 +12,9 @@
 
 from __future__ import annotations
 
-from deepcraft_core.tool import ToolResult
+from inquirycraft.tools import ToolResult
 
-from scienceflow.core.agent.tools.tool_guards import RuntimeErrorGuard
+from scienceflow.runtime.safety.policy.agent_policies.guards import RuntimeErrorGuard
 
 
 def _bash_fail(cmd: str, output: str) -> ToolResult:
@@ -22,10 +22,14 @@ def _bash_fail(cmd: str, output: str) -> ToolResult:
 
 
 def test_runtime_rotating_coaching_once_on_third_distinct_type_failure() -> None:
-    g = RuntimeErrorGuard(rotating_runtime_error_threshold=3, rotating_distinct_types_min=2)
+    g = RuntimeErrorGuard(
+        rotating_runtime_error_threshold=3, rotating_distinct_types_min=2
+    )
     cmd = "python3 solution.py"
     out_ve = "Traceback (most recent call last):\nValueError: bad\n"
-    out_ic = "Traceback (most recent call last):\npandas.errors.IntCastingNaNError: nan\n"
+    out_ic = (
+        "Traceback (most recent call last):\npandas.errors.IntCastingNaNError: nan\n"
+    )
 
     m1 = g.on_tool_result("bash", {"command": cmd}, _bash_fail(cmd, out_ve))
     assert m1 is not None

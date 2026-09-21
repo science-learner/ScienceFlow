@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "models": {
+    "deepseek-v4-flash": {
+      "model": "deepseek-v4-flash",
+      "reasoning_replay": "preserve",
+      "endpoints": {
+        "code": [
+          {"url": "https://provider-a.example.com/v1", "key": "key-a"},
+          {"url": "https://provider-b.example.com/v1", "key": "key-b"}
+        ],
+        "feedback": [
+          {"url": "https://review.example.com/v1", "key": "review-key"}
+        ]
+      }
+    },
+    "qwen3-coder": {
+      "model": "qwen3-coder",
+      "reasoning_replay": "preserve",
+      "endpoints": [
+        {"url": "https://qwen.example.com/v1", "key": "qwen-key"}
+      ]
+    }
+  },
+  "defaults": {
+    "code_models": ["deepseek-v4-flash", "qwen3-coder"],
+    "feedback_models": ["deepseek-v4-flash"],
+    "selection": "auto"
+  }
+}

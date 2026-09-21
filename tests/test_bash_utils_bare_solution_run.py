@@ -12,7 +12,7 @@
 
 """Tests for progressive embedded-full-run command classification."""
 
-from scienceflow.core.agent.tools.bash_utils import (
+from scienceflow.runtime.safety.policy.agent_policies.bash_utils import (
     _looks_like_bare_solution_run,
     command_sets_subsample_row_env,
 )
@@ -45,7 +45,9 @@ def test_looks_like_bare_solution_run() -> None:
     assert not _looks_like_bare_solution_run("QUICK_TEST_ROWS=50 python3 solution.py")
     assert not _looks_like_bare_solution_run("env NROWS=100 python3 solution.py")
     assert not _looks_like_bare_solution_run("python3 train.py")
-    assert not _looks_like_bare_solution_run("python3 -c \"open('solution.py').read()\"")
+    assert not _looks_like_bare_solution_run(
+        "python3 -c \"open('solution.py').read()\""
+    )
     assert not _looks_like_bare_solution_run("grep -n solution.py solution.py")
     assert not _looks_like_bare_solution_run("cat solution.py | python3")
     assert not _looks_like_bare_solution_run("python3 solution.py --help")

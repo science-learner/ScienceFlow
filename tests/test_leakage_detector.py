@@ -12,7 +12,7 @@
 
 """Tests for validation-set leakage heuristics (encoder / concat false positives)."""
 
-from scienceflow.safety.leakage_detector import validate_no_leakage
+from scienceflow.runtime.safety.policy.leakage_detector import validate_no_leakage
 
 
 def test_label_encoder_concat_train_val_columns_not_leakage():

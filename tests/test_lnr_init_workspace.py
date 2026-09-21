@@ -14,10 +14,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from scienceflow.config.settings import LnrConfig
-from scienceflow.solver.lnr.init_workspace import initialize_workspace_from_path
-from scienceflow.solver.lnr.prompts import build_first_user_prompt
-from scienceflow.utils.workspace_git import ensure_workspace_source_git, workspace_source_changed
+from scienceflow.foundation.config.schema.settings import LnrConfig
+from scienceflow.research.solver.lnr.lifecycle.workspace.init_workspace import initialize_workspace_from_path
+from scienceflow.research.solver.lnr.support.prompts import build_first_user_prompt
+from scienceflow.research.state.workspace.storage.git import ensure_workspace_source_git, workspace_source_changed
 
 
 def test_init_workspace_copies_model_and_feature_artifacts_but_excludes_control_dirs(tmp_path: Path) -> None:

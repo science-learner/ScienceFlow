@@ -20,20 +20,19 @@ from pathlib import Path
 
 import pytest
 
-import scienceflow.core.parallel_runner as parallel_runner_mod
-from scienceflow.utils.llm_config_summary import (
+import scienceflow.runtime.parallel.execution.runner as parallel_runner_mod
+from scienceflow.runtime.observability.telemetry.agent.llm_config_summary import (
     summarize_llm_config_from_agent_patch,
     summarize_llm_config_from_env,
 )
-
-from scienceflow.core.parallel_runner import (
+from scienceflow.runtime.parallel.execution.runner import (
     ParallelRunner,
     TaskResult,
     TaskSpec,
     _env_sticky_primary_index,
+    _manifest_input_data_dir,
     _manifest_merge_lnr,
     _manifest_run_type,
-    _manifest_input_data_dir,
     _manifest_scienceflow_interaction_log_full,
     _manifest_scienceflow_interaction_log_level,
     _manifest_scienceflow_interaction_log_llm_stream,
@@ -48,6 +47,10 @@ from scienceflow.core.parallel_runner import (
     _workspace_lnr_result_status,
     resolve_manifest_task_workspace,
 )
+
+
+def test_parallel_repo_root_tracks_nested_component_layout() -> None:
+    assert parallel_runner_mod._scienceflow_repo_root() == Path(__file__).parents[1]
 
 
 def test_parallel_resume_budget_uses_charged_elapsed_sec(tmp_path):
@@ -171,8 +174,8 @@ def test_parallel_write_running_state_records_sanitized_llm_config(tmp_path):
     llm_config = summarize_llm_config_from_env(
         {
             "CODE_MODEL": "glm-5.2",
-            "API_KEY": "sk-secret",
-            "BASE_URL": "https://user:pass@llm.example/v1?token=secret",
+            "CODE_API_KEYS": "sk-secret",
+            "CODE_BASE_URLS": "https://user:pass@llm.example/v1?token=secret",
             "SCIENCEFLOW_LLM_ROUTING_MODE": "sticky_failover",
             "SCIENCEFLOW_LLM_STICKY_PRIMARY_INDEX": "2",
         },
@@ -289,6 +292,53 @@ def test_parallel_write_state_charges_non_external_failures(tmp_path):
 
     state = __import__("json").loads((workspace / "task_logs" / "state.json").read_text(encoding="utf-8"))
     assert "failure_kind" not in state
+    assert state["charged_elapsed_sec"] == 123.0
+
+
+def test_parallel_write_state_prefers_structured_lnr_failure_over_log_timeout(
+    tmp_path,
+):
+    workspace = tmp_path / "task"
+    task_logs = workspace / "task_logs"
+    task_logs.mkdir(parents=True)
+    (task_logs / "lhr_events.jsonl").write_text(
+        (
+            '{"event":"multi_worker_done","payload":{"status":"failed",'
+            '"failure_kind":"worker_error","worker_error_kinds":["worker_error"],'
+            '"merge_status":"no_final_artifacts"}}\n'
+        ),
+        encoding="utf-8",
+    )
+    log_file = task_logs / "parallel_subprocess.log"
+    log_file.write_text(
+        "worker tool: Command timed out after 179s\n",
+        encoding="utf-8",
+    )
+    spec = TaskSpec(
+        exp_id="e",
+        task="t",
+        workspace=str(workspace),
+        run_id="r",
+        time_limit=3600,
+    )
+    result = TaskResult(
+        exp_id="e",
+        run_id="r",
+        status="failed",
+        exit_code=1,
+        elapsed_sec=123.0,
+        log_file=str(log_file),
+    )
+    runner = object.__new__(ParallelRunner)
+
+    ParallelRunner._write_state(runner, spec, result)
+
+    state = __import__("json").loads(
+        (task_logs / "state.json").read_text(encoding="utf-8")
+    )
+    assert state["failure_kind"] == "worker_error"
+    assert state["worker_error_kinds"] == ["worker_error"]
+    assert state["merge_status"] == "no_final_artifacts"
     assert state["charged_elapsed_sec"] == 123.0
 
 
@@ -554,7 +604,7 @@ def test_validate_invalid_phase() -> None:
 
 def test_resolve_parallel_task_inline_overrides_file(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(
-        "scienceflow.core.parallel_runner._scienceflow_repo_root",
+        "scienceflow.runtime.parallel.execution.runner._scienceflow_repo_root",
         lambda: tmp_path,
     )
     desc = tmp_path / "tasks" / "ml" / "mlebench" / "mytask" / "description_lite.md"
@@ -567,7 +617,7 @@ def test_resolve_parallel_task_inline_overrides_file(monkeypatch, tmp_path) -> N
 
 def test_resolve_parallel_task_default_description_lite(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(
-        "scienceflow.core.parallel_runner._scienceflow_repo_root",
+        "scienceflow.runtime.parallel.execution.runner._scienceflow_repo_root",
         lambda: tmp_path,
     )
     desc = tmp_path / "tasks" / "ml" / "mlebench" / "mytask" / "description_lite.md"
@@ -580,7 +630,7 @@ def test_resolve_parallel_task_default_description_lite(monkeypatch, tmp_path) -
 
 def test_resolve_parallel_task_missing_default_file(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(
-        "scienceflow.core.parallel_runner._scienceflow_repo_root",
+        "scienceflow.runtime.parallel.execution.runner._scienceflow_repo_root",
         lambda: tmp_path,
     )
     with pytest.raises(ValueError, match="default description file"):
@@ -589,7 +639,7 @@ def test_resolve_parallel_task_missing_default_file(monkeypatch, tmp_path) -> No
 
 def test_resolve_parallel_task_rejects_ambiguous_default(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(
-        "scienceflow.core.parallel_runner._scienceflow_repo_root",
+        "scienceflow.runtime.parallel.execution.runner._scienceflow_repo_root",
         lambda: tmp_path,
     )
     for category in ("ml/mlebench", "opt_solver"):
@@ -638,7 +688,7 @@ def test_parallel_manifest_ignores_removed_prep_config(tmp_path) -> None:
             f"""
             max_concurrent: 1
             defaults:
-              config: scienceflow/config/default.yaml
+              config: scienceflow/foundation/config/default.yaml
               phase: prep
               prep_val_fraction: 0.1
               data_split:
@@ -662,7 +712,7 @@ def test_parallel_manifest_ignores_removed_prep_config(tmp_path) -> None:
 
 
 def test_parallel_child_cli_argv_lnr_run_type(tmp_path) -> None:
-    from scienceflow.core.parallel_runner import ParallelRunner, TaskSpec
+    from scienceflow.runtime.parallel.execution.runner import ParallelRunner, TaskSpec
 
     ws = str(tmp_path / "ws")
     spec = TaskSpec(
@@ -693,7 +743,7 @@ def test_parallel_child_cli_uses_resolved_project_python(monkeypatch, tmp_path) 
         phase="run",
     )
     argv = ParallelRunner.child_cli_argv(spec)
-    assert argv[:3] == [str(child_python), "-m", "scienceflow.cli"]
+    assert argv[:3] == [str(child_python), "-m", "scienceflow.interfaces.cli"]
 
 
 def test_parallel_manifest_loads_lnr_patch(tmp_path) -> None:
@@ -948,7 +998,7 @@ def test_parallel_runner_top_level_api_keys_become_task_sticky_failover_pool(tmp
     assert first.api_key == "key-a"
     assert first.api_keys == "key-a,key-b,key-c"
     assert first.base_url == "https://llm.example/v1"
-    assert first.base_urls == ""
+    assert first.base_urls == "https://llm.example/v1"
     assert first.llm_routing_mode == "sticky_failover"
     assert first.llm_sticky_id == "run-a"
     assert first.llm_sticky_primary_index == 0
@@ -956,7 +1006,7 @@ def test_parallel_runner_top_level_api_keys_become_task_sticky_failover_pool(tmp
     assert second.api_key == "key-b"
     assert second.api_keys == "key-b,key-c,key-a"
     assert second.base_url == "https://llm.example/v1"
-    assert second.base_urls == ""
+    assert second.base_urls == "https://llm.example/v1"
     assert second.llm_routing_mode == "sticky_failover"
     assert second.llm_sticky_id == "run-b"
     assert second.llm_sticky_primary_index == 0

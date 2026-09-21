@@ -20,21 +20,21 @@ import os
 from pathlib import Path
 from types import SimpleNamespace
 
-from scienceflow.gates.evaluator import EvaluatorManager
-from scienceflow.solver.lnr.global_merge import runner as global_merge_runner
-from scienceflow.solver.lnr.global_merge.candidate_pack import pack_candidates
-from scienceflow.solver.lnr.global_merge.runner import (
+from scienceflow.research.quality.evaluator import EvaluatorManager
+from scienceflow.research.quality.finalization import service as global_merge_runner
+from scienceflow.research.quality.finalization.candidates.pack import pack_candidates
+from scienceflow.research.quality.finalization.service import (
     _evaluate_finals,
     run_global_merge,
 )
-from scienceflow.solver.lnr.global_merge.final_artifacts import (
+from scienceflow.research.quality.finalization.artifacts.materialize import (
     materialize_best_stage_final,
 )
-from scienceflow.solver.lnr.submission_links import (
+from scienceflow.research.quality.finalization.artifacts.submission_links import (
     canonicalize_worker_workspace_artifacts,
     refresh_submission_links,
 )
-from scienceflow.solver.lnr.solver import LnrSolver
+from scienceflow.research.solver.lnr.orchestration.solver import LnrSolver
 
 
 def _write(path: Path, text: str) -> None:
@@ -544,6 +544,144 @@ def test_global_merge_writes_fallback_finals_when_agent_writes_no_final(
     assert (tmp_path / "submissions" / "finals" / "final_00.csv").is_symlink()
 
 
+def test_global_merge_timeout_is_expected_fallback_not_agent_failure(
+    tmp_path: Path,
+) -> None:
+    snap = tmp_path / "snap"
+    _write(snap / "submission.csv", "id,target\n1,0.2\n")
+
+    async def timed_out(*_args) -> None:
+        raise TimeoutError
+
+    manifest = asyncio.run(
+        run_global_merge(
+            merge_dir=tmp_path / "merge",
+            candidates=[
+                {
+                    "candidate_id": "W00:S01",
+                    "snapshot_path": str(snap),
+                    "metric_value": 0.2,
+                    "lower_is_better": True,
+                    "validation_ok": True,
+                    "submission_sha": "abc",
+                    "metric_validity": "high",
+                    "selection_eligible": True,
+                }
+            ],
+            worker_results=[],
+            task_desc="write a valid submission",
+            artifact_path="submission.csv",
+            ledger_filename=".run_results.md",
+            wall_clock_sec=30,
+            evaluator_manager=EvaluatorManager.default(),
+            cfg=SimpleNamespace(
+                evaluator=SimpleNamespace(enabled=False),
+                task_profile="mlebench",
+                submission_dir=tmp_path / "submissions",
+            ),
+            task_profile="mlebench",
+            task_id="dummy",
+            task_root=tmp_path,
+            dataset_source=None,
+            merge_executor=timed_out,
+            required_finals=1,
+            max_finals=1,
+        )
+    )
+
+    assert manifest["agent_status"] == "timed_out_fallback"
+    assert manifest["agent_error"] == ""
+    assert manifest["status"] == "success"
+    assert manifest["requirement_met"] is True
+
+
+def test_global_merge_reserves_one_final_for_medium_confidence_route(
+    tmp_path: Path,
+) -> None:
+    snapshots: dict[str, Path] = {}
+    candidates: list[dict[str, object]] = []
+    for index, (candidate_id, validity, metric) in enumerate(
+        (
+            ("high-best", "high", 0.10),
+            ("high-second", "high", 0.20),
+            ("high-third", "high", 0.30),
+            ("medium-route", "medium", 0.05),
+        )
+    ):
+        snapshot = tmp_path / candidate_id
+        _write(snapshot / "submission.csv", f"id,target\n1,{index}\n")
+        snapshots[candidate_id] = snapshot
+        candidates.append(
+            {
+                "candidate_id": candidate_id,
+                "snapshot_path": str(snapshot),
+                "metric_value": metric,
+                "lower_is_better": True,
+                "validation_ok": True,
+                "candidate_ready": True,
+                "submission_sha": _sha256(snapshot / "submission.csv"),
+                "metric_validity": validity,
+                "selection_eligible": True,
+            }
+        )
+
+    prompts: list[str] = []
+
+    async def high_only_merge(
+        workspace: Path,
+        prompt: str,
+        _budget: float,
+        _read_roots: list[Path],
+    ) -> None:
+        prompts.append(prompt)
+        for index, candidate_id in enumerate(
+            ("high-best", "high-second", "high-third")
+        ):
+            _write(
+                workspace / "finals" / f"final_{index:02d}" / "submission.csv",
+                (snapshots[candidate_id] / "submission.csv").read_text(
+                    encoding="utf-8"
+                ),
+            )
+            _write(
+                workspace / "finals" / f"final_{index:02d}" / "merge_report.md",
+                f"copy {candidate_id}\n",
+            )
+
+    manifest = asyncio.run(
+        run_global_merge(
+            merge_dir=tmp_path / "merge",
+            candidates=candidates,
+            worker_results=[],
+            task_desc="write a valid submission",
+            artifact_path="submission.csv",
+            ledger_filename=".run_results.md",
+            wall_clock_sec=120,
+            evaluator_manager=EvaluatorManager.default(),
+            cfg=SimpleNamespace(
+                evaluator=SimpleNamespace(enabled=False),
+                task_profile="mlebench",
+            ),
+            task_profile="mlebench",
+            task_id="dummy",
+            task_root=tmp_path,
+            dataset_source=None,
+            merge_executor=high_only_merge,
+        )
+    )
+
+    assert "exactly 2 distinct final artifacts" in prompts[0]
+    assert "reserves 1 additional final slot" in prompts[0]
+    assert len(manifest["promoted_finals"]) == 2
+    assert [row["candidate_id"] for row in manifest["fallback_final_sources"]] == [
+        "medium-route"
+    ]
+    assert manifest["final_coverage"]["enabled"] is True
+    assert manifest["final_coverage"]["applied"] is True
+    assert manifest["final_coverage"]["coverage_candidate_id"] == "medium-route"
+    assert manifest["final_count"] == 3
+
+
 def test_global_merge_exposes_dataset_to_task_package_final_evaluator(
     tmp_path: Path,
 ) -> None:
@@ -647,14 +785,14 @@ def test_global_final_fails_closed_when_evaluator_returns_multiple_outcomes(
     finals_dir = tmp_path / "finals"
     _write(finals_dir / "final_00" / "artifact.json", "{}")
 
-    class FakeGateService:
+    class FakeAssessmentPipeline:
         def evaluate(self, _request):
             return [object(), object()]
 
     monkeypatch.setattr(
         global_merge_runner,
-        "GateService",
-        lambda _manager: FakeGateService(),
+        "AssessmentPipeline",
+        lambda _manager: FakeAssessmentPipeline(),
     )
     finals = _evaluate_finals(
         finals_dir=finals_dir,

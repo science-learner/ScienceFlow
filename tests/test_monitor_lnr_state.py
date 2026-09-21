@@ -16,9 +16,9 @@ import os
 import time
 from pathlib import Path
 
-from scienceflow.ui.monitor.dashboard import MonitorDashboard
-from scienceflow.ui.monitor.helpers import _load_state
-from scienceflow.ui.monitor.lnr_state import (
+from scienceflow.interfaces.ui.monitor.dashboard import MonitorDashboard
+from scienceflow.interfaces.ui.monitor.helpers import _load_state
+from scienceflow.interfaces.ui.monitor.lnr_state import (
     _display_status,
     _elapsed_from_live_process_summary,
     _elapsed_from_resource_range,
@@ -37,6 +37,36 @@ def _write_csv(path: Path, rows: list[dict[str, object]]) -> None:
 
 def test_monitor_state_falls_back_to_lnr_task_logs(tmp_path: Path) -> None:
     task = tmp_path / "demo-task"
+    model_config = task / "models.json"
+    model_config.parent.mkdir(parents=True)
+    model_config.write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "models": {
+                    "custom": {
+                        "model": "custom",
+                        "pricing": {
+                            "input_usd_per_1m": 0.15,
+                            "cached_input_usd_per_1m": 0.003,
+                            "output_usd_per_1m": 0.60,
+                        },
+                        "endpoints": [
+                            {"url": "https://example.test/v1", "key": "x"}
+                        ],
+                    }
+                },
+                "defaults": {"code_models": ["custom"]},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (task / "resolved_config.yaml").write_text(
+        json.dumps(
+            {"agent": {"code": {"model_config_path": str(model_config)}}}
+        ),
+        encoding="utf-8",
+    )
     _write_csv(
         task / "task_logs" / "lhr_stage_performance.csv",
         [
@@ -72,6 +102,7 @@ def test_monitor_state_falls_back_to_lnr_task_logs(tmp_path: Path) -> None:
                 "ttft_sec": "1.2",
                 "tpot_ms": "35.5",
                 "llm_cost_usd": "0.00123",
+                "detail": "model=custom",
             }
         ],
     )
@@ -126,7 +157,7 @@ def test_monitor_state_falls_back_to_lnr_task_logs(tmp_path: Path) -> None:
     assert state["resource_actionable_outcomes"] == {}
     assert state["active_job_count"] == 1
     assert state["llm_cache_rate"] == 0.9
-    assert state["total_llm_cost_usd"] == 0.00123
+    assert state["total_llm_cost_usd"] == 0.0000477
     assert state["llm_cost_known_calls"] == 1
     assert state["max_ttft_sec"] == 1.2
     assert state["max_tpot_ms"] == 35.5

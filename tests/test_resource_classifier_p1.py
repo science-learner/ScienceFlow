@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import pytest
 
-from scienceflow.core.tools.resource_classifier import (
+from scienceflow.runtime.safety.tooling.resource_management.resource_policy import (
     RESOURCE_GPU_FEATURE_EXTRACT,
     RESOURCE_GPU_TT_LIGHT,
     RESOURCE_HEAVY_CPU_CANDIDATE,
@@ -28,17 +28,17 @@ from scienceflow.core.tools.resource_classifier import (
     classify_bash_command,
     normalize_shell_command,
 )
-from scienceflow.core.tools.bash.guards import (
+from scienceflow.runtime.safety.tooling.workspace.shell_guards import (
     background_resource_command_blocked_error,
     dangerous_delete_command_blocked_error,
     mixed_file_write_execution_blocked_error,
     truncated_resource_output_blocked_error,
 )
-from scienceflow.core.tools.bash_tool import (
+from scienceflow.runtime.safety.tooling.bash import (
     _normalize_cuda_visible_devices_for_task_pool,
     _parse_visible_gpu_ids,
 )
-from scienceflow.core.parallel_runner import ParallelRunner
+from scienceflow.runtime.parallel.execution.runner import ParallelRunner
 
 
 @pytest.mark.parametrize(

@@ -21,8 +21,11 @@ from pathlib import Path
 
 import pytest
 
-from scienceflow.core.subprocess_utils import spawn_exec, terminate_tree_recoverable
-from scienceflow.core.tools.bash.signals import _latest_artifact_snapshot
+from scienceflow.runtime.core.process.utils import (
+    spawn_exec,
+    terminate_process_tree_recoverable as terminate_tree_recoverable,
+)
+from scienceflow.runtime.safety.tooling.resource_management.signals import _latest_artifact_snapshot
 
 
 def test_run_scoped_artifact_must_be_stable_before_recoverable(tmp_path: Path) -> None:
@@ -138,6 +141,7 @@ def test_stale_workspace_artifact_is_ignored(tmp_path: Path) -> None:
 @pytest.mark.asyncio
 async def test_terminate_tree_recoverable_uses_sigusr1_marker(tmp_path: Path) -> None:
     run_state = tmp_path / "run_state.json"
+    ready_state = tmp_path / "ready"
     code = r'''
 import json
 import os
@@ -146,6 +150,7 @@ import time
 from pathlib import Path
 
 state = Path(os.environ["RUN_STATE"])
+ready = Path(os.environ["READY_STATE"])
 
 def handler(signum, frame):
     tmp = state.with_suffix(".tmp")
@@ -154,12 +159,20 @@ def handler(signum, frame):
     raise SystemExit(0)
 
 signal.signal(signal.SIGUSR1, handler)
+ready.write_text("ready\n", encoding="utf-8")
 while True:
     time.sleep(0.1)
 '''
-    env = {**os.environ, "RUN_STATE": str(run_state)}
+    env = {
+        **os.environ,
+        "RUN_STATE": str(run_state),
+        "READY_STATE": str(ready_state),
+    }
     proc = await spawn_exec(sys.executable, "-c", code, env=env)
-    await asyncio.sleep(0.2)
+    deadline = time.monotonic() + 2.0
+    while not ready_state.exists() and proc.returncode is None and time.monotonic() < deadline:
+        await asyncio.sleep(0.02)
+    assert ready_state.exists(), "child did not install its SIGUSR1 handler in time"
 
     await terminate_tree_recoverable(
         proc,

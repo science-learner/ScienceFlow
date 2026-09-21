@@ -1,0 +1,34 @@
+schema_version: 1
+baseline_version: baseline_v2
+baseline_commit: 6821ab7e73fe058c9b6f5e57834aab12641f5b0a
+comparator_version: 1
+environment:
+  python: 3.12.13
+  dependency_lock_sha256: 1facabdd0649f4751f3a2df6e5e45d28974ae3da9d4946f72979b65f8582e0bd
+suites:
+  quick:
+    - deepcraft_runtime_resume
+    - deepcraft_runtime_tool_turn
+    - stage_gate_resource_decision
+    - legacy_message_memory
+    - scienceflow_retry_stop
+    - scienceflow_text_turn
+    - scienceflow_tool_turn
+    - tool_dispatch_and_interrupt
+  full:
+    - deepcraft_runtime_resume
+    - deepcraft_runtime_tool_turn
+    - stage_gate_resource_decision
+    - legacy_message_memory
+    - scienceflow_retry_stop
+    - scienceflow_text_turn
+    - scienceflow_tool_turn
+    - tool_dispatch_and_interrupt
+    - snapshot_stop_resume_recovery
+    - worker2_estra_merge
+  performance:
+    - performance_microbench
+performance_thresholds:
+  regression_ratio: 0.02
+  median_floor_ms: 1.0
+  p95_floor_ms: 2.0

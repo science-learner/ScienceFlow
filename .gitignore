@@ -1,8 +1,14 @@
 __pycache__/
 *.pyc
 .pytest_cache/
+.artifacts/
 *.egg-info/
 .env
 cache/
 workspaces/
 data/
+
+# Historical Circle Packing launcher baselines (kept locally; reports live under doc/).
+circle_packing_baseline_launcher.log
+circle_packing_baseline_launcher_failed_system_message.log
+circle_packing_worker2_baseline_launcher.log

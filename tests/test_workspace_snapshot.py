@@ -20,12 +20,12 @@ from pathlib import Path
 
 import pytest
 
-from scienceflow.solver.lnr import restore_cleanup
-from scienceflow.solver.lnr.restore_cleanup import clear_directory_contents
-from scienceflow.solver.lnr.workspace_snapshot import (
+from scienceflow.research.solver.lnr.transitions import restore_cleanup
+from scienceflow.research.solver.lnr.transitions.restore_cleanup import clear_directory_contents
+from scienceflow.research.solver.lnr.lifecycle.snapshots.workspace_snapshot import (
     WorkspaceSnapshotStore,
 )
-from scienceflow.solver.lnr.workspace_snapshot_io import workspace_snapshot_object_path
+from scienceflow.research.solver.lnr.lifecycle.snapshots.workspace_snapshot_io import workspace_snapshot_object_path
 
 
 def _store(tmp_path: Path, workspace: Path, data_root: Path | None = None) -> WorkspaceSnapshotStore:

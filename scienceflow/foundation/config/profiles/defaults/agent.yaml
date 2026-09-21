@@ -1,0 +1,22 @@
+# Auto-loaded by scienceflow/foundation/config/default.yaml.
+# Override this block in your run manifest or custom config when needed.
+
+agent:
+  code:
+    models: [deepseek-v4-flash]
+    temp: 0.7
+    max_tokens: 32768
+    api_keys: []
+    base_urls: []
+    http_timeout: 300
+    headers: {}
+    use_proxy: false
+  feedback:
+    models: [deepseek-v4-flash]
+    temp: 0.3
+    max_tokens: 16384
+    api_keys: []
+    base_urls: []
+    http_timeout: 300
+    headers: {}
+    use_proxy: false

@@ -12,7 +12,7 @@
 
 from types import SimpleNamespace
 
-from scienceflow.solver.lnr.context_memory_policy import ensure_lnr_context_memory_budget
+from scienceflow.research.solver.lnr.support.context_memory_policy import ensure_lnr_context_memory_budget
 
 
 def test_lnr_context_limit_raises_message_floor() -> None:
@@ -52,7 +52,7 @@ def test_lnr_context_limit_floor_disabled_when_compact_disabled() -> None:
 
 
 def test_prep_cfg_applies_lnr_message_floor_before_resolved_config(tmp_path) -> None:
-    from scienceflow.config.settings import Config, prep_cfg
+    from scienceflow.foundation.config.schema.settings import Config, prep_cfg
 
     cfg = Config()
     cfg.task_workspace_root_dir = tmp_path

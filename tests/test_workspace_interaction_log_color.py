@@ -20,8 +20,8 @@ from unittest.mock import patch
 
 from tests.fs_root import TEST_WORKSPACE_ROOT
 
-from scienceflow.utils.logging import ScienceFlowColorFormatter, ScienceFlowPlainFormatter
-from scienceflow.utils.workspace_interaction_log import (
+from scienceflow.runtime.observability.logging import ScienceFlowColorFormatter, ScienceFlowPlainFormatter
+from scienceflow.runtime.observability.interaction_log import (
     InteractionColorFormatter,
     attach_workspace_interaction_logger,
     build_interaction_log_context_tag,

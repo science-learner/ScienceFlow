@@ -41,18 +41,18 @@ Prepare the disclosure-scoped TFBind8 input and run the example manifest:
 ```bash
 uv run python tasks/sci_modeling_bench/_shared/prepare_data.py \
   --task-id sci-modeling-bench-tfbind8
-uv run python -m scienceflow.cli parallel \
-  -m scienceflow/config/examples/tasks_sci_modeling_bench_tfbind8_example.yaml -j 1
+uv run python -m scienceflow.interfaces.cli parallel \
+  -m scienceflow/foundation/config/profiles/examples/tasks_sci_modeling_bench_tfbind8_example.yaml -j 1
 ```
 
 Preparation writes the agent-visible input under
 `cache/sci_modeling_bench/tfbind8/public`. Use `--output-dir` to choose another
 location. Canonical manifests for all tasks are under
-`scienceflow/config/runs/sci_modeling_bench/`.
+`scienceflow/foundation/config/profiles/runs/sci_modeling_bench/`.
 
 ## Evaluation profile
 
-The opt-in `scienceflow/config/sci_modeling_bench.yaml` profile uses independent
+The opt-in `scienceflow/foundation/config/sci_modeling_bench.yaml` profile uses independent
 worker query histories, stops after an accepted submission exhausts the query
 budget, exposes the current runtime budget, and preserves structured experiment
 state between research stages. It disables global merge and materializes the
