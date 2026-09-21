@@ -14,18 +14,29 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from scienceflow.foundation.config.schema.settings import Config
 from scienceflow.agent.core.runtime.run_policy import AutoContinuePolicy
 from scienceflow.foundation.config.llm.llm_http import aclose_llm_clients
-from scienceflow.runtime.workflow import Orchestrator
-from scienceflow.research.state.knowledge.skills.catalog.paths import default_skill_library_dir
+from scienceflow.foundation.config.schema.settings import Config
+from scienceflow.research.state.knowledge.skills.catalog.paths import (
+    resolve_skill_library_dir,
+)
 from scienceflow.research.state.knowledge.skills.catalog.registry import SkillRegistry
+from scienceflow.runtime.workflow import Orchestrator
 
 
-def load_repo_skill_registry(repo_root: Path) -> SkillRegistry:
-    """Load the repo-level ``.scienceflow`` skill library."""
+def load_skill_registry(
+    project_root: Path,
+    *,
+    skill_library_dir: str | Path | None = None,
+) -> SkillRegistry:
+    """Load the host-selected or built-in ScienceFlow skill library."""
     registry = SkillRegistry()
-    registry.load_all(default_skill_library_dir(repo_root))
+    registry.load_all(
+        resolve_skill_library_dir(
+            project_root,
+            configured_dir=skill_library_dir,
+        )
+    )
     return registry
 
 
@@ -75,9 +86,18 @@ def build_data_prep_agent_request(cfg: Config, task: str) -> str:
     )
 
 
-async def run_data_prep_agent(cfg: Config, task: str, *, repo_root: Path) -> str:
-    """Run an agent-backed data preparation turn using the repo skill library."""
-    registry = load_repo_skill_registry(repo_root)
+async def run_data_prep_agent(
+    cfg: Config,
+    task: str,
+    *,
+    repo_root: Path,
+    skill_library_dir: str | Path | None = None,
+) -> str:
+    """Run an agent-backed data preparation turn using the resolved skill library."""
+    registry = load_skill_registry(
+        repo_root,
+        skill_library_dir=skill_library_dir,
+    )
     orchestrator = Orchestrator(cfg)
     trace_hook = orchestrator.make_llm_call_tracer(
         node_id="prep",

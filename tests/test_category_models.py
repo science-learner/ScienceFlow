@@ -17,7 +17,7 @@ End-to-end forward passes aligned with scienceflow coldstart
 Run after ``uv sync``: ``uv run pytest tests/test_category_models.py -m pretrained -v``.
 Skip in CI without GPU/cache: ``pytest -m "not pretrained"``.
 CPU dev run: ``SCIENCEFLOW_ALLOW_PRETRAINED_CPU=1 pytest tests/test_category_models.py -m pretrained -v``.
-DINOv3 standalone smoke: ``scripts/dev/smoke_dinov3_e2e.py``.
+DINOv3 coverage uses the same category-level model contract.
 """
 
 from __future__ import annotations

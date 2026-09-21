@@ -5,7 +5,7 @@ from pathlib import Path
 
 import yaml
 
-from tools.benchmarks.circle_packing_effect_gate import compare, discover_runs
+from tests.support.benchmarks.circle_packing_effect_gate import compare, discover_runs
 
 
 def _write_run(

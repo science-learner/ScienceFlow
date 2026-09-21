@@ -172,3 +172,5 @@ def _install_compaction_summary(
     )
     if protected:
         manager._protected_raw_prefix_end_index = len(pinned) + len(protected)
+
+

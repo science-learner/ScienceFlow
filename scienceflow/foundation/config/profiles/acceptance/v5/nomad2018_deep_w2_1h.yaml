@@ -23,7 +23,7 @@ defaults:
 tasks:
   - exp_id: nomad2018-predict-transparent-conductors
     run_id: v5-nomad2018-deep-w2-1h
-    input_data_dir: ./data/mlebench_all_data/nomad2018-predict-transparent-conductors/prepared/dataset_split/Deep
+    input_data_dir: /work/miing_data/mlebench_all_data/nomad2018-predict-transparent-conductors/prepared/dataset_split/Deep
     time_limit: 4200
     cpu_list: "16-31"
     gpu_list: cpu

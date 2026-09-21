@@ -69,7 +69,7 @@ def test_v5_agent_runtime_ownership_is_physically_enforced() -> None:
         (
             "circle_packing_w2_1h.yaml",
             "circle-packing",
-            "./data/opt_solver/circle_packing",
+            "/home/mingming/miing_data/opt_solver/circle_packing",
             "0-15",
             8,
             "scienceflow/foundation/config/default.yaml",
@@ -77,7 +77,7 @@ def test_v5_agent_runtime_ownership_is_physically_enforced() -> None:
         (
             "nomad2018_deep_w2_1h.yaml",
             "nomad2018-predict-transparent-conductors",
-            "./data/mlebench_all_data/nomad2018-predict-transparent-conductors/prepared/dataset_split/Deep",
+            "/work/miing_data/mlebench_all_data/nomad2018-predict-transparent-conductors/prepared/dataset_split/Deep",
             "16-31",
             8,
             "scienceflow/foundation/config/default.yaml",
@@ -85,7 +85,7 @@ def test_v5_agent_runtime_ownership_is_physically_enforced() -> None:
         (
             "tfbind8_w2_1h.yaml",
             "sci-modeling-bench-tfbind8",
-            "./cache/sci_modeling_bench/tfbind8/public",
+            "/home/mingming/miing_data/sci_modeling_bench/tfbind8/public",
             "0-15",
             4,
             "scienceflow/foundation/config/sci_modeling_bench.yaml",
@@ -130,7 +130,7 @@ def test_v5_acceptance_manifest_is_exactly_w2_one_hour(
         (
             "circle_packing_w2_2h.yaml",
             "product-circle-packing-w2-2h-20260903-r1",
-            "./data/opt_solver/circle_packing",
+            "/home/mingming/miing_data/opt_solver/circle_packing",
             "0-15",
             8,
             "scienceflow/foundation/config/default.yaml",
@@ -138,7 +138,7 @@ def test_v5_acceptance_manifest_is_exactly_w2_one_hour(
         (
             "nomad2018_deep_w2_2h.yaml",
             "product-nomad2018-deep-w2-2h-20260903-r1",
-            "./data/mlebench_all_data/nomad2018-predict-transparent-conductors/prepared/dataset_split/Deep",
+            "/work/miing_data/mlebench_all_data/nomad2018-predict-transparent-conductors/prepared/dataset_split/Deep",
             "16-31",
             8,
             "scienceflow/foundation/config/default.yaml",
@@ -146,7 +146,7 @@ def test_v5_acceptance_manifest_is_exactly_w2_one_hour(
         (
             "tfbind8_w2_2h.yaml",
             "product-tfbind8-w2-2h-20260903-r1",
-            "./cache/sci_modeling_bench/tfbind8/public",
+            "/home/mingming/rsi/codes/ScienceFlow_Noah_Beta/cache/sci_modeling_bench/tfbind8/public",
             "32-47",
             4,
             "scienceflow/foundation/config/sci_modeling_bench.yaml",
@@ -174,6 +174,7 @@ def test_product_logic_acceptance_manifest_is_exactly_w2_two_hours(
     task = manifest["tasks"][0]
     assert task["run_id"] == run_id
     assert task["input_data_dir"] == input_data_dir
+    assert Path(input_data_dir).is_dir()
     assert task["time_limit"] == 7800
     assert task["cpu_list"] == cpu_list
     assert task["gpu_list"] == "cpu"

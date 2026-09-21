@@ -205,6 +205,8 @@ def _queue_wait_stats(durations: list[float], *, waits: int, timeouts: int) -> d
         "resource_gpu_queue_wait_sec_p95": round(_percentile(clean, 0.95), 3),
         "resource_gpu_queue_timeout_rate": round(timeout_count / wait_count, 3) if wait_count else 0.0,
     }
+
+
 def _record_queue_wait_duration(
     values_by_worker: dict[str, list[float]],
     worker_id: str,
@@ -710,3 +712,5 @@ def build_lhr_state_from_events(
         "generated_at_utc": _utc_iso(now),
         "eventual_consistency": "coordinator aggregation; final aggregation runs before merge/reduce completion",
     }
+
+

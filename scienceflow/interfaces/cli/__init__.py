@@ -359,11 +359,6 @@ def _install_cleanup_signals() -> None:
 
     for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
         try:
-            # Preserve launcher-provided nohup immunity.  Replacing SIG_IGN
-            # here would make a detached long-running job vulnerable to a
-            # later terminal/session SIGHUP.
-            if sig == signal.SIGHUP and signal.getsignal(sig) is signal.SIG_IGN:
-                continue
             signal.signal(sig, _handler)
         except (OSError, ValueError):
             pass  # SIGHUP unavailable on some platforms

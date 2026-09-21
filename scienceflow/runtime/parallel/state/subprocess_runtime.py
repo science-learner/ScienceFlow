@@ -320,3 +320,5 @@ async def _cleanup_subprocess_resources(
         async with runner._gpu_auto_lock:
             for gpu in assigned_auto_gpus:
                 runner._gpu_auto_assigned.discard(gpu)
+
+

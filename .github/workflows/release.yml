@@ -42,7 +42,7 @@ jobs:
             tests/test_inquirycraft_cli_composition.py \
             tests/test_llm_system_message_compat.py \
             tests/test_workspace_contract_fixtures.py \
-            tests/test_product_deployment_profiles.py
+            tests/test_product_install_profiles.py
       - uses: actions/upload-artifact@v4
         with:
           name: scienceflow-dist

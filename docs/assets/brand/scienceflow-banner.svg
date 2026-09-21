@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 420" role="img" aria-labelledby="title description">
+  <title id="title">ScienceFlow</title>
+  <desc id="description">A flowing research path connecting evidence, stages, and discoveries.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f8fafc"/>
+      <stop offset="0.55" stop-color="#eef7f5"/>
+      <stop offset="1" stop-color="#eef2ff"/>
+    </linearGradient>
+    <linearGradient id="flow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0f766e"/>
+      <stop offset="0.52" stop-color="#2563eb"/>
+      <stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#0f172a" flood-opacity="0.10"/>
+    </filter>
+  </defs>
+
+  <rect x="24" y="24" width="1552" height="372" rx="36" fill="url(#background)" stroke="#cbd5e1" filter="url(#shadow)"/>
+
+  <g transform="translate(92 84)">
+    <path d="M16 178 C92 38 184 42 244 132 S386 236 484 74" fill="none" stroke="url(#flow)" stroke-width="18" stroke-linecap="round"/>
+    <path d="M16 218 C108 102 194 104 260 182 S402 260 508 122" fill="none" stroke="#94a3b8" stroke-opacity="0.42" stroke-width="5" stroke-linecap="round"/>
+    <g fill="#ffffff" stroke-width="10">
+      <circle cx="20" cy="174" r="22" stroke="#0f766e"/>
+      <circle cx="244" cy="132" r="22" stroke="#2563eb"/>
+      <circle cx="484" cy="74" r="22" stroke="#7c3aed"/>
+    </g>
+    <g fill="#334155" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="22" font-weight="600">
+      <text x="0" y="266">EXPLORE</text>
+      <text x="205" y="266">VALIDATE</text>
+      <text x="420" y="266">ADVANCE</text>
+    </g>
+  </g>
+
+  <g transform="translate(690 104)" font-family="Inter, ui-sans-serif, system-ui, sans-serif">
+    <text x="0" y="72" fill="#0f172a" font-size="76" font-weight="760" letter-spacing="2">SCIENCEFLOW</text>
+    <text x="2" y="126" fill="#334155" font-size="29" font-weight="500">Persistent, measurable AI research</text>
+    <g transform="translate(0 176)" font-size="20" font-weight="650" letter-spacing="1.2">
+      <rect width="190" height="48" rx="24" fill="#ccfbf1"/>
+      <text x="28" y="31" fill="#115e59">LONG-HORIZON</text>
+      <rect x="206" width="154" height="48" rx="24" fill="#dbeafe"/>
+      <text x="235" y="31" fill="#1e40af">EVIDENCE</text>
+      <rect x="376" width="164" height="48" rx="24" fill="#ede9fe"/>
+      <text x="403" y="31" fill="#5b21b6">RECOVERY</text>
+    </g>
+  </g>
+</svg>

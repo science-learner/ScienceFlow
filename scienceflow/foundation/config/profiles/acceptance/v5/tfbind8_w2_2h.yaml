@@ -23,7 +23,7 @@ defaults:
 tasks:
   - exp_id: sci-modeling-bench-tfbind8
     run_id: product-tfbind8-w2-2h-20260903-r1
-    input_data_dir: ./cache/sci_modeling_bench/tfbind8/public
+    input_data_dir: /home/mingming/rsi/codes/ScienceFlow_Noah_Beta/cache/sci_modeling_bench/tfbind8/public
     time_limit: 7800
     cpu_list: "32-47"
     gpu_list: cpu

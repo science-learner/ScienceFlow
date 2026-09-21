@@ -14,13 +14,13 @@ parent relationships remain strictly compared.
 Run the fast functional gate with:
 
 ```bash
-.venv/bin/python tools/run_runtime_parity.py --suite quick --jobs 4
+.venv/bin/python tests/support/run_runtime_parity.py --suite quick --jobs 4
 ```
 
 Baseline files can only be written explicitly. Normal development and CI runs never update them:
 
 ```bash
-.venv/bin/python tools/run_runtime_parity.py --suite quick --jobs 1 \
+.venv/bin/python tests/support/run_runtime_parity.py --suite quick --jobs 1 \
   --record-baseline
 ```
 

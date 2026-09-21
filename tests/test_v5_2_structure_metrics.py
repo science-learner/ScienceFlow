@@ -3,7 +3,7 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
-from tools.architecture.v5_2_structure_metrics import build_report, main
+from tests.support.architecture.v5_2_structure_metrics import build_report, main
 
 
 def test_structure_report_tracks_real_facades_and_test_seams() -> None:

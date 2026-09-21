@@ -23,7 +23,7 @@ defaults:
 tasks:
   - exp_id: circle-packing
     run_id: v5-circle-packing-w2-1h
-    input_data_dir: ./data/opt_solver/circle_packing
+    input_data_dir: /home/mingming/miing_data/opt_solver/circle_packing
     time_limit: 4200
     cpu_list: "0-15"
     gpu_list: cpu

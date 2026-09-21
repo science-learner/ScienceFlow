@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from tools.contracts.workspace_contract_compare import (
+from tests.support.contracts.workspace_contract_compare import (
     canonical_path,
     compare_manifests,
     normalize_relative_link_target,

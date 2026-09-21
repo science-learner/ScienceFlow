@@ -11,16 +11,20 @@
 # products derived from this software without specific prior written permission.
 
 import asyncio
-
-import pytest
 from pathlib import Path
 
-from scienceflow.research.state.knowledge.skills.runtime.tool import SkillTool
+import pytest
+
 from scienceflow.research.state.knowledge.skills.catalog.base import Skill
-from scienceflow.research.state.knowledge.skills.runtime.injector import SkillInjector
 from scienceflow.research.state.knowledge.skills.catalog.matcher import SkillMatcher
-from scienceflow.research.state.knowledge.skills.catalog.paths import default_skill_library_dir
+from scienceflow.research.state.knowledge.skills.catalog.paths import (
+    default_skill_library_dir,
+    installed_skill_library_dir,
+    resolve_skill_library_dir,
+)
 from scienceflow.research.state.knowledge.skills.catalog.registry import SkillRegistry
+from scienceflow.research.state.knowledge.skills.runtime.injector import SkillInjector
+from scienceflow.research.state.knowledge.skills.runtime.tool import SkillTool
 
 SAMPLE_SKILL_MD = """\
 ---
@@ -267,13 +271,45 @@ class TestSkillInjector:
         assert result == "No placeholder here"
 
 
-def test_default_skill_library_path_uses_scienceflow(tmp_path: Path) -> None:
-    assert default_skill_library_dir(tmp_path) == tmp_path / ".scienceflow" / "skills"
+def test_default_skill_library_path_uses_top_level_skills(tmp_path: Path) -> None:
+    library = tmp_path / "skills"
+    library.mkdir()
+    assert default_skill_library_dir(tmp_path) == library
+
+
+def test_installed_skill_library_uses_environment_data_root(tmp_path: Path) -> None:
+    assert installed_skill_library_dir(data_root=tmp_path) == (
+        tmp_path / "share" / "scienceflow" / "skills"
+    )
+
+
+def test_default_skill_library_falls_back_to_installed_data(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    installed = tmp_path / "share" / "scienceflow" / "skills"
+    installed.mkdir(parents=True)
+    monkeypatch.setattr(
+        "scienceflow.research.state.knowledge.skills.catalog.paths.sysconfig.get_path",
+        lambda _name: str(tmp_path),
+    )
+    assert default_skill_library_dir(tmp_path / "missing-project") == installed
+
+
+def test_configured_skill_library_overrides_default(tmp_path: Path) -> None:
+    configured = tmp_path / "custom-skills"
+    assert (
+        resolve_skill_library_dir(
+            tmp_path,
+            configured_dir=configured,
+        )
+        == configured
+    )
 
 
 def test_default_skill_library_excludes_route_prior_archives() -> None:
     repo = Path(__file__).resolve().parents[1]
-    library = repo / ".scienceflow" / "skills"
+    library = repo / "skills"
     reg = SkillRegistry()
     reg.load_all(library)
 
@@ -287,7 +323,7 @@ def test_default_skill_library_excludes_route_prior_archives() -> None:
 
 def test_default_skill_library_exposes_recommender_data_prep_skill() -> None:
     repo = Path(__file__).resolve().parents[1]
-    library = repo / ".scienceflow" / "skills"
+    library = repo / "skills"
     reg = SkillRegistry()
     reg.load_all(library)
 

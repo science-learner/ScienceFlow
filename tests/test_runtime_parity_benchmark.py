@@ -5,10 +5,13 @@ import subprocess
 import sys
 from pathlib import Path
 
-from tools.runtime_parity.comparison.compare import strict_differences
-from tools.runtime_parity.comparison.normalize import NORMALIZATION_RULES, normalize_value
-from tools.runtime_parity.execution.runner import REPO_ROOT, load_manifest
-from tools.runtime_parity.cases.scenarios import SCENARIOS
+from tests.support.runtime_parity.comparison.compare import strict_differences
+from tests.support.runtime_parity.comparison.normalize import (
+    NORMALIZATION_RULES,
+    normalize_value,
+)
+from tests.support.runtime_parity.execution.runner import REPO_ROOT, load_manifest
+from tests.support.runtime_parity.cases.scenarios import SCENARIOS
 
 
 def test_runtime_parity_manifest_references_registered_cases() -> None:
@@ -67,7 +70,7 @@ def test_quick_runtime_parity_passes_in_parallel(tmp_path: Path) -> None:
     completed = subprocess.run(
         [
             sys.executable,
-            str(REPO_ROOT / "tools" / "run_runtime_parity.py"),
+            str(REPO_ROOT / "tests" / "support" / "run_runtime_parity.py"),
             "--suite",
             "quick",
             "--jobs",
@@ -97,7 +100,7 @@ def test_full_runtime_parity_passes_in_parallel(tmp_path: Path) -> None:
     completed = subprocess.run(
         [
             sys.executable,
-            str(REPO_ROOT / "tools" / "run_runtime_parity.py"),
+            str(REPO_ROOT / "tests" / "support" / "run_runtime_parity.py"),
             "--suite",
             "full",
             "--jobs",

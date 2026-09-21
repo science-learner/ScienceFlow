@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import ast
 import inspect
-import re
 import tomllib
 from pathlib import Path
 
@@ -36,23 +35,15 @@ def test_scienceflow_exposes_only_mcp_as_optional_inquirycraft_integration() -> 
     assert "inquirycraft" not in config["tool"]["uv"]["sources"]
 
 
-def test_contract_ci_uses_the_production_inquirycraft_pin() -> None:
+def test_contract_ci_installs_project_metadata_without_dependency_override() -> None:
     repository_root = Path(__file__).parents[1]
-    project_file = repository_root / "pyproject.toml"
-    project = tomllib.loads(project_file.read_text(encoding="utf-8"))["project"]
-    production_dependency = next(
-        dependency
-        for dependency in project["dependencies"]
-        if dependency.startswith("inquirycraft[")
-    )
-    production_version = production_dependency.rsplit("==", 1)[1]
     workflow = (
         repository_root / ".github" / "workflows" / "scienceflow-contract-ci.yml"
     ).read_text(encoding="utf-8")
-    match = re.search(r"inquirycraft\[openai,tui\]==([0-9.]+)", workflow)
 
-    assert match is not None
-    assert match.group(1) == production_version
+    assert "python -m pip install -e ." in workflow
+    assert "requirements.txt" not in workflow
+    assert "inquirycraft[" not in workflow
 
 
 def test_inquirycraft_tui_model_registry_host_contract() -> None:

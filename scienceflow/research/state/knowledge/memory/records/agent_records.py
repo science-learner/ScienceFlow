@@ -327,6 +327,7 @@ def sanitize_inherited_memory_workspace_paths(memory: Memory) -> None:
     for message in rewritten:
         memory.add_message(message)
 
+
 def _prune_memory_to_recent_rounds(memory: Memory, rounds: int) -> None:
     """Keep only the last *rounds* tool-call rounds in memory.
 
@@ -351,3 +352,4 @@ def _prune_memory_to_recent_rounds(memory: Memory, rounds: int) -> None:
     memory.chat_history_memory.storage.clear()
     for message in messages[:prefix_end] + kept:
         memory.add_message(message)
+

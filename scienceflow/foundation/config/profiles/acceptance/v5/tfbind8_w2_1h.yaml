@@ -23,7 +23,7 @@ defaults:
 tasks:
   - exp_id: sci-modeling-bench-tfbind8
     run_id: v5-tfbind8-w2-1h
-    input_data_dir: ./cache/sci_modeling_bench/tfbind8/public
+    input_data_dir: /home/mingming/miing_data/sci_modeling_bench/tfbind8/public
     time_limit: 4200
     cpu_list: "0-15"
     gpu_list: cpu

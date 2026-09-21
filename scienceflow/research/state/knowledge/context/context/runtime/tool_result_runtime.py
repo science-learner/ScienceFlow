@@ -354,3 +354,5 @@ def _append_write_snapshot(
                 manager._read_coverage[rel] = (current_sha, _merge_read_intervals(ranges))
     except (ValueError, OSError) as error:
         logger.debug("%s auto-snapshot: skipped (%s)", tool_name, error, exc_info=True)
+
+

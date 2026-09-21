@@ -3,7 +3,10 @@ __pycache__/
 .pytest_cache/
 .artifacts/
 *.egg-info/
+build/
+dist/
 .env
+models.json
 cache/
 workspaces/
 data/

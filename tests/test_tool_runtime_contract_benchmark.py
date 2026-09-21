@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from tools.contracts.run_tool_runtime_contract import (
+from tests.support.contracts.run_tool_runtime_contract import (
     DEFAULT_BASELINE,
     capture_tool_runtime_contract,
     compare_contract,

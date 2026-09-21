@@ -11,13 +11,15 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from scienceflow.research.solver.lnr.orchestration.coordinator.solver import LnrSolver
+    from scienceflow.research.solver.lnr.orchestration.coordinator.solver import (
+        LnrSolver,
+    )
 
 from scienceflow.research.solver.lnr.orchestration.coordinator.shared import (
     AgentFactory,
     Any,
-    Config,
     CandidateAssessmentService,
+    Config,
     LHRStateMachineStore,
     Path,
     SkillRegistry,
@@ -222,7 +224,12 @@ def _runtime_event_observer(self) -> Any | None:
 
 
 def _repo_root(self) -> Path:
-    return Path(__file__).resolve().parents[3]
+    import scienceflow
+
+    package_file = getattr(scienceflow, "__file__", None)
+    if package_file is None:
+        raise RuntimeError("Cannot resolve the ScienceFlow package root")
+    return Path(package_file).resolve().parent.parent
 
 
 def _skill_library_dir(self) -> Path:

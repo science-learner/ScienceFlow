@@ -10,14 +10,19 @@
 # The name of Huawei and the contributors may not be used to endorse or promote
 # products derived from this software without specific prior written permission.
 
-from scienceflow.research.state.knowledge.skills.catalog.base import Skill, SkillMetadata
-from scienceflow.research.state.knowledge.skills.runtime.injector import SkillInjector
+from scienceflow.research.state.knowledge.skills.catalog.base import (
+    Skill,
+    SkillMetadata,
+)
 from scienceflow.research.state.knowledge.skills.catalog.matcher import SkillMatcher
 from scienceflow.research.state.knowledge.skills.catalog.paths import (
     DEFAULT_SKILL_LIBRARY_REL,
     default_skill_library_dir,
+    installed_skill_library_dir,
+    resolve_skill_library_dir,
 )
 from scienceflow.research.state.knowledge.skills.catalog.registry import SkillRegistry
+from scienceflow.research.state.knowledge.skills.runtime.injector import SkillInjector
 
 __all__ = [
     "DEFAULT_SKILL_LIBRARY_REL",
@@ -27,4 +32,6 @@ __all__ = [
     "SkillMetadata",
     "SkillRegistry",
     "default_skill_library_dir",
+    "installed_skill_library_dir",
+    "resolve_skill_library_dir",
 ]

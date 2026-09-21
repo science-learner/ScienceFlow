@@ -50,6 +50,7 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/science-learner/ScienceFlow"
 Repository = "https://github.com/science-learner/ScienceFlow"
+Documentation = "https://github.com/science-learner/ScienceFlow/tree/preview/docs"
 Issues = "https://github.com/science-learner/ScienceFlow/issues"
 
 [project.optional-dependencies]
@@ -187,7 +188,6 @@ include = ["scienceflow*", "tasks*"]
 exclude = [
     "workspace*",
     "doc*",
-    "scripts*",
     "tests*",
     "parallel_logs*",
     "cache*",
@@ -222,6 +222,9 @@ namespaces = true
     "stage/*.md",
     "task/*/*.md",
 ]
+
+[tool.setuptools.data-files]
+"share/scienceflow/skills/data_processing" = ["skills/data_processing/*.md"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

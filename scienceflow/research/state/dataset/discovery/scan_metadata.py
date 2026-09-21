@@ -673,3 +673,4 @@ def _format_json_object_sample_lines(
         f"{indent}  | {key}: {_format_json_object_value(value, value_counts.get(key))}"
         for key, value in sample_items.items()
     ]
+

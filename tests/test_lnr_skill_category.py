@@ -85,6 +85,10 @@ class _FakeRegistry:
         return None
 
 
+def test_lnr_repo_root_matches_source_or_install_root() -> None:
+    assert construction._repo_root(None) == Path(__file__).resolve().parents[1]
+
+
 def test_lnr_skill_category_resolves_siim_allowlist(tmp_path) -> None:
     categories = tmp_path / "competition_categories.json"
     categories.write_text('{"siim-isic-melanoma-classification": "Medical Imaging"}')
