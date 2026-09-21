@@ -2,8 +2,6 @@
   <img src="docs/assets/brand/scienceflow-banner.svg" alt="ScienceFlow" width="800">
 </p>
 
-<h1 align="left">ScienceFlow: your long-horizon AI research team</h1>
-
 <p align="center">
   <a href="https://github.com/science-learner/ScienceFlow/actions/workflows/scienceflow-contract-ci.yml"><img src="https://github.com/science-learner/ScienceFlow/actions/workflows/scienceflow-contract-ci.yml/badge.svg?branch=preview" alt="CI"></a>
   <a href="https://pypi.org/project/scienceflow/"><img src="https://img.shields.io/pypi/v/scienceflow?label=PyPI&amp;color=0f766e" alt="PyPI"></a>
@@ -12,115 +10,92 @@
   <img src="https://img.shields.io/badge/Python-3.11%2B-3776AB" alt="Python 3.11+">
 </p>
 
-ScienceFlow turns an executable task with a measurable objective into a managed research
-process. Chat with the agent in the TUI, launch multiple long-running research tasks, inspect
-their evidence and cost, and detach or resume without losing validated progress.
-
-Use ScienceFlow when the task can run and be evaluated, but the best route to a stronger
-result is still unknown. It supports machine-learning engineering, scientific modeling,
-mathematical optimization, and custom evaluator-backed tasks.
+<p align="justify">
+ScienceFlow turns an executable task with a measurable objective into persistent,
+evaluator-guided research. It coordinates parallel workers, promotes valid results into
+recoverable stages, preserves the best artifacts, and exposes the full process through a
+TUI and Web monitor.
+</p>
 
 > [!IMPORTANT]
-> **Testing preview.** Interfaces, configuration, and workspace metadata may change before
-> the stable release. Use isolated workspaces and review results before production use.
+> **Testing preview.** Interfaces and workspace metadata may change before the stable release.
 
-## Install
+## Quick start
 
-**Requirements:** Python 3.11+ and access to a supported model API.
-
-Install the current preview as an isolated command-line application:
+<p align="justify"><strong>Requirements:</strong> Python 3.11+ and access to a supported model API.</p>
 
 ```bash
 uv tool install scienceflow==0.2.0b3
-scienceflow --help
-```
-
-`pipx install scienceflow==0.2.0b3` is an equivalent alternative. Debian and Ubuntu may
-reject a system-level `pip install` with `externally-managed-environment` (PEP 668); use
-`uv tool`, `pipx`, or a virtual environment instead of `--break-system-packages`.
-
-Without `uv` or `pipx`:
-
-```bash
-python3 -m venv ~/.venvs/scienceflow
-source ~/.venvs/scienceflow/bin/activate
-python -m pip install --upgrade pip
-python -m pip install scienceflow==0.2.0b3
-```
-
-## Start the TUI
-
-Create the private model registry, edit the generated file, and open a workspace:
-
-```bash
 scienceflow config init
-scienceflow config path
+scienceflow config path     # edit the generated private model registry
 scienceflow tui --workspace "$PWD/sf_workspace"
 ```
 
-The registry defaults to `~/.config/scienceflow/models.json` with mode `600`. API keys are
-not copied into task manifests, sessions, or reports. Run `scienceflow tui --help` for model
-configuration, workspace, and resume options. A redacted multi-endpoint example is available
-at [`docs/examples/models.example.json`](docs/examples/models.example.json).
+<p align="justify">
+<code>pipx install scienceflow==0.2.0b3</code> is an equivalent isolated installation.
+Inside an activated virtual environment, use
+<code>python -m pip install scienceflow==0.2.0b3</code>. On Debian and Ubuntu, avoid
+bypassing PEP 668 with <code>--break-system-packages</code>.
+</p>
 
-Ordinary text starts a normal agent conversation. Enter `/long-research` to select or define
-a task, confirm workers and CPU/GPU limits, choose research models, run preflight checks, and
-launch the task. Multiple tasks can continue in the same workspace while the TUI remains
-available for chat and control.
+<p align="justify">
+Chat normally in the TUI, or enter <code>/long-research</code> to configure and launch a
+managed task. Closing the TUI detaches from research without terminating its workers.
+</p>
 
-## Operate research tasks
+### Minimal TUI example
 
-| TUI command | Purpose |
-|---|---|
-| `/long-research DESCRIPTION` | Prepare and launch another managed research task. |
-| `/tasks`, `/status N` | List tasks or inspect one task. |
-| `/stop N`, `/resume N`, `/attach N` | Stop, resume, or follow a task. |
-| `/research-usage N`, `/resources` | Inspect model usage, cost, and allocated resources. |
-| `/models` | Select the fixed chat model and inspect the model registry. |
-| `/web`, `/web stop` | Start or stop the workspace Web monitor. |
+<p align="justify">
+The built-in <code>circle-packing</code> example needs no dataset. After starting the TUI,
+complete these prompts in order:
+</p>
 
-Closing the TUI detaches from supervised research; it does not terminate workers. Chat
-cancellation also leaves research running—use `/stop N` when the task itself should stop.
-Return to the latest chat session with:
+**1 · Prepare the task**
+
+```text
+/long-research circle-packing data=none workers=2 cpu=16 gpu=cpu duration=1h
+```
+
+**2 · Accept the model defaults**
+
+```text
+default
+```
+
+**3 · Start after preflight passes**
+
+```text
+run
+```
+
+<p align="justify">
+ScienceFlow runs preflight checks, starts two CPU workers, evaluates candidate solutions,
+and retains the best valid artifact under the workspace. Follow it with
+<code>/tasks</code> or <code>/status 1</code>.
+</p>
+
+<table width="100%">
+  <thead>
+    <tr>
+      <th width="500" align="center">Command</th>
+      <th width="500" align="center">Purpose</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td align="left"><code>/long-research DESCRIPTION</code></td><td align="left">Prepare and launch a research task.</td></tr>
+    <tr><td align="left"><code>/tasks</code>, <code>/status N</code></td><td align="left">List tasks or inspect one task.</td></tr>
+    <tr><td align="left"><code>/stop N</code>, <code>/resume N</code>, <code>/attach N</code></td><td align="left">Control or follow a task.</td></tr>
+    <tr><td align="left"><code>/research-usage N</code>, <code>/resources</code></td><td align="left">Inspect model, cost, and resource usage.</td></tr>
+    <tr><td align="left"><code>/models</code></td><td align="left">Select the fixed chat model.</td></tr>
+    <tr><td align="left"><code>/web</code>, <code>/web stop</code></td><td align="left">Start or stop the workspace Web monitor.</td></tr>
+  </tbody>
+</table>
+
+Resume the latest chat session with:
 
 ```bash
 scienceflow tui --workspace "$PWD/sf_workspace" --resume
 ```
-
-The same lifecycle is available without the full-screen TUI:
-
-```bash
-scienceflow status --all
-scienceflow stop RUN_ID
-scienceflow resume RUN_ID --tui
-scienceflow web --workspace "$PWD/sf_workspace"
-```
-
-## What ScienceFlow provides
-
-| Capability | What it does |
-|---|---|
-| Persistent research workers | Keep executable workspaces, evidence, memory, and runtime state together. |
-| Parallel task management | Coordinate multiple tasks and workers with explicit CPU/GPU boundaries. |
-| Stage Gate | Convert evaluator results into validated, recoverable research stages. |
-| ESTRA | Continue the current route or re-anchor to a stronger archived state at research boundaries. |
-| Evidence-aware control | Allocate, monitor, timebox, and stop physical work using progress and budget signals. |
-| Resume and recovery | Restore chat sessions and research tasks without discarding accepted progress. |
-| Structured telemetry | Record agent, tool, model, evaluator, resource, cost, and stage events for inspection. |
-| TUI and Web monitor | Operate research interactively or follow workers, metrics, lineage, and final reports. |
-
-## Your task and the runtime
-
-| You provide | ScienceFlow manages |
-|---|---|
-| Objective, constraints, and metric direction | Research lifecycle and worker coordination |
-| Executable task code and required data | Isolated workspaces and resource leases |
-| Evaluator and valid artifact contract | Evidence normalization and Stage admission |
-| Baseline or starting implementation | Exploration, recovery, selection, and finalization |
-
-ScienceFlow does not invent a missing evaluator or silently replace required task data. A
-registered `task.yaml` remains the source of truth for what is measured, which artifacts are
-valid, and how results are admitted.
 
 ## How it works
 
@@ -128,25 +103,64 @@ valid, and how results are admitted.
   <img src="docs/public/scienceflow/assets/scienceflow_system_architecture.png" alt="ScienceFlow system architecture" width="100%">
 </p>
 
-Each worker advances an executable workspace. Evaluators turn results into normalized
-evidence, and accepted results become immutable Stages with recoverable snapshots. At a
-research boundary, ESTRA chooses whether to continue or redirect and whether to start from
-the current workspace or a validated archived Stage. Persistent memory and resource control
-keep the next segment grounded in evidence and within the configured budget.
+1. **Explore:** isolated workers advance executable workspaces under explicit CPU, GPU,
+   model, and time budgets.
+2. **Evaluate:** task evaluators convert artifacts into normalized evidence and final scores.
+3. **Preserve:** Stage Gate admits valid results as immutable, recoverable stages while the
+   best artifact remains available independently of submission state.
+4. **Adapt:** ESTRA continues the current route or re-anchors work to a stronger archived
+   stage at research boundaries.
 
-## Task environments
+<p align="justify">
+Agent messages, reasoning, tool calls, evaluator results, resource samples, costs, and stage
+lineage are retained as structured events for inspection and future training workflows.
+</p>
 
-The base package provides the lightweight control plane and TUI. Install task-specific
-dependencies only where they are needed:
+## Task contract
+
+<table width="100%">
+  <thead>
+    <tr>
+      <th width="500" align="center">You provide</th>
+      <th width="500" align="center">ScienceFlow manages</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td align="left">Objective, constraints, and metric direction</td><td align="left">Research lifecycle and parallel workers</td></tr>
+    <tr><td align="left">Executable task code and required data</td><td align="left">Isolated workspaces and resource leases</td></tr>
+    <tr><td align="left">Evaluator and valid artifact contract</td><td align="left">Evidence normalization and Stage admission</td></tr>
+    <tr><td align="left">Baseline or starting implementation</td><td align="left">Exploration, recovery, selection, and finalization</td></tr>
+  </tbody>
+</table>
+
+<p align="justify">
+A registered <code>task.yaml</code> is the source of truth for measurement and valid
+artifacts. ScienceFlow does not invent a missing evaluator or silently replace required
+task data.
+</p>
+
+## Models, resources, and task environments
+
+<p>
+Model settings stay local in <code>~/.config/scienceflow/models.json</code> (mode
+<code>600</code>); API keys are excluded from task manifests, sessions, and reports. See the
+<a href="docs/examples/models.example.json">redacted example</a>.
+</p>
+
+<p align="justify">
+The base package provides the control plane and TUI. Install task-specific ML/GPU
+dependencies only when needed:
+</p>
 
 ```bash
 python -m pip install "scienceflow[full]"==0.2.0b3
 ```
 
-CPU and GPU allocations are task boundaries; ScienceFlow further divides CPU capacity across
-workers. Model pricing is optional in `models.<alias>.pricing`; without it, the UI displays
-`Cost —` instead of estimating silently. Do not resume a workspace with a different task,
-dataset, evaluator, prompt, or artifact contract.
+<p align="justify">
+CPU and GPU allocations form task boundaries; CPU capacity is divided across workers. Model
+pricing is optional—without it, the UI reports <code>Cost —</code>. Do not resume a
+workspace with a different task, dataset, evaluator, prompt, or artifact contract.
+</p>
 
 ## Develop from source
 
@@ -158,37 +172,27 @@ uv run scienceflow config init
 uv run scienceflow tui --workspace "$PWD/sf_workspace"
 ```
 
-Use `uv sync --extra full --group dev` only for tests that require the full ML/GPU task
-environment. The source checkout and the published package use the same CLI and private
-model registry.
+<p align="justify">
+Use <code>uv sync --extra full --group dev</code> only when tests require the full ML/GPU
+environment.
+</p>
 
-Release-contract verification:
+## Research
 
-```bash
-uv run --locked --group dev python -m pytest -q \
-  tests/test_inquirycraft_dependency_boundary.py \
-  tests/test_inquirycraft_cli_composition.py \
-  tests/test_llm_system_message_compat.py \
-  tests/test_workspace_contract_fixtures.py \
-  tests/test_product_install_profiles.py
-```
-
-## Research background
-
+<p align="justify">
 ScienceFlow uses the same Stage Gate and evaluator contract across machine-learning
-engineering, scientific modeling, and mathematical optimization. In the reported 24-hour
-full 75-task MLE-bench evaluation, it reaches **70.22 ± 1.18% Any-Medal** over three runs.
+engineering, scientific modeling, and mathematical optimization. In the reported 24-hour,
+75-task MLE-bench evaluation, it reaches <strong>70.22 ± 1.18% Any-Medal</strong> over three
+runs.
+</p>
 
 <p align="center">
   <img src="docs/public/scienceflow/assets/mlebench_top10_any_medal.png" alt="Representative full MLE-bench Any-Medal leaderboard" width="100%">
 </p>
 
-[Paper (arXiv)](https://arxiv.org/abs/2608.14354) ·
-[Project news](https://www.noahlab.com.hk/news/212)
-
 ## Citation
 
-If ScienceFlow supports your research, please cite the paper:
+If ScienceFlow supports your research, please cite:
 
 ```bibtex
 @misc{zhao2026scienceflow,
