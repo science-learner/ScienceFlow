@@ -129,8 +129,8 @@ scienceflow web --workspace /path/to/workspace
 测试预览包发布后，请精确固定预发布版本，避免后续 Preview 自动改变测试环境：
 
 ```bash
-pip install "scienceflow==0.2.0b1"
-pip install "scienceflow[full]==0.2.0b1"
+pip install scienceflow==0.2.0b2
+pip install "scienceflow[full]"==0.2.0b2
 ```
 
 ## 配置要点

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scienceflow"
-version = "0.2.0b1"
+version = "0.2.0b2"
 description = "An end-to-end autoresearch agent framework for long-horizon ML research, scientific discovery, and beyond"
 readme = "README.md"
 license = "MIT"
