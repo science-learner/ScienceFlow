@@ -10,6 +10,14 @@
   <a href="docs/public/README_CN.md"><b>Chinese</b></a>
 </p>
 
+> [!IMPORTANT]
+> **Testing preview.** This code line backs the public `preview` branch and is intended
+> for evaluation, integration testing, and demonstrations. It includes TUI chat,
+> multi-task long research, resume and recovery, resource coordination, and structured
+> telemetry. Interfaces, configuration schemas, UI details, and workspace metadata may
+> change before the stable release. Use the reviewed lock file and isolated workspaces,
+> and do not rely on this preview for unattended production workloads.
+
 ScienceFlow is an end-to-end autoresearch agent framework for productive, stable, and goal-aligned research over hours or days. It organizes research around recoverable executable workspaces, coupling persistent state, adaptive exploration, and evidence-aware execution control so agents can continue, redirect, or recover without losing validated progress.
 
 ScienceFlow documentation uses **iqcraft** as the short name for InquiryCraft. Package,
@@ -24,6 +32,7 @@ Across machine learning, scientific modeling, and mathematical optimization, Sci
 
 ## News
 
+- **[2026-09]** The testing preview is available on the `preview` branch for integration testing and feedback.
 - **[2026-08]** ScienceFlow is open source — the framework code, task packages, and documentation are available in this repository.
 - **[2026-08]** The ScienceFlow paper is available on [arXiv](https://arxiv.org/abs/2608.14354).
 
