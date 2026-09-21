@@ -64,10 +64,7 @@ def test_full_profile_covers_task_profiles() -> None:
 
 
 def test_public_install_surface_is_light_and_full() -> None:
-    public_docs = "\n".join(
-        path.read_text(encoding="utf-8")
-        for path in (ROOT / "README.md", ROOT / "docs" / "public" / "README_CN.md")
-    )
+    public_docs = (ROOT / "README.md").read_text(encoding="utf-8")
     assert "pip install scienceflow" in public_docs
     assert 'pip install "scienceflow[full]"' in public_docs
     for internal_extra in ("ml", "gpu", "mlebench"):

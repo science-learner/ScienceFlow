@@ -6,8 +6,6 @@
   <a href="https://www.noahlab.com.hk/news/212"><b>Project News</b></a>
   ·
   <a href="https://arxiv.org/abs/2608.14354"><b>Paper (arXiv)</b></a>
-  ·
-  <a href="docs/public/README_CN.md"><b>Chinese</b></a>
 </p>
 
 > [!IMPORTANT]
@@ -66,10 +64,9 @@ scienceflow tui --workspace "$PWD/sf_workspace"
 ```
 
 The registry defaults to `~/.config/scienceflow/models.json` with mode `600`. API keys
-are not copied into manifests, sessions, or reports. See
-[model configuration](docs/public/LLM_CONFIGURATION.md), or run `scienceflow tui --help`
-for workspace and resume options. Inside the TUI, use `/long-research` to prepare and
-launch a managed research task.
+are not copied into manifests, sessions, or reports. `scienceflow config path` prints the
+active registry path; run `scienceflow tui --help` for workspace and resume options. Inside
+the TUI, use `/long-research` to prepare and launch a managed research task.
 
 ## News
 
@@ -114,14 +111,9 @@ python -m pip install "scienceflow[full]"==0.2.0b3
 ScienceFlow embeds InquiryCraft `0.9.0` as its generic Agent Runtime; no second service is
 required. Container and Compose usage lives in [`deploy/README.md`](deploy/README.md).
 
-## Documentation
-
-[Documentation index](docs/README.md) · [Architecture overview](docs/public/scienceflow/index.html) · [Recoverable states and LNR](docs/public/scienceflow/module-lnr.html) · [Evidence-aware execution control](docs/public/scienceflow/module-resource.html) · [Adding optimization tasks](docs/public/scienceflow/module-opt-solver-onboarding.html) · [Current plans](docs/plans/current/) · [SciModelingBench](tasks/sci_modeling_bench/README.md)
-
 The same Stage Gate and Evaluator contract supports machine-learning engineering,
-scientific modeling, and mathematical optimization. Configuration fields, repository
-ownership boundaries, task contracts, and benchmark details live in the linked docs rather
-than being duplicated here.
+scientific modeling, and mathematical optimization. Registered task packages and their
+evaluators live under [`tasks/`](tasks/).
 
 ## TUI and managed research
 
@@ -160,8 +152,8 @@ MLE-bench additionally requires the data root, `exp_id`, and `submission.csv` co
 Model pricing is optional and lives only in `models.<alias>.pricing`; missing prices display
 `Cost —` rather than silently using a built-in estimate.
 
-The Web monitor shows task status, workers, metric history, Stage lineage, ESTRA/EEC, usage, and
-final reports. See [Web monitor behavior](docs/web-monitor.md) for local and SSH access.
+The Web monitor shows task status, workers, metric history, Stage lineage, ESTRA/EEC, usage,
+and final reports for local and SSH-based runs.
 
 ## Verification
 

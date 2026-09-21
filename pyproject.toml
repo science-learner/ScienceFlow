@@ -50,7 +50,6 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/science-learner/ScienceFlow"
 Repository = "https://github.com/science-learner/ScienceFlow"
-Documentation = "https://github.com/science-learner/ScienceFlow/tree/preview/docs"
 Issues = "https://github.com/science-learner/ScienceFlow/issues"
 
 [project.optional-dependencies]

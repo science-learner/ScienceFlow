@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 
-FIXTURE_ROOT = Path(__file__).parents[1] / "docs" / "baselines" / "circle_packing"
+FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "workspace_contracts" / "circle_packing"
 
 
 def test_circle_packing_workspace_contracts_are_portable_and_complete() -> None:
