@@ -1,0 +1,65 @@
+name: ScienceFlow Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify tag matches package version
+        run: >-
+          python -c "import os,pathlib,tomllib;
+          version=tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version'];
+          ref=os.environ['GITHUB_REF_NAME'];
+          assert ref == 'v' + version, f'tag {ref!r} does not match version {version!r}'"
+      - name: Build distributions
+        run: |
+          python -m pip install --upgrade build twine
+          python -m build
+          python -m twine check dist/*
+      - name: Verify built wheel
+        run: |
+          python -m pip install --force-reinstall dist/scienceflow-*.whl
+          scienceflow --help
+          scienceflow agent tools list
+          python -c "import pathlib,tomllib; from importlib.metadata import version; expected=tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version']; assert version('scienceflow') == expected"
+      - name: Run release contracts
+        run: |
+          python -m pip install pytest pytest-asyncio
+          python -m pytest -q \
+            tests/test_inquirycraft_dependency_boundary.py \
+            tests/test_inquirycraft_cli_composition.py \
+            tests/test_llm_system_message_compat.py \
+            tests/test_workspace_contract_fixtures.py \
+            tests/test_product_deployment_profiles.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: scienceflow-dist
+          path: dist/*
+          if-no-files-found: error
+
+  pypi-publish:
+    if: github.repository == 'science-learner/ScienceFlow'
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: scienceflow-dist
+          path: dist
+      - name: Publish distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

@@ -5187,7 +5187,7 @@ wheels = [
 
 [[package]]
 name = "scienceflow"
-version = "0.2.0"
+version = "0.2.0b1"
 source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },

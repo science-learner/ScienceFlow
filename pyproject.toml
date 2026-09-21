@@ -1,12 +1,24 @@
 [build-system]
-requires = ["setuptools>=68.0", "wheel"]
+requires = ["setuptools>=77.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "scienceflow"
-version = "0.2.0"
+version = "0.2.0b1"
 description = "An end-to-end autoresearch agent framework for long-horizon ML research, scientific discovery, and beyond"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.11"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 # The default install is the Light, CPU-only ScienceFlow control plane. The Full product
 # profile and internal task/model profiles are extras so deployments that call an external
 # OpenAI-compatible provider (including vLLM) do not need CUDA, PyTorch, MLEBench, or tests.
@@ -34,6 +46,12 @@ dependencies = [
     # Deterministic local PDF reports without a browser or external command.
     "reportlab>=4.2,<5",
 ]
+
+[project.urls]
+Homepage = "https://github.com/science-learner/ScienceFlow"
+Repository = "https://github.com/science-learner/ScienceFlow"
+Documentation = "https://github.com/science-learner/ScienceFlow/tree/preview/docs"
+Issues = "https://github.com/science-learner/ScienceFlow/issues"
 
 [project.optional-dependencies]
 ml = [

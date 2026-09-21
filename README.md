@@ -153,13 +153,13 @@ scienceflow monitor --manifest scripts/lnr.yaml --refresh 5
 scienceflow web --workspace /path/to/workspace
 ```
 
-For packaged releases, install `scienceflow` or `scienceflow[full]` from PyPI after the release
-notes declare InquiryCraft `0.9.0` and the lock file aligned. Container and Compose usage lives in
-[`deploy/README.md`](deploy/README.md).
+After the preview package is published, install the exact pre-release version from PyPI.
+Pinning the version prevents a test environment from changing when a later preview is released.
+Container and Compose usage lives in [`deploy/README.md`](deploy/README.md).
 
 ```bash
-pip install scienceflow
-pip install "scienceflow[full]"
+pip install "scienceflow==0.2.0b1"
+pip install "scienceflow[full]==0.2.0b1"
 ```
 
 ## Configuration essentials
@@ -236,8 +236,8 @@ final reports. See [Web monitor behavior](docs/web-monitor.md) for local and SSH
 
 ## Verification
 
-Run tests through the active development environment while InquiryCraft `0.9.0` remains
-unpublished:
+Run tests through the active development environment against the pinned, published
+InquiryCraft `0.9.0` package:
 
 ```bash
 .venv/bin/pytest -q \
@@ -246,6 +246,8 @@ unpublished:
   tests/test_long_research_interaction.py
 ```
 
-After the public dependency and lock file are aligned, the release regression command is
+The release workflow accepts only a version-matching tag, builds and checks the wheel and
+source distribution, installs the wheel in a clean runner, and reruns the public dependency
+contracts before publishing through PyPI Trusted Publishing. The full regression command is
 `uv run --locked pytest -q`. Optional ML, GPU, MLE-bench, and scientific-design tests require
 their corresponding extras.
