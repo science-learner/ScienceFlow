@@ -26,7 +26,7 @@ TUI and Web monitor.
 
 ### Install
 
-Install ScienceFlow with <a href="https://pipx.pypa.io/stable/installation/">pipx</a> so
+Install ScienceFlow with <a href="https://pipx.pypa.io/latest/how-to/install-pipx.html">pipx</a> so
 the command is available from any directory while its Python dependencies remain isolated:
 
 ```bash
