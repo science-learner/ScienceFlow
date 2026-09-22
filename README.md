@@ -24,19 +24,50 @@ TUI and Web monitor.
 
 <p align="justify"><strong>Requirements:</strong> Python 3.11+ and access to a supported model API.</p>
 
+### Install
+
+Install ScienceFlow with <a href="https://pipx.pypa.io/stable/installation/">pipx</a> so
+the command is available from any directory while its Python dependencies remain isolated:
+
+```bash
+pipx install scienceflow==0.2.0b5
+scienceflow --help
+```
+
+<details>
+<summary><strong>Other installation methods</strong></summary>
+
+**Conda**
+
+```bash
+conda create -n scienceflow python=3.12 -y
+conda activate scienceflow
+python -m pip install scienceflow==0.2.0b5
+```
+
+**uv**
+
 ```bash
 uv tool install scienceflow==0.2.0b5
+```
+
+**Python virtual environment**
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install scienceflow==0.2.0b5
+```
+
+</details>
+
+### Configure and start
+
+```bash
 scienceflow config init
 scienceflow config path     # edit the generated private model registry
 scienceflow tui --workspace "$PWD/sf_workspace"
 ```
-
-<p align="justify">
-<code>pipx install scienceflow==0.2.0b5</code> is an equivalent isolated installation.
-Inside an activated virtual environment, use
-<code>python -m pip install scienceflow==0.2.0b5</code>. On Debian and Ubuntu, avoid
-bypassing PEP 668 with <code>--break-system-packages</code>.
-</p>
 
 <p align="justify">
 Chat normally in the TUI, or enter <code>/long-research</code> to configure and launch a
