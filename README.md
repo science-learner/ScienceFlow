@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/science-learner/ScienceFlow/v0.2.0b5/docs/assets/brand/scienceflow-banner.svg" alt="ScienceFlow" width="800">
+  <img src="https://raw.githubusercontent.com/science-learner/ScienceFlow/v0.2.0b6/docs/assets/brand/scienceflow-banner.svg" alt="ScienceFlow" width="800">
 </p>
 
 <p align="center">
@@ -30,7 +30,7 @@ Install ScienceFlow with <a href="https://pipx.pypa.io/latest/how-to/install-pip
 the command is available from any directory while its Python dependencies remain isolated:
 
 ```bash
-pipx install scienceflow==0.2.0b5
+pipx install scienceflow==0.2.0b6
 scienceflow --help
 ```
 
@@ -42,13 +42,13 @@ scienceflow --help
 ```bash
 conda create -n scienceflow python=3.12 -y
 conda activate scienceflow
-python -m pip install scienceflow==0.2.0b5
+python -m pip install scienceflow==0.2.0b6
 ```
 
 **uv**
 
 ```bash
-uv tool install scienceflow==0.2.0b5
+uv tool install scienceflow==0.2.0b6
 ```
 
 **Python virtual environment**
@@ -56,7 +56,7 @@ uv tool install scienceflow==0.2.0b5
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install scienceflow==0.2.0b5
+python -m pip install scienceflow==0.2.0b6
 ```
 
 </details>
@@ -131,7 +131,7 @@ scienceflow tui --workspace "$PWD/sf_workspace" --resume
 ## How it works
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/science-learner/ScienceFlow/v0.2.0b5/docs/public/scienceflow/assets/scienceflow_system_architecture.png" alt="ScienceFlow system architecture" width="100%">
+  <img src="https://raw.githubusercontent.com/science-learner/ScienceFlow/v0.2.0b6/docs/public/scienceflow/assets/scienceflow_system_architecture.png" alt="ScienceFlow system architecture" width="100%">
 </p>
 
 1. **Explore:** isolated workers advance executable workspaces under explicit CPU, GPU,
@@ -175,7 +175,7 @@ task data.
 <p>
 Model settings stay local in <code>~/.config/scienceflow/models.json</code> (mode
 <code>600</code>); API keys are excluded from task manifests, sessions, and reports. See the
-<a href="https://github.com/science-learner/ScienceFlow/blob/v0.2.0b5/docs/examples/models.example.json">redacted example</a>.
+<a href="https://github.com/science-learner/ScienceFlow/blob/v0.2.0b6/docs/examples/models.example.json">redacted example</a>.
 </p>
 
 <p align="justify">
@@ -184,7 +184,7 @@ dependencies only when needed:
 </p>
 
 ```bash
-python -m pip install "scienceflow[full]"==0.2.0b5
+python -m pip install "scienceflow[full]"==0.2.0b6
 ```
 
 <p align="justify">
@@ -218,7 +218,7 @@ runs.
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/science-learner/ScienceFlow/v0.2.0b5/docs/public/scienceflow/assets/mlebench_top10_any_medal.png" alt="Representative full MLE-bench Any-Medal leaderboard" width="100%">
+  <img src="https://raw.githubusercontent.com/science-learner/ScienceFlow/v0.2.0b6/docs/public/scienceflow/assets/mlebench_top10_any_medal.png" alt="Representative full MLE-bench Any-Medal leaderboard" width="100%">
 </p>
 
 ## Citation
