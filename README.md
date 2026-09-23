@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/science-learner/ScienceFlow/v0.2.0b6/docs/assets/brand/scienceflow-banner.svg" alt="ScienceFlow" width="800">
+  <img src="https://raw.githubusercontent.com/science-learner/ScienceFlow/preview/docs/assets/brand/scienceflow-banner.svg" alt="ScienceFlow" width="800">
 </p>
 
 <p align="center">

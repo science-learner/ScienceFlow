@@ -5,7 +5,7 @@
     .wordmark { fill: #342b34; stroke: #342b34; }
     .flow { fill: #ce3d60; stroke: #ce3d60; }
     .supporting { fill: #545965; }
-    .ivory { fill: #6f7780; }
+    .ivory { fill: #342b34; }
     @media (prefers-color-scheme: dark) {
       .wordmark { fill: #fff1d6; stroke: #fff1d6; }
       .supporting { fill: #bfc2ca; }
@@ -62,7 +62,7 @@
     </g>
   </defs>
 
-  <!-- The TUI microscope silhouette in its original ruby and ivory palette. -->
+  <!-- The TUI microscope silhouette with theme-adaptive contrast pixels. -->
   <g transform="translate(77 60) scale(1.35)" shape-rendering="crispEdges">
     <g class="ivory">
       <rect x="32" y="0" width="80" height="16"/>
