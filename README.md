@@ -19,8 +19,6 @@ TUI and Web monitor.
 
 > [!IMPORTANT]
 > **Testing preview · 0.2.0b7.** Interfaces and workspace metadata may change before the stable release.
-> This source preview is not yet published to PyPI; the installation examples below
-> use the published 0.2.0b6. Install the `preview` branch to try the latest source.
 
 ## Quick start
 
@@ -32,7 +30,7 @@ Install ScienceFlow with <a href="https://pipx.pypa.io/latest/how-to/install-pip
 the command is available from any directory while its Python dependencies remain isolated:
 
 ```bash
-pipx install scienceflow==0.2.0b6
+pipx install scienceflow==0.2.0b7
 scienceflow --help
 ```
 
@@ -44,13 +42,13 @@ scienceflow --help
 ```bash
 conda create -n scienceflow python=3.12 -y
 conda activate scienceflow
-python -m pip install scienceflow==0.2.0b6
+python -m pip install scienceflow==0.2.0b7
 ```
 
 **uv**
 
 ```bash
-uv tool install scienceflow==0.2.0b6
+uv tool install scienceflow==0.2.0b7
 ```
 
 **Python virtual environment**
@@ -58,7 +56,7 @@ uv tool install scienceflow==0.2.0b6
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install scienceflow==0.2.0b6
+python -m pip install scienceflow==0.2.0b7
 ```
 
 </details>
@@ -207,7 +205,7 @@ dependencies only when needed:
 </p>
 
 ```bash
-python -m pip install "scienceflow[full]"==0.2.0b6
+python -m pip install "scienceflow[full]"==0.2.0b7
 ```
 
 <p align="justify">
