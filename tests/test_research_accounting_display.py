@@ -99,6 +99,7 @@ def test_running_task_projection_prioritizes_time_left_in_every_width(
     assert item['progress_tail_compact'].index('—') < item['progress_tail_compact'].index('[')
     assert item['progress_tail_narrow'].strip() == '30% · 14m left'
     assert '$' not in item['progress_tail_narrow']
+    assert item['worker_expandable'] is False
 
 
 @pytest.mark.parametrize('size,expected', [
@@ -267,6 +268,8 @@ def test_stopped_task_freezes_time_and_hides_worker_age(tmp_path, monkeypatch):
     assert 'ago' not in first['detail']
     assert '2h 00m/3h 00m' in first['detail']
     assert '- w00: stopped' in first['detail']
+    assert first['worker_expandable'] is False
+    assert 'w00' in first['worker_details']
     assert 'EEC' in first['text'] and 'Kill' not in first['text']
     row['attempt'] = 2
     assert board.item(entry, row) is not first

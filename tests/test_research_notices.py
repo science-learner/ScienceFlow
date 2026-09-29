@@ -19,7 +19,7 @@ async def test_research_notice_emphasizes_onboarding_terms_and_values():
     host = _RichHost()
     message = (
         '请补充运行配置：data=/path/to/dataset workers=2 cpu=8 '
-        'gpu=cpu duration=20min 可在一行内填写'
+        'gpu=cpu duration=2h 可在一行内填写'
     )
 
     await research_notice(host, message)
@@ -52,8 +52,8 @@ async def test_research_notice_falls_back_to_plain_notice():
 async def test_research_notice_emphasizes_models_and_launch_status():
     host = _RichHost()
     message = (
-        'Research models · available: gpt-test\n'
-        'Default · Code gpt-test · Feedback gpt-test · Policy auto\n'
+        'Research models · Code gpt-test · Feedback gpt-test · Policy auto\n'
+        'Enter default to confirm · models=<alias> to change code · /models to browse\n'
         'Starting long research.\n'
         'Task 3 · circle-packing · CPU 0-7 · GPU CPU-only · 2 workers · started\n'
         'Workspace · /tmp/task-0003'

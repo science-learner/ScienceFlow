@@ -9,6 +9,7 @@ from pathlib import Path
 
 import click
 from inquirycraft.cli import create_cli
+from inquirycraft.runtime import AgentRuntime
 
 from scienceflow.foundation.config.llm.model_registry import load_model_registry
 from scienceflow.foundation.config.runtime.llm_lists import values
@@ -57,19 +58,30 @@ def build_tui_command(*, initial_command: str = "") -> click.Command:
         "tui_branding",
         "tui_interceptor_factory",
     }
-    if not required_host_parameters.issubset(signature(create_cli).parameters):
+    if (not required_host_parameters.issubset(signature(create_cli).parameters)
+            or not callable(getattr(AgentRuntime, 'compact_context', None))):
 
         @click.command("tui")
         def unavailable_tui():
             """Start the full-screen interface (requires InquiryCraft TUI host APIs)."""
             raise click.ClickException(
-                "ScienceFlow TUI requires the InquiryCraft 0.9.0 host and model-registry APIs. "
+                "ScienceFlow TUI requires the InquiryCraft 0.9.1 host and model-registry APIs. "
                 "Install that release before starting TUI."
             )
 
         return unavailable_tui
 
     from inquirycraft.tui import TuiBranding
+
+    # Optional presentation fields remain signature-filtered for host extensions.
+    branding_parameters = signature(TuiBranding).parameters
+    presentation_options = {
+        key: value for key, value in {
+            "prompt_placeholder": "Type a message · /long-research · /help",
+            "notice_background": "#3B4048",
+            "fold_system_notices": True,
+        }.items() if key in branding_parameters
+    }
 
     try:
         package_version = version("scienceflow")
@@ -104,6 +116,7 @@ def build_tui_command(*, initial_command: str = "") -> click.Command:
                 "Start with /long-research · monitor with /tasks · continue with /resume"
             ),
             welcome_emphasis=("Long Research", "parallel workers", "best result"),
+            **presentation_options,
         ),
         tui_interceptor_factory=lambda workspace: LongResearchInteraction(
             Path(workspace), managed=True, multi_task=True, initial_command=initial_command

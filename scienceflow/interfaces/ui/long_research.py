@@ -47,6 +47,24 @@ def _preflight_summary(report: PreflightReport) -> str:
 class LongResearchInteraction:
     """Own only TUI routing; onboarding and execution stay in existing owners."""
 
+    @staticmethod
+    def is_host_task_prompt(content: object) -> bool:
+        """Recognize stored preparation requests without changing their records."""
+        return isinstance(content, str) and content.startswith(
+            "Prepare a ScienceFlow research task, NOT the research run itself.\n"
+        )
+
+    @property
+    def tui_common_commands(self):
+        """Prioritize model selection and research controls in slash suggestions."""
+        return (
+            "/models", "/long-research",
+            *(("/tasks",) if self._managed else ()),
+            "/status",
+            *(("/stop", "/resume") if self._managed else ()),
+            "/compact", "/web", "/help", "/cancel", "/quit",
+        )
+
     @property
     def tui_commands(self):
         from inquirycraft.tui import TuiCommandSpec
@@ -64,6 +82,7 @@ class LongResearchInteraction:
             TuiCommandSpec("/resume", "Resume a saved research run"),
             TuiCommandSpec("/attach", "Attach to a running research task"),
             TuiCommandSpec("/tasks", "Show all tasks in this workspace"),
+            TuiCommandSpec("/status", "Task overview; /status N shows task details"),
             TuiCommandSpec("/runs", "List this workspace research history"),
             TuiCommandSpec("/select", "Choose a task from the displayed list")) if self._managed else ()),
         )
@@ -79,6 +98,9 @@ class LongResearchInteraction:
         self._resource_task = None
         self._resources = None
         self._preparation = ResearchPreparation(self)
+        from scienceflow.interfaces.ui.research.history import ResearchHistory
+
+        self._history = ResearchHistory()
         from scienceflow.interfaces.ui.research.control import ManagedResearch
         self._managed = ManagedResearch(self) if managed else None
         if managed and multi_task:
@@ -269,18 +291,33 @@ class LongResearchInteraction:
             await host.notice(summary)
             return True
         if text.strip().casefold() == "/help":
-            await host.notice('/web opens the workspace Web monitor · /web stop stops only Web')
-            await host.notice(
-                "/models selects the chat model · configure with "
-                "scienceflow config init · locate with scienceflow config path"
-            )
             if callable(getattr(self._managed, "new_workspace", None)):
-                await host.notice("/long-research prepares a new task · /tasks overview · /status N details · /stop N stops one task · /resume N continues it · /research-usage N tokens · /resources host hardware")
-                return False
-            await host.notice("/long-research starts research · /status progress · /resources host hardware · /research-usage worker tokens · /stop stops · /resume continues this workspace · /runs lists local history")
+                research_help = (
+                    "Research: /long-research prepares a task · /tasks overview · /status N details\n"
+                    "Control: /stop N stops one task · /resume N continues research\n"
+                    "Advanced · Research: /attach N locates a task · /research-usage N tokens\n"
+                    "Compatibility: /runs lists tasks · /select N locates a task"
+                )
+            else:
+                research_help = (
+                    "Research: /long-research prepares a task · /status progress\n"
+                    "Control: /stop stops research · /resume continues this workspace\n"
+                    "Advanced · Research: /attach follows research · /runs history · "
+                    "/select NUMBER chooses a run · /research-usage worker tokens"
+                )
+            await host.notice(
+                "Model: /models selects the chat model\n"
+                + research_help
+                + "\nAdvanced · Research models: models=<alias> · feedback-models=<alias> · model-policy=auto|fixed"
+                + "\nMonitor: /web opens Web · /web stop stops only Web"
+                "\nAdvanced · Resources: /resources host hardware"
+                "\nModel setup (terminal): scienceflow config init · scienceflow config path"
+            )
             return False
         constraints = long_research_argument(text)
         if constraints is not None:
+            if not host.busy and self.session is None:
+                await self._history.begin(host)
             await _echo_user(host, text)
             await self._start(constraints, host)
             return True
@@ -382,6 +419,12 @@ class LongResearchInteraction:
             )
             if self._task_workspace is not None:
                 self.session.draft.workspace_base = str(self.task_workspace / "runs")
+            # Snapshot the chat choice for this new task only. Explicit role
+            # options below take precedence; later chat switches cannot mutate it.
+            if self._selected_model_aliases:
+                chat_model = self._selected_model_aliases[0]
+                self.session.draft.code_models = [chat_model]
+                self.session.draft.feedback_models = [chat_model]
             overrides = research_model_overrides(constraints)
             for name, value in overrides.items():
                 setattr(self.session.draft, name, value)
@@ -540,26 +583,50 @@ class LongResearchInteraction:
 
         progress = LongResearchProgress(self._require_session().draft)
         self._progress = progress
-        await host.notice(
-            f"Running in worker subprocesses (no tmux). Time budget: {progress.budget // 60} min.\n"
-            f"Logs: {progress.root / 'task_logs'}\n"
-            "The bar tracks elapsed time, not research completion. /cancel stops the run."
-        )
+
+        async def announce_started():
+            await self._history.fold(host, progress.draft, 'Long research')
+            await host.notice(
+                f"Running in worker subprocesses (no tmux). Time budget: {progress.budget // 60} min.\n"
+                f"Logs: {progress.root / 'task_logs'}\n"
+                "The bar tracks elapsed time, not research completion. /cancel stops the run."
+            )
+
+        announcement = None
+
+        def on_started(_task_count, _concurrency):
+            nonlocal announcement
+            if announcement is None:
+                announcement = asyncio.create_task(announce_started())
+
         monitor = asyncio.create_task(progress.watch(host))
         outcome = "Finished"
         try:
-            summary = await run_manifest(files.manifest_path)
+            options = {}
+            if self._history.section is not None:
+                options['on_started'] = on_started
+            else:
+                await announce_started()
+            summary = await run_manifest(files.manifest_path, **options)
+            if announcement is not None:
+                await announcement
         except asyncio.CancelledError:
             outcome = "Cancelled"
+            if announcement is not None:
+                await asyncio.gather(announcement, return_exceptions=True)
             await host.notice("Long research cancelled; resumable state was preserved.")
             raise
         except Exception as exc:
             outcome = "Failed"
+            if announcement is not None:
+                await asyncio.gather(announcement, return_exceptions=True)
             await host.notice(f"Long research failed: {type(exc).__name__}: {exc}")
         else:
             outcome = "Finished" if all(r.status in {"success", "skipped"} for r in summary.results) else "Finished with failures"
             await host.notice(_format_run_summary(summary))
         finally:
+            if announcement is not None:
+                await asyncio.gather(announcement, return_exceptions=True)
             monitor.cancel()
             await asyncio.gather(monitor, return_exceptions=True)
             progress.active = False

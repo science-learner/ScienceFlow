@@ -230,6 +230,7 @@ class TaskProjection:
                       storage_bytes=storage_bytes,
                       storage_exact=storage_exact,
                       worker_details=dict(progress.worker_details),
+                      worker_expandable=False,
                       monitor=dict(name=canonical_name, status=display_state,
                                    elapsed_sec=elapsed, budget_sec=progress.budget,
                                    fraction=fraction, best=progress.best_text,

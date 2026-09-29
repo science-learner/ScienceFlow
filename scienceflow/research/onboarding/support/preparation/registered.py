@@ -90,7 +90,7 @@ def registered_missing_prompt(draft) -> str:
     if not draft.gpu_list:
         missing.append("gpu=cpu")
     if draft.wall_clock_sec is None:
-        missing.append("duration=20min")
+        missing.append("duration=2h")
     if not missing:
         return ""
     return "请补充运行配置：" + " ".join(missing) + " 可在一行内填写"

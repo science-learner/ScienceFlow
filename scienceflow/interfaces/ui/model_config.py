@@ -167,22 +167,15 @@ def research_model_question(path: Path, draft: LongResearchDraft) -> str:
     """Describe the optional per-run role choice without opening another panel."""
 
     registry = load_model_registry(path)
-    available = ", ".join(registry.models)
     code = draft.code_models or list(registry.default_aliases("code_models"))
     feedback = draft.feedback_models or list(
         registry.default_aliases("feedback_models")
     )
-    fixed_code = code[0] if code else "model-alias"
-    fixed_feedback = feedback[0] if feedback else "model-alias"
     return (
-        f"Research models · available: {available}\n"
-        f"Default · Code {','.join(code)} · "
+        f"Research models · Code {','.join(code)} · "
         f"Feedback {','.join(feedback)} · "
         f"Policy {draft.model_selection}\n"
-        "Enter defaults, or models=<alias[,alias]> "
-        "feedback-models=<alias[,alias]> model-policy=<auto|fixed>.\n"
-        f"Fixed example · models={fixed_code} "
-        f"feedback-models={fixed_feedback} model-policy=fixed"
+        "Enter default to confirm · models=<alias> to change code · /models to browse"
     )
 
 

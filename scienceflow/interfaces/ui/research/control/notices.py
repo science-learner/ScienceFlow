@@ -45,7 +45,7 @@ async def research_notice(host, message: str):
     body.highlight_regex(r'\bexploratory\b', 'bold #D8BE91')
     body.highlight_regex(r'\b[\w_]+=failed\b|\bfailed\b', 'bold #E99AA3')
     body.highlight_regex(
-        r'\b(?:Type run|Enter defaults|Fixed example)\b',
+        r'\b(?:Type run|Enter defaults?|Fixed example)\b',
         'bold #8FA9C4',
     )
     await render(body)

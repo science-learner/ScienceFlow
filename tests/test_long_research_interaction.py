@@ -22,6 +22,14 @@ from scienceflow.runtime.parallel.config.models import TaskResult
 from scienceflow.runtime.parallel.service import ParallelRunSummary
 
 
+def test_research_preparation_prompt_is_not_a_chat_round():
+    recognize = LongResearchInteraction.is_host_task_prompt
+    assert recognize('Prepare a ScienceFlow research task, NOT the research run itself.\nInterpret the request')
+    assert not recognize('Prepare a ScienceFlow research task')
+    assert not recognize('/long-research circle-packing')
+    assert not recognize(None)
+
+
 class FakeHost:
     def __init__(self, *, busy: bool = False, conversation=()) -> None:
         self._busy = busy
@@ -204,7 +212,7 @@ async def test_complete_flow_preflights_and_runs_directly_with_public_runner(
     assert await interaction.try_handle(_complete_command(data), host) is True
     assert interaction.preflight is None
     assert interaction._awaiting_research_models
-    assert "Default · Code" in host.notices[-1]
+    assert "Research models · Code" in host.notices[-1]
     assert await interaction.try_handle("/status", host) is True
     assert host.notices[-1].endswith("Choose research models or enter defaults.")
 
@@ -301,6 +309,52 @@ async def test_usage_resources_and_help_commands_without_research(tmp_path):
         "/research-usage",
         "/web",
     } == {spec.name for spec in interaction.tui_commands}
+    await interaction.aclose()
+
+
+def test_common_commands_prioritize_models_without_registering_aliases(tmp_path):
+    from inquirycraft.tui.completion import TuiCompletion
+
+    interaction = LongResearchInteraction(tmp_path, managed=True, multi_task=True)
+    assert interaction.tui_common_commands == (
+        '/models', '/long-research', '/tasks', '/status', '/stop', '/resume',
+        '/compact', '/web', '/help', '/cancel', '/quit',
+    )
+    registered = {spec.name for spec in interaction.tui_commands}
+    assert {'/attach', '/runs', '/select', '/resources', '/research-usage'} <= registered
+    assert not registered.intersection({'/header', '/q', '/exit'})
+    completion = TuiCompletion()
+    completion.register_commands(
+        interaction.tui_commands, common_commands=interaction.tui_common_commands
+    )
+    assert tuple(name.strip() for name, _ in completion._completion_matches('/')) == (
+        interaction.tui_common_commands
+    )
+    assert completion._completion_matches('/stat') == [
+        ('/status ', 'Task overview; /status N shows task details')
+    ]
+    for prefix, command in (
+        ('/att', '/attach'), ('/resou', '/resources'),
+        ('/research', '/research-usage'), ('/ru', '/runs'), ('/sel', '/select'),
+    ):
+        assert completion._completion_matches(prefix)[0][0].strip() == command
+    plain = LongResearchInteraction(tmp_path)
+    assert '/models' == plain.tui_common_commands[0]
+    assert not {'/tasks', '/stop', '/resume'}.intersection(plain.tui_common_commands)
+
+
+@pytest.mark.asyncio
+async def test_multi_task_help_groups_commands_and_explains_compatibility(tmp_path):
+    interaction = LongResearchInteraction(tmp_path, managed=True, multi_task=True)
+    host = FakeHost()
+    assert not await interaction.try_handle('/help', host)
+    help_text = host.notices[-1]
+    assert help_text.startswith('Model: /models')
+    assert 'Research:' in help_text
+    assert 'Advanced · Research:' in help_text
+    assert 'Compatibility:' in help_text
+    for spec in interaction.tui_commands:
+        assert spec.name in help_text
     await interaction.aclose()
 
 
@@ -504,9 +558,9 @@ async def test_managed_long_research_loads_defaults_before_task_is_complete(tmp_
     await interaction._start("new optimization", host)
 
     assert interaction.session.draft.code_models == ["fast"]
-    assert interaction.session.draft.feedback_models == ["review"]
+    assert interaction.session.draft.feedback_models == ["fast"]
     assert interaction.session.draft.model_selection == "auto"
-    assert not any("Default · Code" in notice for notice in host.notices)
+    assert not any("Research models · Code" in notice for notice in host.notices)
 
 
 @pytest.mark.asyncio
@@ -544,7 +598,7 @@ async def test_model_question_applies_override_and_inline_models_skip_it(tmp_pat
     await interaction.try_handle(_complete_command(data), host)
 
     assert interaction._awaiting_research_models
-    assert "Default · Code fast" in host.notices[-1]
+    assert "Research models · Code fast" in host.notices[-1]
     await interaction.try_handle(
         "models=review feedback-models=fast model-policy=fixed",
         host,
@@ -569,7 +623,7 @@ async def test_model_question_applies_override_and_inline_models_skip_it(tmp_pat
     assert interaction.session.draft.code_models == ["fast"]
     assert interaction.session.draft.feedback_models == ["review"]
     assert interaction.session.draft.model_selection == "fixed"
-    assert not any("Default · Code" in notice for notice in host.notices)
+    assert not any("Research models · Code" in notice for notice in host.notices)
     await interaction.aclose()
 
 
@@ -608,6 +662,72 @@ async def test_managed_long_research_keeps_explicit_multiple_code_models(tmp_pat
 
     assert interaction.session.draft.code_models == ["fast", "backup"]
     assert interaction.session.draft.model_selection == "auto"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("selection", ["picker", "command", "startup"])
+@pytest.mark.parametrize(
+    ("options", "expected_code", "expected_feedback"),
+    [
+        ("", ["review"], ["review"]),
+        (" models=fast", ["fast"], ["review"]),
+        (" feedback-models=fast", ["review"], ["fast"]),
+        (" models=fast,review feedback-models=fast", ["fast", "review"], ["fast"]),
+    ],
+)
+async def test_research_snapshots_chat_model_with_explicit_role_precedence(
+    tmp_path, selection, options, expected_code, expected_feedback,
+):
+    config = tmp_path / "models.json"
+    payload = {
+        "version": 1,
+        "models": {
+            alias: {
+                "model": f"provider/{alias}",
+                "endpoints": [{"url": f"https://{alias}.example/v1", "key": "secret"}],
+            }
+            for alias in ("fast", "review")
+        },
+        "defaults": {
+            "code_models": ["fast", "review"],
+            "feedback_models": ["fast"],
+            "selection": "auto",
+        },
+    }
+    config.write_text(json.dumps(payload), encoding="utf-8")
+
+    class ModelHost(FakeHost):
+        def open_chat_model_selector(self, path, **kwargs):
+            self.on_applied = kwargs["on_applied"]
+
+        async def switch_chat_models(self, path, **kwargs):
+            return kwargs["aliases"]
+
+    interaction = LongResearchInteraction(tmp_path / "workspace")
+    interaction.configure_model_registry(config, ("review",) if selection == "startup" else ())
+    host = ModelHost()
+    if selection == "picker":
+        await interaction.try_handle("/models", host)
+        host.on_applied(("review",))
+    elif selection == "command":
+        await interaction.try_handle("/models review", host)
+    data = tmp_path / "data"
+    data.mkdir()
+    (data / "sample.csv").write_text("x,y\n1,2\n", encoding="utf-8")
+    await interaction.try_handle(_complete_command(data) + options, host)
+    if not options:
+        assert interaction._awaiting_research_models
+        assert "Research models · Code review · Feedback review" in host.notices[-1]
+        await interaction.try_handle("default", host)
+    assert interaction.preflight is not None
+    draft = interaction.session.draft
+    assert draft.code_models == expected_code
+    assert draft.feedback_models == expected_feedback
+    await interaction.try_handle("/models fast", host)
+    assert draft.code_models == expected_code
+    assert draft.feedback_models == expected_feedback
+    assert json.loads(config.read_text(encoding="utf-8")) == payload
+    await interaction.aclose()
 
 
 @pytest.mark.asyncio

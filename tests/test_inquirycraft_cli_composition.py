@@ -76,6 +76,32 @@ def test_scienceflow_root_tui_requires_complete_090_host_contract() -> None:
     assert required.issubset(signature(create_cli).parameters)
 
 
+def test_optional_placeholder_keeps_older_host_branding_usable(monkeypatch) -> None:
+    from inspect import signature
+
+    import inquirycraft.tui
+
+    from scienceflow.interfaces.cli.commands.run.tui import build_tui_command
+
+    original = inquirycraft.tui.TuiBranding
+    captured = {}
+
+    def legacy_branding(**options):
+        captured.update(options)
+        assert 'prompt_placeholder' not in options
+        assert 'notice_background' not in options
+        assert 'fold_system_notices' not in options
+        return original(**options)
+
+    legacy_branding.__signature__ = signature(original).replace(
+        parameters=[p for name, p in signature(original).parameters.items()
+                    if name not in {'prompt_placeholder', 'notice_background', 'fold_system_notices'}]
+    )
+    monkeypatch.setattr(inquirycraft.tui, 'TuiBranding', legacy_branding)
+    assert build_tui_command().name == 'tui'
+    assert captured['name'] == 'ScienceFlow'
+
+
 def test_scienceflow_root_tui_binds_long_research_to_selected_workspace(
     monkeypatch, tmp_path: Path
 ) -> None:
@@ -141,6 +167,9 @@ def test_scienceflow_root_tui_binds_long_research_to_selected_workspace(
     assert result.exit_code == 0, result.output
     assert captured["branding"].name == "ScienceFlow"
     assert captured["branding"].notice_label == "SCIENCEFLOW"
+    assert captured["branding"].prompt_placeholder == "Type a message · /long-research · /help"
+    assert captured["branding"].notice_background == "#3B4048"
+    assert captured["branding"].fold_system_notices
     assert captured["branding"].welcome_text.splitlines() == [
         "Long Research · parallel workers explore, evaluate, and preserve the best result.",
         "Start with /long-research · monitor with /tasks · continue with /resume",

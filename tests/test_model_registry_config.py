@@ -262,11 +262,12 @@ def test_long_research_models_are_configured_per_run(tmp_path):
     prompt = research_model_question(path, draft)
     assert "Code deepseek,qwen" in prompt
     assert "Feedback deepseek" in prompt
-    assert "model-policy=<auto|fixed>" in prompt
-    assert (
-        "Fixed example · models=deepseek feedback-models=deepseek "
-        "model-policy=fixed"
-    ) in prompt
+    assert len(prompt.splitlines()) == 2
+    assert "Enter default to confirm" in prompt
+    assert "models=<alias> to change code" in prompt
+    assert "/models to browse" in prompt
+    assert "Fixed example" not in prompt
+    assert "available:" not in prompt
     assert "auto|spread|fixed" not in prompt
     assert research_model_overrides(
         "circle packing workers=2 models=qwen feedback-models=deepseek"

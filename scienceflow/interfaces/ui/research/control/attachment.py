@@ -133,6 +133,8 @@ class ManagedResearch:
             self.launch_task = asyncio.create_task(asyncio.to_thread(
                 start_run, self.owner.files.manifest_path, draft=self.owner.session.draft))
             row = await asyncio.shield(self.launch_task)
+            if row.get('alive') and row.get('status') in {'starting', 'running'}:
+                await self.owner._history.fold(host, self.owner.session.draft, 'Long research')
             await self._watch(row, host)
         except WorkspaceBusy as exc:
             row = await asyncio.to_thread(get_run, exc.run_id)

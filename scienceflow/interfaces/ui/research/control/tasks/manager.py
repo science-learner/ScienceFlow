@@ -208,7 +208,6 @@ class MultiResearch:
 
     def resource_preview(self, draft):
         from ...resources import allocation_preview
-
         return allocation_preview(self.entries, self.rows, self.preparing, draft)
 
     async def launch(self, host):
@@ -232,10 +231,11 @@ class MultiResearch:
                 name=name,
             )
             from ...resources import task_allocation_line
-
             allocation = task_allocation_line(
                 f"Task {entry['number']}", name, row
             )
+            if row.get('status') in _RUNNING_STATES:
+                await self.owner._history.fold(host, session.draft, f"Task {entry['number']} · {name}")
             await research_notice(
                 host,
                 f"{allocation} · started\nWorkspace · {entry['workspace']}\n"

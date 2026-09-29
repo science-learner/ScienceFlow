@@ -95,7 +95,7 @@ def test_registered_runtime_prompt_does_not_attach_punctuation_to_example(tmp_pa
     prompt = registered_missing_prompt(session.draft)
 
     assert prompt == (
-        '请补充运行配置：workers=2 cpu=8 gpu=cpu duration=20min '
+        '请补充运行配置：workers=2 cpu=8 gpu=cpu duration=2h '
         '可在一行内填写'
     )
 
@@ -449,7 +449,7 @@ async def test_registered_unknown_direction_answer_reaches_preflight(tmp_path, m
     await interaction._preparation.task
     assert interaction.session.draft.lower_is_better is None
     assert interaction.session.state == OnboardingState.ASKING
-    assert 'Default · Code' in host.notices[-1]
+    assert 'Research models · Code' in host.notices[-1]
     await interaction.try_handle('defaults', host)
     assert interaction.session.state == OnboardingState.CONFIRM, interaction.preflight
     assert interaction.preflight.ok
@@ -474,7 +474,7 @@ async def test_registered_followup_resources_skip_host_agent(tmp_path, monkeypat
     await interaction.try_handle('workers=2，cpu=16，duration=1h', host)
     await interaction._preparation.task
     assert interaction.session.state == OnboardingState.ASKING
-    assert 'Default · Code' in host.notices[-1]
+    assert 'Research models · Code' in host.notices[-1]
     await interaction.try_handle('defaults', host)
     assert interaction.session.state == OnboardingState.CONFIRM
     assert interaction.session.draft.input_data_dir == str(data)
