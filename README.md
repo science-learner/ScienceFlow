@@ -71,28 +71,9 @@ scienceflow tui --workspace "$PWD/sf_workspace"
 
 <p align="justify">
 Chat normally in the TUI, or enter <code>/long-research</code> to configure and launch a
-managed task. <code>Esc</code> cancels the current interaction; press <code>Ctrl+C</code>
-twice within two seconds to exit, or use <code>Ctrl+Q</code>.
-With text selected in the editor or transcript, <code>Ctrl+C</code> copies instead.
-Exiting detaches from research without terminating its workers.
-New research tasks default to the selected chat model for both code and feedback;
-change either model during preparation if needed. Running tasks keep their own settings.
-After a successful launch, preparation messages collapse into an expandable configuration
-summary. This only changes the display; conversation and research records remain intact.
-Starting a new chat collapses earlier completed exchanges into two-row user/assistant
-summaries. The latest four history summaries remain visible; older rounds share an
-expandable History entry. Click or press Enter to expand; the footer keeps context/cache/cost
-values on the right, with only Cache labeled.
-Initial SCIENCEFLOW instructions stay visible until a chat completes, then collect
-in the same History entry, with a separate notice count. Task launch notices fold separately;
-errors remain visible. These records are UI-only and do not count as chat rounds.
-User messages use a display-only <code>&gt;</code> prefix without a shaded background.
-<code>Copy</code> appears only on command/code blocks, not ordinary replies,
-and copies source text without display decoration or automatic line wrapping.
-Use <code>/compact</code> to manually compress idle Chat context without an API call.
-Saved conversation, reasoning and tool records remain intact; Long Research tasks
-are unaffected. Resume retains the compacted context, and footer tokens update
-after the next actual request.
+managed task. Closing the TUI detaches from research without terminating its workers.
+Research defaults to your selected chat model; use <code>/models</code> to switch.
+Use <code>/compact</code> to condense Chat context without deleting saved records.
 </p>
 
 ### Minimal TUI example
