@@ -1,0 +1,69 @@
+{
+  "server": {
+    "host": "0.0.0.0",
+    "port": 10001,
+    "sse_path": "/events"
+  },
+  "auth": {
+    "enabled": true,
+    "file": "AUTH.yaml",
+    "token_secret": "vl56xkcs7hc0s7u4d3i65746c1qt9kob035h3eyfsxxvmf0s",
+    "token_ttl": "24h",
+    "session_ttl": "24h"
+  },
+  "backend": {
+    "url": "http://127.0.0.1:8200"
+  },
+  "agent": {
+    "enabled": true,
+    "python": "python",
+    "module": "scienceflow.cli",
+    "command": "repl",
+    "config_yaml": "",
+    "repo_root": "",
+    "workspace_root": "../workspaces",
+    "input_data_dir": "",
+    "exp_id": "",
+    "timeout": "3600s",
+    "max_concurrent": 4,
+    "max_queue": 16,
+    "file_sync_interval": "3s",
+    "log_dir_name": "task_logs",
+    "timezone": "Asia/Shanghai"
+  },
+  "inputs": [
+    {
+      "name": "prefixed-logs",
+      "path": "./logs/*.log",
+      "mode": "prefix",
+      "prefix_format": "%Y%m%d-%H:%M:%S.%f",
+      "prefix_timeout": "50ms",
+      "tail_files": true,
+      "poll_interval": "30ms",
+      "ignore_older": "0s"
+    },
+    {
+      "name": "raw-logs",
+      "path": "./logs/*.raw",
+      "mode": "raw",
+      "tail_files": true,
+      "poll_interval": "30ms",
+      "ignore_older": "0s"
+    },
+    {
+      "name": "plain-text",
+      "path": "./logs/*.txt",
+      "mode": "line",
+      "tail_files": true,
+      "poll_interval": "30ms",
+      "ignore_older": "0s"
+    }
+  ],
+  "registry": {
+    "path": "./data/registry.json",
+    "flush_interval": "5s"
+  },
+  "scan": {
+    "frequency": "5s"
+  }
+}

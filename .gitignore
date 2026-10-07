@@ -6,3 +6,12 @@ __pycache__/
 cache/
 workspaces/
 data/
+*.opencode/
+.dbg/
+.scienceflow/
+doc/
+web_app/.task/
+web_app/bin/
+web_app/build/
+web_app/frontend/dist/
+web_app/frontend/node_modules/

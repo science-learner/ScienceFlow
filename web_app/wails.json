@@ -1,0 +1,5 @@
+{
+  "$schema": "https://wails.io/schemas/config.v3.json",
+  "name": "scienceflow",
+  "outputfilename": "scienceflow_gui"
+}

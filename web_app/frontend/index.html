@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <title>ScienceFlow 科学家智能体</title>
+  <script>
+    (() => {
+      try {
+        const value = window.localStorage.getItem("scienceflow.theme") || "scienceflow-dark";
+        const themes = new Set(["scienceflow-dark", "paper-light"]);
+        document.documentElement.dataset.theme = themes.has(value) ? value : "scienceflow-dark";
+        const fontSize = window.localStorage.getItem("scienceflow.fontSize") || "default";
+        const fontSizes = new Set(["small", "default", "large"]);
+        document.documentElement.dataset.fontSize = fontSizes.has(fontSize) ? fontSize : "default";
+      } catch {
+        document.documentElement.dataset.theme = "scienceflow-dark";
+        document.documentElement.dataset.fontSize = "default";
+      }
+    })();
+  </script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>

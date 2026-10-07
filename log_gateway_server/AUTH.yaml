@@ -1,0 +1,10 @@
+# 用户鉴权配置，两种写法均支持：
+
+# 1) 简化写法：只有密码，可读所有日志源
+admin: admin123
+sciflow: "123456"
+
+# 2) 完整写法：指定该用户可读的源（sources 为 input.name 列表，或 ["*"] 全量）
+viewer:
+  password: viewer456
+  sources: ["prefixed-logs", "plain-text"]
