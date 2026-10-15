@@ -1,17 +1,72 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAppStore } from '../store/useAppStore';
+import { useGatewayStore } from '../store/useGatewayStore';
+import { workspaceDownloadFile } from '../api/gateway';
 import { useT } from '../i18n/useT';
 import { sanitizeReportMarkdown, getDefaultReport } from '../utils/helpers';
 
-function resolveImageSrc(src: string | undefined): string {
-  if (!src) return '';
-  if (src.startsWith('data:') || src.startsWith('http://') || src.startsWith('https://')) {
-    return src;
+// Report images live in the session workspace, so they must be fetched
+// through the Go bridge (WorkspaceDownload) and rendered from a blob URL.
+// Requesting them directly from the page origin would 404 (desktop/server
+// builds have no /api route on the UI origin).
+
+function normalizeWorkspacePath(path: string): string {
+  const out: string[] = [];
+  for (const seg of path.split('/')) {
+    if (!seg || seg === '.') continue;
+    if (seg === '..') out.pop();
+    else out.push(seg);
   }
-  const base = import.meta.env.DEV ? 'http://localhost:46000' : '';
-  return `${base}/api/workspace/file/raw?path=${encodeURIComponent(src)}`;
+  return out.join('/');
+}
+
+function resolveWorkspaceImage(src: string, reportPath: string): string {
+  if (src.startsWith('/')) return normalizeWorkspacePath(src);
+  const dir = reportPath.includes('/') ? reportPath.slice(0, reportPath.lastIndexOf('/')) : '';
+  return normalizeWorkspacePath(dir ? `${dir}/${src}` : src);
+}
+
+interface WorkspaceImageProps {
+  src?: string;
+  alt?: string;
+  reportPath: string;
+}
+
+function WorkspaceImage({ src, alt, reportPath }: WorkspaceImageProps) {
+  const token = useGatewayStore((s) => s.token);
+  const sessionId = useGatewayStore((s) => s.sessionId);
+  const [url, setUrl] = useState('');
+  const [failed, setFailed] = useState(false);
+  const external = !!src && (src.startsWith('data:') || src.startsWith('http://') || src.startsWith('https://'));
+
+  useEffect(() => {
+    if (!src || external || !token || !sessionId) return;
+    let cancelled = false;
+    let objectUrl = '';
+    workspaceDownloadFile(token, sessionId, resolveWorkspaceImage(src, reportPath))
+      .then((blob) => {
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setUrl(objectUrl);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [src, external, reportPath, token, sessionId]);
+
+  const style = { maxWidth: '100%', height: 'auto', borderRadius: 6, margin: '12px 0' };
+  if (external) return <img src={src} alt={alt || ''} style={style} loading="lazy" />;
+  if (failed) {
+    return <span className="dim" style={{ fontSize: 11, fontFamily: 'var(--mono)' }}>{alt || src}</span>;
+  }
+  if (!url) return null;
+  return <img src={url} alt={alt || ''} style={style} loading="lazy" />;
 }
 
 export function ReportViewer() {
@@ -63,13 +118,11 @@ export function ReportViewer() {
               <table>{children}</table>
             </div>
           ),
-          img: ({ src, alt, ...props }) => (
-            <img
-              src={resolveImageSrc(src)}
+          img: ({ src, alt }) => (
+            <WorkspaceImage
+              src={typeof src === 'string' ? src : undefined}
               alt={alt || ''}
-              style={{ maxWidth: '100%', height: 'auto', borderRadius: 6, margin: '12px 0' }}
-              loading="lazy"
-              {...props}
+              reportPath={selectedItem?.path || ''}
             />
           ),
         }}

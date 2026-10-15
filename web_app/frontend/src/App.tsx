@@ -48,9 +48,16 @@ export default function App() {
     if (cached) {
       setAuthStatus('authenticated');
       setAuthUser(cached.user);
-      api.validateAuth().then((ok) => {
-        if (!ok) {
+      api.validateAuth().then((result) => {
+        if (result === 'invalid') {
+          // Token rejected: drop the cached session entirely.
           api.clearAuth();
+          setAuthStatus('unauthenticated');
+          setAuthUser(null);
+        } else if (result === 'unreachable') {
+          // Gateway temporarily down or wrong address: show the login page
+          // (so the address can be corrected) but keep the 7-day cache — a
+          // later reload restores the session once the gateway is back.
           setAuthStatus('unauthenticated');
           setAuthUser(null);
         }

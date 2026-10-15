@@ -8,8 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -30,7 +28,7 @@ const (
 
 // Task mode selects the ScienceFlow CLI entrypoint the gateway launches:
 // ModeLite runs the interactive REPL solver (cli repl), ModeHeavy runs the
-// long-horizon LNR pipeline (cli run --type lnr).
+// long-horizon LNR pipeline (cli parallel -m <lnr manifest> -j 1).
 const (
 	ModeLite  = "lite"
 	ModeHeavy = "heavy"
@@ -54,6 +52,17 @@ const RawLogSource = "agent-logs"
 // RunDirName is the per-session execution workspace directory the gateway's
 // manifest resolves to (workspace_base/run_id/exp_id with exp_id="run").
 const RunDirName = "run"
+
+// Per-session file names written by the gateway. Exported so the restart
+// session-restore logic can locate them.
+const (
+	// FirstUserQueryFile holds the lite task's original query (session-name
+	// source after restarts).
+	FirstUserQueryFile = "gateway_first_user.txt"
+	// LiteManifestName / HeavyManifestName are the per-invocation manifests.
+	LiteManifestName  = "gateway_manifest.yaml"
+	HeavyManifestName = "gateway_manifest_heavy.yaml"
+)
 
 // SessionInteractionLogPath returns the interaction transcript the installed
 // scienceflow CLI writes for a session workspace directory
@@ -93,6 +102,27 @@ type Task struct {
 // task (<workspace>/run/.logs/interaction.log), tailed by the gateway's SSE.
 func (t *Task) InteractionLogPath() string {
 	return filepath.Join(t.Workspace, ".logs", "interaction.log")
+}
+
+// HeavySubprocessLogName is the per-task worker transcript the `parallel`
+// runner writes under <task workspace>/task_logs/ for LNR (heavy) tasks.
+const HeavySubprocessLogName = "parallel_subprocess.log"
+
+// SessionHeavyLogPath returns the heavy (LNR) worker transcript of a session
+// workspace directory: <sessionDir>/run/task_logs/parallel_subprocess.log.
+func SessionHeavyLogPath(sessionDir string) string {
+	return filepath.Join(sessionDir, RunDirName, "task_logs", HeavySubprocessLogName)
+}
+
+// HeavyLogPath returns the LNR worker transcript path for heavy tasks
+// (<workspace>/run/task_logs/parallel_subprocess.log), or "" for lite tasks.
+// The file appears shortly after launch (when the parallel scheduler spawns
+// the worker); the tailer attaches to it as soon as it exists.
+func (t *Task) HeavyLogPath() string {
+	if t.Mode != ModeHeavy {
+		return ""
+	}
+	return SessionHeavyLogPath(filepath.Dir(t.Workspace))
 }
 
 func (t *Task) Status() TaskStatus {
@@ -298,10 +328,12 @@ func (r *Runner) QueueStats() (queued, running int) {
 
 // Invoke launches a ScienceFlow agent for the given user message. mode selects
 // the task type: ModeLite runs the interactive REPL solver from a per-task
-// manifest (cli repl), ModeHeavy runs the long-horizon LNR pipeline
-// (cli run --type lnr). It enqueues the task and returns immediately; the
-// dispatcher goroutine starts the subprocess when a MaxConcurrent slot is
-// free. Returns ErrQueueFull if the wait queue is full.
+// manifest (cli repl), ModeHeavy runs the long-horizon LNR pipeline through
+// the parallel runner (cli parallel -m <lnr manifest> -j 1), which executes
+// each task as an isolated worker subprocess and waits for completion. It
+// enqueues the task and returns immediately; the dispatcher goroutine starts
+// the subprocess when a MaxConcurrent slot is free. Returns ErrQueueFull if
+// the wait queue is full.
 func (r *Runner) Invoke(ctx context.Context, user, session, query, mode string) (*Task, error) {
 	if !r.cfg.Enabled {
 		return nil, errors.New("agent invocation is disabled")
@@ -328,14 +360,20 @@ func (r *Runner) Invoke(ctx context.Context, user, session, query, mode string) 
 	}
 	rawLogPath := filepath.Join(rawLogDir, "RAW.log")
 
-	// Lite tasks drive `cli repl` through a per-invocation manifest. Heavy
-	// tasks pass the query directly to `cli run --type lnr` (no manifest).
-	manifestPath := ""
-	if mode == ModeLite {
+	// Both modes drive the installed CLI through a per-invocation manifest:
+	// lite runs `cli repl -m <manifest>`, heavy runs
+	// `cli parallel -m <manifest> -j 1` with a single LNR task. The manifest
+	// pins workspace_base/run_id/exp_id so the execution dir is always
+	// <workspace_root>/<user>/<session>/run (RunDirName), which is what the
+	// gateway tails for interaction logs and file sync.
+	var manifestPath string
+	if mode == ModeHeavy {
+		manifestPath, err = r.writeHeavyManifest(ws, user, session, query)
+	} else {
 		manifestPath, err = r.writeManifest(ws, user, session, query)
-		if err != nil {
-			return nil, err
-		}
+	}
+	if err != nil {
+		return nil, err
 	}
 
 	id := newTaskID()
@@ -384,8 +422,14 @@ func (r *Runner) Invoke(ctx context.Context, user, session, query, mode string) 
 	return t, nil
 }
 
-// Stop kills the task's process if still running. If the task is still
+// Stop terminates the task's process if still running. If the task is still
 // queued, it is marked as killed so the dispatcher will skip it.
+//
+// On Unix the process receives SIGTERM first (never SIGKILL): the installed
+// scienceflow CLI installs a SIGTERM handler that sweeps its own child
+// process groups, which is what cleans up heavy-mode LNR workers spawned by
+// `cli parallel`. On Windows taskkill /T /F is used (console apps have no
+// signal equivalent).
 func (r *Runner) Stop(id string) bool {
 	r.mu.Lock()
 	t, ok := r.running[id]
@@ -403,8 +447,8 @@ func (r *Runner) Stop(id string) bool {
 	log.Printf("[agent-debug] stop id=%s status=%s killed=%v has_cmd=%v pid=%d", id, t.status, t.killed, t.cmd != nil, pid)
 	t.killed = true
 	if t.cmd != nil && t.cmd.Process != nil {
-		err := killProcessTree(t.cmd)
-		log.Printf("[agent-debug] kill-process-tree id=%s pid=%d err=%v", id, t.cmd.Process.Pid, err)
+		err := terminateProcessTree(t.cmd)
+		log.Printf("[agent-debug] terminate-process-tree id=%s pid=%d err=%v", id, t.cmd.Process.Pid, err)
 		if err == nil {
 			t.status = StatusKilled
 			t.finished = time.Now()
@@ -420,18 +464,13 @@ func (r *Runner) Stop(id string) bool {
 	return true
 }
 
-func killProcessTree(cmd *exec.Cmd) error {
+// terminateProcessTree stops the agent subprocess (see Stop for the signal
+// semantics). Implemented per-OS in process_unix.go / process_windows.go.
+func terminateProcessTree(cmd *exec.Cmd) error {
 	if cmd == nil || cmd.Process == nil {
 		return nil
 	}
-	if runtime.GOOS == "windows" {
-		out, err := exec.Command("taskkill", "/T", "/F", "/PID", strconv.Itoa(cmd.Process.Pid)).CombinedOutput()
-		if err != nil {
-			return fmt.Errorf("taskkill pid %d: %w (%s)", cmd.Process.Pid, err, strings.TrimSpace(string(out)))
-		}
-		return nil
-	}
-	return cmd.Process.Kill()
+	return terminateProcess(cmd)
 }
 
 // workDir resolves the subprocess working directory. When agent.repo_root is
@@ -472,7 +511,9 @@ func (r *Runner) watchTimeout(t *Task) {
 		t.err = fmt.Errorf("agent timed out after %s (including queue wait)", t.timeout)
 		t.killed = true
 		if t.cmd != nil && t.cmd.Process != nil {
-			_ = t.cmd.Process.Kill()
+			// Graceful stop so the CLI sweeps heavy-mode worker process
+			// groups; a raw SIGKILL here would orphan the LNR workers.
+			_ = terminateProcessTree(t.cmd)
 		}
 		if t.status == StatusQueued {
 			t.status = StatusFailed
@@ -666,7 +707,7 @@ func (r *Runner) runTask(t *Task) {
 	killed := t.killed
 	t.mu.Unlock()
 	if killed {
-		_ = killProcessTree(cmd)
+		_ = terminateProcessTree(cmd)
 	}
 
 	err = cmd.Wait()
@@ -722,11 +763,11 @@ func (r *Runner) writeManifest(ws, user, session, query string) (string, error) 
 	if err != nil {
 		return "", fmt.Errorf("resolve workspace path: %w", err)
 	}
-	queryFile := filepath.Join(absWS, "gateway_first_user.txt")
+	queryFile := filepath.Join(absWS, FirstUserQueryFile)
 	if err := os.WriteFile(queryFile, []byte(query), 0o644); err != nil {
 		return "", fmt.Errorf("write first-user query: %w", err)
 	}
-	manifest := filepath.Join(absWS, "gateway_manifest.yaml")
+	manifest := filepath.Join(absWS, LiteManifestName)
 
 	var b strings.Builder
 	b.WriteString("defaults:\n")
@@ -743,6 +784,40 @@ func (r *Runner) writeManifest(ws, user, session, query string) (string, error) 
 
 	if err := os.WriteFile(manifest, []byte(b.String()), 0o644); err != nil {
 		return "", fmt.Errorf("write manifest: %w", err)
+	}
+	return manifest, nil
+}
+
+// writeHeavyManifest emits a single-task LNR manifest consumed by
+// `cli parallel -m`. workspace_base/run_id/exp_id resolve the task workspace
+// to <ws>/run (RunDirName), matching the lite layout so the gateway's
+// interaction-log and file-tree paths stay identical across modes.
+// config_yaml / input_data_dir are encoded here because `parallel` has no
+// CLI flags for them.
+func (r *Runner) writeHeavyManifest(ws, user, session, query string) (string, error) {
+	absWS, err := filepath.Abs(ws)
+	if err != nil {
+		return "", fmt.Errorf("resolve workspace path: %w", err)
+	}
+	manifest := filepath.Join(absWS, HeavyManifestName)
+
+	var b strings.Builder
+	b.WriteString("defaults:\n")
+	b.WriteString("  type: lnr\n")
+	fmt.Fprintf(&b, "  workspace_base: %s\n", filepath.Dir(absWS))
+	if r.cfg.ConfigYAML != "" {
+		fmt.Fprintf(&b, "  config: %s\n", r.cfg.ConfigYAML)
+	}
+	b.WriteString("tasks:\n")
+	fmt.Fprintf(&b, "  - exp_id: run\n")
+	fmt.Fprintf(&b, "    run_id: %s\n", session)
+	fmt.Fprintf(&b, "    task: %q\n", query)
+	if r.cfg.InputDataDir != "" {
+		fmt.Fprintf(&b, "    input_data_dir: %s\n", r.cfg.InputDataDir)
+	}
+
+	if err := os.WriteFile(manifest, []byte(b.String()), 0o644); err != nil {
+		return "", fmt.Errorf("write heavy manifest: %w", err)
 	}
 	return manifest, nil
 }
@@ -799,25 +874,19 @@ func insertAfter(argv []string, anchor, token string) []string {
 
 // buildArgs builds the scienceflow CLI arguments for a task. Lite tasks use
 // the configured command (repl by default) with the per-task manifest; heavy
-// tasks always run the long-horizon pipeline `cli run --type lnr` with the
-// query passed via --task.
+// tasks run the long-horizon pipeline via `cli parallel -m <manifest> -j 1`
+// with the single task (and its lnr/config/input_data_dir overrides) encoded
+// in the manifest. `parallel` executes the LNR worker as an isolated
+// subprocess and stays in the foreground until the run finishes, so the
+// gateway's task lifecycle tracks the actual research run and Stop can
+// gracefully terminate it.
 func (r *Runner) buildArgs(t *Task) []string {
 	mod := r.cfg.Module
 	if mod == "" {
 		mod = "scienceflow.cli"
 	}
 	if t.Mode == ModeHeavy {
-		args := []string{"-m", mod, "run", "--type", "lnr",
-			"-t", t.Query,
-			"-w", t.Workspace,
-		}
-		if r.cfg.ConfigYAML != "" {
-			args = append(args, "-c", r.cfg.ConfigYAML)
-		}
-		if r.cfg.InputDataDir != "" {
-			args = append(args, "-d", r.cfg.InputDataDir)
-		}
-		return args
+		return []string{"-m", mod, "parallel", "-m", t.manifest, "-j", "1"}
 	}
 	cmd := r.cfg.Command
 	if cmd == "" {

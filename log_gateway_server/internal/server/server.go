@@ -109,6 +109,10 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /models/stages", s.handleGetModelStages)
 	mux.HandleFunc("PUT /models/stages", s.handleSetModelStages)
 	mux.HandleFunc("GET /sources", s.handleListSources)
+	mux.HandleFunc("GET /users", s.handleListUsers)
+	mux.HandleFunc("POST /users", s.handleCreateUser)
+	mux.HandleFunc("PUT /users/{name}", s.handleUpdateUser)
+	mux.HandleFunc("DELETE /users/{name}", s.handleDeleteUser)
 	mux.HandleFunc("GET /read_cached_content", s.handleReadCachedContent)
 	mux.HandleFunc("POST /sessions/{id}/invoke", s.handleInvokeAgent)
 	mux.HandleFunc("GET /sessions/{id}/agent", s.handleAgentStatus)
@@ -252,10 +256,15 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	tok, exp := s.auth.IssueToken(req.UserName, s.tokenTTL)
+	role := auth.RoleUser
+	if u, ok := s.auth.User(req.UserName); ok && u.IsAdmin() {
+		role = auth.RoleAdmin
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"token":      tok,
 		"expires_at": exp.UTC().Format(time.RFC3339),
 		"user":       req.UserName,
+		"role":       role,
 		"sources":    s.allowedSources(req.UserName),
 	})
 }
@@ -755,8 +764,8 @@ func (s *Server) sessionRawLogPath(sessionID string) (string, bool) {
 
 // backfillFiles resolves the files whose cached content should be streamed for
 // a given source, scoped to the session. Agent transcripts are per-session
-// (RAW.log + the installed CLI's interaction.log); static sources map to their
-// current glob matches.
+// (RAW.log, the installed CLI's interaction.log, and the heavy LNR worker's
+// parallel_subprocess.log); static sources map to their current glob matches.
 func (s *Server) backfillFiles(sessionID, source string) []string {
 	if source == agent.RawLogSource {
 		var out []string
@@ -765,6 +774,15 @@ func (s *Server) backfillFiles(sessionID, source string) []string {
 		}
 		if dir, ok := s.sessionWorkspaceDir(sessionID); ok {
 			if p := agent.SessionInteractionLogPath(dir); p != "" {
+				if fi, err := os.Stat(p); err == nil && !fi.IsDir() {
+					out = append(out, p)
+				}
+			}
+			// Heavy mode: the LNR worker transcript is the primary history
+			// source (RAW.log only carries the parallel launcher's banner and
+			// summary). Stream its cached content on reconnect/restart
+			// exactly like the live watcher does.
+			if p := agent.SessionHeavyLogPath(dir); p != "" {
 				if fi, err := os.Stat(p); err == nil && !fi.IsDir() {
 					out = append(out, p)
 				}

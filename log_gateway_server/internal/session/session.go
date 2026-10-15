@@ -16,6 +16,7 @@ type Session struct {
 	name     string // human-readable label; empty until named after the first user question
 	named    bool   // true once the name has been derived from the first user question
 	user     string
+	restored bool // re-registered from on-disk task dirs after a restart: exempt from idle TTL
 	mu       sync.RWMutex
 	srcs     map[string]bool
 	last     atomic.Int64  // last activity of any kind (SSE, reads, ...), unix nanoseconds; drives idle TTL
@@ -65,6 +66,45 @@ func (m *Manager) Create(user string, sources []string) string {
 	m.sessions[id] = s
 	m.mu.Unlock()
 	return id
+}
+
+// Restore re-registers a historical session discovered on disk after a
+// gateway restart. The session id is preserved so the frontend's stored id
+// resolves again (list/activate/SSE/invoke keep working, and the agent
+// workspace is reused for chat continuity). lastActive describes the on-disk
+// content (drives the "last_active" display/order); the idle-TTL clock starts
+// at restore time, and restored sessions are exempt from idle expiry since
+// their content lives on disk. Returns false when id/user are empty or the
+// session is already registered.
+func (m *Manager) Restore(id, user, name string, sources []string, lastActive time.Time) bool {
+	if id == "" || user == "" {
+		return false
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if _, ok := m.sessions[id]; ok {
+		return false
+	}
+	now := time.Now().UnixNano()
+	if lastActive.IsZero() {
+		lastActive = time.Now()
+	}
+	s := &Session{
+		id:       id,
+		name:     name,
+		named:    name != "",
+		user:     user,
+		restored: true,
+		srcs:     make(map[string]bool, len(sources)),
+		notify:   make(chan struct{}, 1),
+	}
+	for _, src := range sources {
+		s.srcs[src] = true
+	}
+	s.last.Store(now)
+	s.chatLast.Store(lastActive.UnixNano())
+	m.sessions[id] = s
+	return true
 }
 
 func (m *Manager) Get(id string) *Session {
@@ -198,6 +238,11 @@ func (m *Manager) cleanup() {
 			expire := int64(m.ttl)
 			m.mu.Lock()
 			for id, s := range m.sessions {
+				// Restored sessions mirror on-disk task history: they stay
+				// listed until explicitly deleted, not idle-expired.
+				if s.restored {
+					continue
+				}
 				if now-s.last.Load() > expire {
 					delete(m.sessions, id)
 				}

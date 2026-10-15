@@ -11,6 +11,7 @@ import {
   gatewayStopStream,
   gatewayFetchFiles,
   gatewayTestConnection,
+  isGatewaySessionGone,
   type GatewayHealth,
   type GatewaySourceInfo,
   type GatewaySession,
@@ -59,15 +60,22 @@ interface GatewayState {
   backfilling: boolean;
   backfillCount: number;
 
+  // Session recovery (stale session id after a gateway restart)
+  recovering: boolean;
+
   // File tree sync
   fileTreeRoot: string;
   fileTree: FileNode[];
   fileNestedTree: FileTreeNode[];
   fileTreeVersion: number;
+  // Last workspace-tree load failure (e.g. file sync not configured on the
+  // gateway); cleared by any successful tree update.
+  fileTreeError: string;
 
   connect: (userName: string, password: string) => Promise<void>;
   disconnect: () => Promise<void>;
   testConnection: () => Promise<GatewayHealth>;
+  recoverSession: () => Promise<string>;
   setSubscribedSources: (sources: string[]) => Promise<void>;
   fetchSessionList: () => Promise<void>;
   nameSessionFromQuery: (sessionId: string, query: string) => void;
@@ -105,10 +113,12 @@ export const useGatewayStore = create<GatewayState>((set, get) => ({
   parsedLog: EMPTY_PARSED_LOG,
   backfilling: false,
   backfillCount: 0,
+  recovering: false,
   fileTreeRoot: '',
   fileTree: [],
   fileNestedTree: [],
   fileTreeVersion: 0,
+  fileTreeError: '',
 
   connect: async (userName, password) => {
     set({ status: 'connecting', lastError: '', userName, password, lines: [], rawBuffer: '', parsedLog: EMPTY_PARSED_LOG });
@@ -177,6 +187,57 @@ export const useGatewayStore = create<GatewayState>((set, get) => ({
     }
   },
 
+  // recoverSession rebuilds the gateway subscription after the current session
+  // id went stale (e.g. the gateway restarted: stateless tokens stay valid but
+  // in-memory sessions are gone). It re-lists the sessions, reactivates the
+  // current id when it still exists, otherwise activates the newest one or
+  // creates a fresh session, then restarts the SSE stream. Returns the new
+  // session id, or '' when recovery failed.
+  recoverSession: async () => {
+    const { recovering, token, sessionId, sources } = get();
+    if (recovering || !token) return '';
+    set({ recovering: true });
+    try {
+      const listed = await gatewayListSessions(token);
+      const list = listed.sessions || [];
+      let session: GatewaySession | null = null;
+      if (sessionId && list.some((item) => item.session_id === sessionId)) {
+        session = await gatewayActivateSession(token, sessionId);
+      } else {
+        const newest = list
+          .filter((item) => item.session_id)
+          .sort((a, b) => (b.last_active || '').localeCompare(a.last_active || ''))[0];
+        session = newest
+          ? await gatewayActivateSession(token, newest.session_id)
+          : await gatewayCreateSession(token, sources.map((s) => s.name));
+      }
+      gatewayStopStream();
+      gatewayStartStream(session.session_id);
+      set({
+        recovering: false,
+        status: 'connecting',
+        lastError: '',
+        sessionId: session.session_id,
+        subscribedSources: session.sources || sources.map((s) => s.name),
+        sessionList: list.length ? list : [session],
+        lines: [],
+        rawBuffer: '',
+        parsedLog: EMPTY_PARSED_LOG,
+        fileTreeRoot: '',
+        fileTree: [],
+        fileNestedTree: [],
+        fileTreeVersion: 0,
+        fileTreeError: '',
+        backfilling: true,
+        backfillCount: 0,
+      });
+      return session.session_id;
+    } catch (e) {
+      set({ recovering: false, lastError: e instanceof Error ? e.message : String(e) });
+      return '';
+    }
+  },
+
   setSubscribedSources: async (sources) => {
     const { token, sessionId } = get();
     if (!token || !sessionId) return;
@@ -221,6 +282,7 @@ export const useGatewayStore = create<GatewayState>((set, get) => ({
       fileTree: [],
       fileNestedTree: [],
       fileTreeVersion: 0,
+      fileTreeError: '',
       backfilling: false,
       backfillCount: 0,
     });
@@ -244,6 +306,7 @@ export const useGatewayStore = create<GatewayState>((set, get) => ({
         fileTree: [],
         fileNestedTree: [],
         fileTreeVersion: 0,
+        fileTreeError: '',
         backfilling: false,
         backfillCount: 0,
       }));
@@ -298,12 +361,18 @@ export const useGatewayStore = create<GatewayState>((set, get) => ({
         fileTree: [],
         fileNestedTree: [],
         fileTreeVersion: 0,
+        fileTreeError: '',
         backfilling: true,
         backfillCount: 0,
       });
       return session;
     } catch (e) {
       set({ lastError: e instanceof Error ? e.message : String(e) });
+      if (isGatewaySessionGone(e)) {
+        // The session list is stale as well (gateway restarted): refresh it so
+        // the panel shows the sessions that actually exist on the gateway.
+        void get().fetchSessionList();
+      }
       return null;
     }
   },
@@ -365,6 +434,7 @@ export const useGatewayStore = create<GatewayState>((set, get) => ({
       fileTree: tree,
       fileNestedTree: buildNestedTree(tree),
       fileTreeVersion: s.fileTreeVersion + 1,
+      fileTreeError: '',
     }));
   },
 
@@ -400,10 +470,12 @@ export const useGatewayStore = create<GatewayState>((set, get) => ({
     try {
       const res = await gatewayFetchFiles(token, sessionId);
       get().applyFileTree(res.root || '', res.tree || []);
-    } catch { /* silent */ }
+    } catch (e) {
+      set({ fileTreeError: e instanceof Error ? e.message : String(e) });
+    }
   },
 
-  clearFileTree: () => set({ fileTreeRoot: '', fileTree: [], fileNestedTree: [], fileTreeVersion: 0 }),
+  clearFileTree: () => set({ fileTreeRoot: '', fileTree: [], fileNestedTree: [], fileTreeVersion: 0, fileTreeError: '' }),
 }));
 
 // 调试句柄：控制台可用 __gws.getState() 检查 rawBuffer / parsedLog。

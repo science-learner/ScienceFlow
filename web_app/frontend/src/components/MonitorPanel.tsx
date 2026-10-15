@@ -287,7 +287,7 @@ export function MonitorPanel() {
               <div className="section-title">{t.l1Workspace.scheduler}</div>
               <div className="kv">
                 <div className="kv-row">
-                  <span>{t.l1Workspace.taskState}</span>
+                  <span title={t.l1Workspace.taskState}>{t.l1Workspace.taskState}</span>
                   <span
                     className={clsx(
                       runtimeStatus === 'running' && 'monitor-status-running',
@@ -299,27 +299,29 @@ export function MonitorPanel() {
                   </span>
                 </div>
                 <div className="kv-row">
-                  <span>{t.l1Workspace.queue}</span>
+                  <span title={t.l1Workspace.queue}>{t.l1Workspace.queue}</span>
                   <span title={`${t.l1Workspace.queued}: ${queue?.queued ?? 0} / running: ${queue?.running ?? 0}`}>
                     {queue ? `${queue.queued} / ${queue.running}` : t.common.dash}
                   </span>
                 </div>
                 <div className="kv-row">
-                  <span>{t.l1Workspace.exitCode}</span>
-                  <span>{task?.exit_code !== undefined && task?.exit_code !== null ? task.exit_code : t.common.dash}</span>
+                  <span title={t.l1Workspace.exitCode}>{t.l1Workspace.exitCode}</span>
+                  <span title={task?.exit_code !== undefined && task?.exit_code !== null ? String(task.exit_code) : t.common.dash}>
+                    {task?.exit_code !== undefined && task?.exit_code !== null ? task.exit_code : t.common.dash}
+                  </span>
                 </div>
                 <div className="kv-row">
-                  <span>{t.l1Workspace.rounds}</span>
-                  <span>{trace ? trace.rounds : t.common.dash}</span>
+                  <span title={t.l1Workspace.rounds}>{t.l1Workspace.rounds}</span>
+                  <span title={trace ? String(trace.rounds) : t.common.dash}>{trace ? trace.rounds : t.common.dash}</span>
                 </div>
                 <div className="kv-row">
-                  <span>{t.l1Workspace.modelsLabel}</span>
+                  <span title={t.l1Workspace.modelsLabel}>{t.l1Workspace.modelsLabel}</span>
                   <span title={trace?.models.join(', ') || ''}>
                     {trace?.models.length ? trace.models.join(', ') : t.common.dash}
                   </span>
                 </div>
                 <div className="kv-row">
-                  <span>{t.l1Workspace.monitorFile}</span>
+                  <span title={t.l1Workspace.monitorFile}>{t.l1Workspace.monitorFile}</span>
                   <span title={sourceLabel}>{sourceLabel}</span>
                 </div>
               </div>
@@ -347,8 +349,8 @@ export function MonitorPanel() {
                   <div className="section-title">{t.l1Workspace.riskHints}</div>
                   <div className="kv">
                     <div className="kv-row">
-                      <span>{t.l1Workspace.status}</span>
-                      <span className={clsx(riskCount > 0 && 'monitor-status-failed')}>{riskSummary}</span>
+                      <span title={t.l1Workspace.status}>{t.l1Workspace.status}</span>
+                      <span className={clsx(riskCount > 0 && 'monitor-status-failed')} title={riskSummary}>{riskSummary}</span>
                     </div>
                   </div>
                 </div>
@@ -369,24 +371,24 @@ export function MonitorPanel() {
             </div>
             <div className="kv">
               <div className={clsx('kv-row', changedKeys.has('cost') && 'value-changed')}>
-                <span>{t.l1Workspace.cost}</span>
+                <span title={t.l1Workspace.cost}>{t.l1Workspace.cost}</span>
                 <span title={trace?.costKnownCalls ? `${trace.costKnownCalls} calls with cost` : ''}>{costValue}</span>
               </div>
               <div className={clsx('kv-row', changedKeys.has('tokens') && 'value-changed')}>
-                <span>{t.l1Workspace.tokensIn}</span>
+                <span title={t.l1Workspace.tokensIn}>{t.l1Workspace.tokensIn}</span>
                 <span title={String(tokensIn)}>{fmtCompact(tokensIn)}</span>
               </div>
               <div className={clsx('kv-row', changedKeys.has('tokens') && 'value-changed')}>
-                <span>{t.l1Workspace.tokensOut}</span>
+                <span title={t.l1Workspace.tokensOut}>{t.l1Workspace.tokensOut}</span>
                 <span title={String(tokensOut)}>{fmtCompact(tokensOut)}</span>
               </div>
               <div className={clsx('kv-row', changedKeys.has('cache') && 'value-changed')}>
-                <span>{t.l1Workspace.cacheHit}</span>
+                <span title={t.l1Workspace.cacheHit}>{t.l1Workspace.cacheHit}</span>
                 <span title={String(tokensCached)}>{`${fmtCompact(tokensCached)} · ${fmtPct(cacheRate)}`}</span>
               </div>
               <div className="kv-row">
-                <span>{t.l1Workspace.llmCallsLabel}</span>
-                <span>{calls || t.common.dash}</span>
+                <span title={t.l1Workspace.llmCallsLabel}>{t.l1Workspace.llmCallsLabel}</span>
+                <span title={String(calls) || t.common.dash}>{calls || t.common.dash}</span>
               </div>
             </div>
           </div>
@@ -416,16 +418,20 @@ export function MonitorPanel() {
           <div className="section-title">{t.l1Workspace.localResources}</div>
           <div className="kv">
             <div className="kv-row">
-              <span>{t.l1Workspace.cpu}</span>
-              <span>{sysCpu !== null ? `${sysCpu}%` : t.common.dash}</span>
+              <span title={t.l1Workspace.cpu}>{t.l1Workspace.cpu}</span>
+              <span title={sysCpu !== null ? `${sysCpu}%` : t.common.dash}>{sysCpu !== null ? `${sysCpu}%` : t.common.dash}</span>
             </div>
             <div className="kv-row">
-              <span>{t.l1Workspace.memory}</span>
-              <span>{sysStats ? `${formatMonitorBytes(sysStats.memory_used_bytes)} / ${formatMonitorBytes(sysStats.memory_total_bytes)}` : t.common.dash}</span>
+              <span title={t.l1Workspace.memory}>{t.l1Workspace.memory}</span>
+              <span title={sysStats ? `${formatMonitorBytes(sysStats.memory_used_bytes)} / ${formatMonitorBytes(sysStats.memory_total_bytes)}` : t.common.dash}>
+                {sysStats ? `${formatMonitorBytes(sysStats.memory_used_bytes)} / ${formatMonitorBytes(sysStats.memory_total_bytes)}` : t.common.dash}
+              </span>
             </div>
             <div className="kv-row">
-              <span>{t.l1Workspace.storage}</span>
-              <span>{sysStats ? `${formatMonitorBytes(sysStats.disk_used_bytes)} / ${formatMonitorBytes(sysStats.disk_total_bytes)}` : (resources?.storage_display || t.common.dash)}</span>
+              <span title={t.l1Workspace.storage}>{t.l1Workspace.storage}</span>
+              <span title={sysStats ? `${formatMonitorBytes(sysStats.disk_used_bytes)} / ${formatMonitorBytes(sysStats.disk_total_bytes)}` : (resources?.storage_display || t.common.dash)}>
+                {sysStats ? `${formatMonitorBytes(sysStats.disk_used_bytes)} / ${formatMonitorBytes(sysStats.disk_total_bytes)}` : (resources?.storage_display || t.common.dash)}
+              </span>
             </div>
           </div>
         </div>
@@ -437,34 +443,34 @@ export function MonitorPanel() {
           <div className="section-title">{t.l1Workspace.contextAndMemory}</div>
           <div className="kv">
             <div className={clsx('kv-row', changedKeys.has('ctx') && 'value-changed')}>
-              <span>{t.l1Workspace.contextLength}</span>
+              <span title={t.l1Workspace.contextLength}>{t.l1Workspace.contextLength}</span>
               <span title={contextLength !== null ? `${contextLength} tokens` : ''}>
                 {contextLength !== null ? `${fmtCompact(contextLength)} tok` : t.common.dash}
               </span>
             </div>
             <div className="kv-row">
-              <span>{t.l1Workspace.contextMessages}</span>
-              <span>{contextMessages !== null ? contextMessages : t.common.dash}</span>
+              <span title={t.l1Workspace.contextMessages}>{t.l1Workspace.contextMessages}</span>
+              <span title={contextMessages !== null ? String(contextMessages) : t.common.dash}>{contextMessages !== null ? contextMessages : t.common.dash}</span>
             </div>
             <div className="kv-row">
-              <span>{t.l1Workspace.compactions}</span>
-              <span>{compactionGen !== null ? compactionGen : t.common.dash}</span>
+              <span title={t.l1Workspace.compactions}>{t.l1Workspace.compactions}</span>
+              <span title={compactionGen !== null ? String(compactionGen) : t.common.dash}>{compactionGen !== null ? compactionGen : t.common.dash}</span>
             </div>
             <div className="kv-row">
-              <span>{t.l1Workspace.contextTriggers}</span>
-              <span>
+              <span title={t.l1Workspace.contextTriggers}>{t.l1Workspace.contextTriggers}</span>
+              <span title={ctxEvents ? `${ctxEvents.checks} / ${ctxEvents.triggers}` : t.common.dash}>
                 {ctxEvents
                   ? `${ctxEvents.checks} / ${ctxEvents.triggers}`
                   : t.common.dash}
               </span>
             </div>
             <div className="kv-row">
-              <span>{t.l1Workspace.longTermMemory}</span>
-              <span>{longTermBytes !== null ? formatMonitorBytes(longTermBytes) : t.common.dash}</span>
+              <span title={t.l1Workspace.longTermMemory}>{t.l1Workspace.longTermMemory}</span>
+              <span title={longTermBytes !== null ? formatMonitorBytes(longTermBytes) : t.common.dash}>{longTermBytes !== null ? formatMonitorBytes(longTermBytes) : t.common.dash}</span>
             </div>
             <div className="kv-row">
-              <span>{t.l1Workspace.shortTermMemory}</span>
-              <span>{shortTermBytes !== null ? formatMonitorBytes(shortTermBytes) : t.common.dash}</span>
+              <span title={t.l1Workspace.shortTermMemory}>{t.l1Workspace.shortTermMemory}</span>
+              <span title={shortTermBytes !== null ? formatMonitorBytes(shortTermBytes) : t.common.dash}>{shortTermBytes !== null ? formatMonitorBytes(shortTermBytes) : t.common.dash}</span>
             </div>
           </div>
         </div>
@@ -474,7 +480,7 @@ export function MonitorPanel() {
           <div className="section-title">{t.l1Workspace.efficiencyAndRisk}</div>
           <div className="kv">
             <div className="kv-row">
-              <span>{t.l1Workspace.outputCompression}</span>
+              <span title={t.l1Workspace.outputCompression}>{t.l1Workspace.outputCompression}</span>
               <span title={sources.toolIndex ? `${sources.toolIndex.rawChars} → ${sources.toolIndex.compressedChars} chars` : ''}>
                 {sources.toolIndex
                   ? `${sources.toolIndex.reductionPct !== null ? `${sources.toolIndex.reductionPct.toFixed(0)}%` : '—'} · ${sources.toolIndex.calls}`
@@ -482,16 +488,16 @@ export function MonitorPanel() {
               </span>
             </div>
             <div className="kv-row">
-              <span>{t.l1Workspace.writesEdits}</span>
-              <span>
+              <span title={t.l1Workspace.writesEdits}>{t.l1Workspace.writesEdits}</span>
+              <span title={sources.productivity ? `${sources.productivity.writeSuccessCount}/${sources.productivity.writeCount} · ${sources.productivity.editSuccessCount}/${sources.productivity.editCount}` : t.common.dash}>
                 {sources.productivity
                   ? `${sources.productivity.writeSuccessCount}/${sources.productivity.writeCount} · ${sources.productivity.editSuccessCount}/${sources.productivity.editCount}`
                   : t.common.dash}
               </span>
             </div>
             <div className="kv-row">
-              <span>{t.l1Workspace.metricProduced}</span>
-              <span>{sources.productivity ? (sources.productivity.hadMetric ? 'yes' : 'no') : t.common.dash}</span>
+              <span title={t.l1Workspace.metricProduced}>{t.l1Workspace.metricProduced}</span>
+              <span title={sources.productivity ? (sources.productivity.hadMetric ? 'yes' : 'no') : t.common.dash}>{sources.productivity ? (sources.productivity.hadMetric ? 'yes' : 'no') : t.common.dash}</span>
             </div>
           </div>
           <div className="section-title">{t.l1Workspace.riskHints}</div>

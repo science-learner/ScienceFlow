@@ -2921,3 +2921,64 @@
 .chat-action-button .chat-action-icon {
   transition: none;
 }
+
+.message-meta strong {
+  color: var(--title-text);
+}
+
+.message.user .message-meta {
+  gap: 7px;
+}
+
+.msg-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.msg-copy svg {
+  display: block;
+  margin: 0 auto;
+}
+
+.run-activity {
+  display: block;
+  overflow: clip;
+  max-height: 200px;
+}
+.run-timeline{
+  max-height: 160px;
+  overflow: auto;
+}
+
+/* kv-row 固定键列宽，两侧超宽省略号截断，悬停经 title 看全值；状态卡加宽 */
+.state-card .kv-row,
+.monitor-subpanel .kv-row,
+.viz-card .kv-row {
+  grid-template-columns: minmax(0, 110px) minmax(0, 1fr);
+}
+
+.state-card .kv-row span,
+.monitor-subpanel .kv-row span,
+.viz-card .kv-row span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 监控页键列收窄为固定 84px，状态面板仍 110px */
+.monitor-subpanel .kv-row,
+.viz-card .kv-row {
+  grid-template-columns: 84px minmax(0, 1fr);
+}
+
+/* 活动面板 lane 标签列同步收窄 */
+.lane {
+  grid-template-columns: 60px 1fr auto;
+}
+
+.settings-card.state-card {
+  width: min(760px, calc(100vw - 28px));
+}
+

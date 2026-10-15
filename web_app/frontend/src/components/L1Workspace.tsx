@@ -10,7 +10,7 @@ import { CsvViewer } from './CsvViewer';
 import { AgentLineageView } from './AgentLineageView';
 import { ReportViewer } from './ReportViewer';
 import clsx from 'clsx';
-import { Copy, Check, Download, Printer, Upload, FolderUp } from 'lucide-react';
+import { Copy, Check, Download, Printer, Upload, FolderUp, RefreshCw } from 'lucide-react';
 import { metricText, shortenId } from '../utils/helpers';
 import * as api from '../api/client';
 import {
@@ -321,8 +321,18 @@ function WorkspaceBrowserView() {
     workspaceTreeCollapsed, setWorkspaceTreeCollapsed,
     l1Tab, chatSessionId,
   } = useAppStore();
-  const { fileNestedTree, fileTreeRoot, fileTreeVersion, refetchFileTree, status, token, sessionId } = useGatewayStore();
+  const { fileNestedTree, fileTreeRoot, fileTreeVersion, fileTreeError, refetchFileTree, status, token, sessionId } = useGatewayStore();
   const t = useT();
+
+  // Fallback for missed SSE tree events: when a session is (re)selected and the
+  // tree is still empty, pull the full tree once via REST so the workspace
+  // loads even if the initial `file` event never arrived.
+  useEffect(() => {
+    if (!token || !sessionId) return;
+    if (useGatewayStore.getState().fileTree.length === 0) {
+      void useGatewayStore.getState().refetchFileTree();
+    }
+  }, [token, sessionId]);
 
   const [content, setContent] = useState('');
   const [contentType, setContentType] = useState('text/plain');
@@ -513,6 +523,9 @@ function WorkspaceBrowserView() {
             <button className="workspace-tree-action-btn" type="button" onClick={handleUploadFolderClick} title="Upload folder to workspace root" disabled={uploading || !sessionId}>
               <FolderUp size={13} />
             </button>
+            <button className="workspace-tree-action-btn" type="button" onClick={() => void refetchFileTree()} title="Refresh workspace files" disabled={!token || !sessionId}>
+              <RefreshCw size={13} />
+            </button>
             <button className="workspace-tree-action-btn" type="button" onClick={handleDownloadWorkspace} title="Download entire workspace" disabled={!sessionId}>
               <Download size={13} />
             </button>
@@ -531,8 +544,12 @@ function WorkspaceBrowserView() {
               onContextMenu={handleContextMenu}
             />
           ) : (
-            <div className="dim" style={{ padding: '12px 8px', fontSize: 11 }}>
-              {status !== 'connected' ? 'Gateway not connected' : 'No files — waiting for sync…'}
+            <div className="dim" style={{ padding: '12px 8px', fontSize: 11 }} title={fileTreeError || undefined}>
+              {fileTreeError
+                ? `Workspace unavailable: ${fileTreeError}`
+                : status !== 'connected'
+                  ? 'Gateway not connected'
+                  : 'No files — waiting for sync…'}
             </div>
           )}
         </div>

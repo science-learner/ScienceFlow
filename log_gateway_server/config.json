@@ -1,15 +1,16 @@
 {
   "server": {
     "host": "0.0.0.0",
-    "port": 10001,
+    "port": 52001,
     "sse_path": "/events"
   },
   "auth": {
     "enabled": true,
     "file": "AUTH.yaml",
-    "token_secret": "vl56xkcs7hc0s7u4d3i65746c1qt9kob035h3eyfsxxvmf0s",
+    "token_secret": "xxx",
     "token_ttl": "24h",
-    "session_ttl": "24h"
+    "session_ttl": "24h",
+    "reload_interval": "5s"
   },
   "backend": {
     "url": "http://127.0.0.1:8200"

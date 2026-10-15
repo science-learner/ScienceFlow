@@ -5,7 +5,7 @@ import { Upload, Tooltip, Dropdown } from 'antd';
 import type { UploadProps } from 'antd';
 import { useAppStore } from '../store/useAppStore';
 import { useGatewayStore } from '../store/useGatewayStore';
-import { gatewayInvokeAgent, gatewayStopAgent, workspaceUploadFiles } from '../api/gateway';
+import { gatewayInvokeAgent, gatewayStartStream, gatewayStopAgent, workspaceUploadFiles } from '../api/gateway';
 import { useT } from '../i18n/useT';
 import * as api from '../api/client';
 import { debug } from '../utils/debug';
@@ -138,6 +138,9 @@ export function ChatRail() {
     try {
       debug.log("ChatRail", "invoking agent on gateway session", targetSessionId, "mode=", taskMode);
       const { token } = useGatewayStore.getState();
+      // Make sure the server-side SSE subscription follows the session we are
+      // about to invoke (server mode shares the Go process across clients).
+      gatewayStartStream(targetSessionId);
       const task = await gatewayInvokeAgent(token, targetSessionId, text, taskMode);
       debug.log("ChatRail", "invoke response:", task);
       addChatMessage({
@@ -505,7 +508,10 @@ function ChatTranscript({ busy }: { busy: boolean }) {
           // backend embeds the route mode into the logged query.
           const stripMode = (s: string) => s.replace(/^\[mode=\S+\]\s*/, '');
           const found = runs.find(
-            (r) => !claimed.has(r.index) && stripMode(r.query) === msg.content,
+            (r) =>
+              !claimed.has(r.index) &&
+              r.queryConfirmed &&
+              stripMode(r.query) === msg.content,
           );
           if (found) runIndex = found.index;
         }
@@ -538,7 +544,7 @@ function ChatTranscript({ busy }: { busy: boolean }) {
       if (msg.message_id.startsWith('history-stop-')) {
         items.push(
           <div key={msg.message_id} className="chat-system-marker">
-            {msg.content}
+            {stopMarkerLocal(msg.content)}
           </div>,
         );
         return;
@@ -654,6 +660,19 @@ function RunStep({ step, live }: { step: ParsedAgentStep; live: boolean }) {
     );
   }
 
+  if (step.kind === 'summary') {
+    return (
+      <div className="run-summary" data-run-summary>
+        {step.items.map((item) => (
+          <div className="run-summary-item" key={item.label}>
+            <span className="run-summary-label">{t.runSummary[item.label] || item.label}</span>
+            <span className="run-summary-value">{item.value}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   if (step.kind === 'notice') {
     return (
       <div className="run-step is-notice">
@@ -764,6 +783,19 @@ function messageTime(created_at: string): string {
   const d = new Date(created_at);
   if (isNaN(d.getTime())) return '';
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+// 停止标记原文是 UTC 时间，转成本地时区展示
+function stopMarkerLocal(text: string): string {
+  return text.replace(
+    /(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/,
+    (_m, y, mo, d, h, mi, s) => {
+      const dt = new Date(Date.UTC(+y, +mo - 1, +d, +h, +mi, +s));
+      if (isNaN(dt.getTime())) return `${y}-${mo}-${d} ${h}:${mi}:${s}`;
+      const p = (n: number) => String(n).padStart(2, '0');
+      return `${dt.getFullYear()}-${p(dt.getMonth() + 1)}-${p(dt.getDate())} ${p(dt.getHours())}:${p(dt.getMinutes())}:${p(dt.getSeconds())}`;
+    },
+  );
 }
 
 function UserMessage({ message }: { message: ChatMessage }) {

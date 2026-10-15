@@ -32,12 +32,12 @@ type Tailer struct {
 	hub      *hub.Hub
 	logger   *log.Logger
 
-	mu          sync.Mutex
-	harvesters  map[string]*harvester
-	watched     map[string]config.InputConfig // explicit per-file watches, keyed by abs path
-	dynNames    map[string]bool               // dynamic source names without a static glob backing
-	pendingUn   map[string]*time.Timer        // scheduled unwatch timers, keyed by abs path
-	kick        chan struct{}                 // wakes scanLoop immediately
+	mu         sync.Mutex
+	harvesters map[string]*harvester
+	watched    map[string]config.InputConfig // explicit per-file watches, keyed by abs path
+	dynNames   map[string]bool               // dynamic source names without a static glob backing
+	pendingUn  map[string]*time.Timer        // scheduled unwatch timers, keyed by abs path
+	kick       chan struct{}                 // wakes scanLoop immediately
 
 	stop chan struct{}
 	wg   sync.WaitGroup
@@ -707,6 +707,7 @@ func (h *harvester) publishRaw(chunk []byte, offset int64) {
 //
 //	.../task_logs/<user>/<session>/RAW.log
 //	.../<user>/<session>/run/.logs/interaction.log
+//	.../<user>/<session>/run/task_logs/parallel_subprocess.log
 func sessionFromAgentLogPath(path string) string {
 	parts := strings.Split(filepath.ToSlash(path), "/")
 	if len(parts) >= 3 && parts[len(parts)-1] == "RAW.log" {
@@ -715,12 +716,20 @@ func sessionFromAgentLogPath(path string) string {
 	if len(parts) >= 4 && parts[len(parts)-1] == "interaction.log" && parts[len(parts)-2] == ".logs" {
 		return parts[len(parts)-4]
 	}
+	// Heavy (LNR) task worker transcript: <session>/run/task_logs/parallel_subprocess.log
+	if len(parts) >= 5 && parts[len(parts)-1] == "parallel_subprocess.log" &&
+		parts[len(parts)-2] == "task_logs" && parts[len(parts)-3] == "run" {
+		return parts[len(parts)-4]
+	}
 	return ""
 }
 
 var (
-	ansiEscapeRe   = regexp.MustCompile(`\x1b\[[0-9;]*[A-Za-z]`)
-	loguruPrefixRe = regexp.MustCompile(`^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \| [A-Z]+\s*\| `)
+	ansiEscapeRe = regexp.MustCompile(`\x1b\[[0-9;]*[A-Za-z]`)
+	// Strips `timestamp | LEVEL | ` plus an optional loguru logger-name
+	// segment (`scienceflow | `) used by the heavy worker transcripts, so SSE
+	// consumers always receive the bare payload line.
+	loguruPrefixRe = regexp.MustCompile(`^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \| [A-Z]+\s*\| (?:\S+ \| )?`)
 )
 
 // cleanInteractionLine normalizes one interaction.log line for SSE consumers:

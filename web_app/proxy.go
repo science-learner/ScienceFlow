@@ -446,7 +446,23 @@ func firstNonEmpty(a, b string) string {
 // appConfig is the optional app_config.yaml schema.
 type appConfig struct {
 	Gateway string `yaml:"gateway"`
+	// Server configures the standalone web service (wails server mode,
+	// built via `wails3 task build:server`). Unused by the desktop build.
+	Server appServerConfig `yaml:"server"`
 }
+
+// appServerConfig is the server-mode listen address. Host/Port fall back to
+// defaults when unset; the WAILS_SERVER_HOST / WAILS_SERVER_PORT environment
+// variables override both (handled by the Wails runtime).
+type appServerConfig struct {
+	Host string `yaml:"host"`
+	Port int    `yaml:"port"`
+}
+
+const (
+	defaultServerHost = "0.0.0.0"
+	defaultServerPort = 8080
+)
 
 // loadAppConfig reads app_config.yaml once. The file is looked up next to the
 // executable first, then in the working directory. A missing or invalid file
@@ -472,6 +488,21 @@ func loadAppConfig() appConfig {
 // resolveGatewayURL resolves the log gateway base URL from app_config.yaml.
 func resolveGatewayURL() string {
 	return normalizeBaseURL(loadAppConfig().Gateway, defaultGatewayURL)
+}
+
+// resolveServerAddress resolves the server-mode (web service) listen address
+// from app_config.yaml, falling back to all interfaces on port 8080.
+func resolveServerAddress() (string, int) {
+	cfg := loadAppConfig()
+	host := strings.TrimSpace(cfg.Server.Host)
+	if host == "" {
+		host = defaultServerHost
+	}
+	port := cfg.Server.Port
+	if port <= 0 || port > 65535 {
+		port = defaultServerPort
+	}
+	return host, port
 }
 
 func normalizeBaseURL(raw string, fallback string) string {

@@ -33,10 +33,10 @@ log_gateway_server/
 
 ```powershell
 # 1. 编译
-go build -o lgw.exe .
+go build -o scienceflow_lgw.exe .
 
 # 2. 运行
-.\lgw.exe -config config.json
+.\scienceflow_lgw.exe -config config.json
 ```
 
 另开一个终端推流：
@@ -79,35 +79,39 @@ go run . -config config.json
 
 ```powershell
 # 当前平台
-go build -o lgw.exe .
+go build -o scienceflow_lgw.exe .
 
 # 交叉编译（示例：目标 Linux amd64）
-$env:GOOS="linux"; $env:GOARCH="amd64"; go build -o lgw .; Remove-Item Env:GOOS,Env:GOARCH
+$env:GOOS="linux"; $env:GOARCH="amd64"; go build -o scienceflow_lgw .; Remove-Item Env:GOOS,Env:GOARCH
 ```
 
 ### 前台运行
 
 ```powershell
-.\lgw.exe -config config.json
+.\scienceflow_lgw.exe -config config.json
 ```
 
 ### 启动引导（scienceflow 环境自检）
 
-`lgw` 启动时默认先执行一次引导流程：检测 `agent.python` 解释器（显示解析后的真实路径与版本）→ 检测 scienceflow 安装与版本 → 查询索引最新版本（scienceflow 只发预发布版，自动回退 `--pre`）→ 按需安装/更新 → 打印网关配置总览后进入服务流程。
+`scienceflow_lgw` 启动时默认先执行一次引导流程：检测 `agent.python` 解释器（显示解析后的真实路径与版本）→ 检测 scienceflow 安装与版本 → 查询索引最新版本（scienceflow 只发预发布版，自动回退 `--pre`）→ 按需安装/更新 → 配置启动端口并检测占用 → 打印网关配置总览后进入服务流程。
 
 - **未安装**：显示 Python 路径与 pip 安装命令，询问是否自动安装；确认则执行 `pip install`，拒绝则打印手动命令并以退出码 1 结束。
 - **有更新**：显示新旧版本并询问是否自动更新；确认则执行 `pip install --upgrade`，拒绝则保留当前版本继续启动。
+- **启动端口**：交互式运行可自定义端口（默认 `8901`，回车采用默认）；非交互/`-yes` 运行使用 `config.json` 的 `server.port`。
+- **端口被占用**：显示占用进程的名称、PID 与完整命令，询问是否中止（默认否）。确认后先发 `SIGTERM`（Windows 用 `taskkill`），超时未退出再强制终止，并等待端口真正释放后才继续；拒绝则打印 `kill <pid>` 等手动命令并以退出码 1 结束。非交互/`-yes` 模式**永不**自动中止进程，遇占用直接报错退出。
 - `agent.enabled=false` 时跳过安装/更新引导，仅做检测与配置展示。
 
 ```text
-◆ [2/3] 检测 scienceflow 安装
-  ⚠ 未检测到 scienceflow（包名 scienceflow）
-
-  ⚠ 需要安装 scienceflow 才能运行 agent 任务
-  Python        /usr/local/bin/python (3.12.13)
-  安装命令      python -m pip install --pre scienceflow
-  ? 是否自动安装 scienceflow？ [Y/n]
+◆ [4/4] 配置启动端口
+  ? 启动端口 [8901]
+  ⚠ 端口 8901 已被以下进程占用
+  进程          scienceflow_lgw（PID 7147）
+  命令          ./scienceflow_lgw -config config.json
+  ? 是否中止该进程以释放端口 8901？ [y/N]
+  ✓ 端口 8901 已释放
 ```
+
+端口中止的安全性：端口号与 PID 均做数值校验（PID 仅来自系统工具解析，绝不拼接进 shell）；拒绝 PID<2 及自身 PID；发送信号前会再次核对占用者 PID，防止 PID 复用误杀；只对占用端口的那个进程发信号。
 
 命令开关：
 
@@ -116,22 +120,22 @@ $env:GOOS="linux"; $env:GOARCH="amd64"; go build -o lgw .; Remove-Item Env:GOOS,
 | `-bootstrap` | `true` | 是否执行启动引导；后台/服务化部署可设 `-bootstrap=false` |
 | `-yes` | `false` | 所有确认自动回答"是"（无人值守自动安装/更新，隐含开启 bootstrap） |
 
-非交互环境（stdin 为 `/dev/null`、nohup/systemd）不会挂起等待输入：缺失 scienceflow 时打印手动安装命令并以退出码 1 结束；有可用更新时跳过更新、保留当前版本继续启动。设置 `NO_COLOR=1` 可关闭彩色输出。
+非交互环境（stdin 为 `/dev/null`、nohup/systemd）不会挂起等待输入：缺失 scienceflow 时打印手动安装命令并以退出码 1 结束；有可用更新时跳过更新、保留当前版本继续启动；端口被占用时打印手动中止命令并以退出码 1 结束（不会自动杀进程）。设置 `NO_COLOR=1` 可关闭彩色输出。
 
 ### 后台 / 守护运行
 
 ```powershell
 # 方式一：Windows 后台进程（日志重定向到文件）
-Start-Process -FilePath .\lgw.exe `
+Start-Process -FilePath .\scienceflow_lgw.exe `
   -ArgumentList "-config", "config.json" `
   -WorkingDirectory (Get-Location) `
-  -RedirectStandardOutput "lgw.out.log" -RedirectStandardError "lgw.err.log"
+  -RedirectStandardOutput "scienceflow_lgw.out.log" -RedirectStandardError "scienceflow_lgw.err.log"
 
-# 方式二：注册为 Windows 服务（用 NSSM / WinSW 包裹 lgw.exe，
+# 方式二：注册为 Windows 服务（用 NSSM / WinSW 包裹 scienceflow_lgw.exe，
 #         工作目录设为项目根目录，参数设 -config config.json）
 
 # 方式三：Linux 上交给 systemd/supervisor 托管，或用 nohup 后台运行
-#   nohup ./lgw -config config.json > lgw.out.log 2>&1 &
+#   nohup ./scienceflow_lgw -config config.json > scienceflow_lgw.out.log 2>&1 &
 ```
 
 > 后台运行建议加 `-bootstrap=false`（跳过交互引导）或 `-yes`（无人值守自动安装/更新）。
@@ -139,7 +143,7 @@ Start-Process -FilePath .\lgw.exe `
 ### 停止
 
 ```powershell
-Stop-Process -Name lgw
+Stop-Process -Name scienceflow_lgw
 ```
 
 > 收到 Ctrl+C / SIGTERM 时会优雅退出：关闭 HTTP、停掉所有 harvester、把 registry 检查点落盘，重启后从上次 offset 无缝续读。
@@ -189,6 +193,7 @@ Stop-Process -Name lgw
 | `auth.token_secret` | HMAC 签名密钥，留空则每次启动随机（重启后 token 失效） | 空 |
 | `auth.token_ttl` | 登录 token 有效期 | `24h` |
 | `auth.session_ttl` | 会话空闲过期时间 | `1h` |
+| `auth.reload_interval` | AUTH.yaml 热更新轮询间隔（修改文件后自动生效） | `5s` |
 | `inputs[].path` | 日志 glob 模式 | 必填 |
 | `inputs[].name` | 输入逻辑名（SSE 里 `input` 字段，过滤用） | 实际路径 |
 | `inputs[].mode` | 读取模式：`line` / `prefix` / `raw` | `line` |
@@ -209,28 +214,61 @@ Stop-Process -Name lgw
 
 开启 `auth.enabled` 后，采用「登录发 token → 建会话订阅 → SSE 推流」模型，支持每个用户按权限只读自己可见的日志源，同一用户可开多个会话（多端）。
 
-**账密与权限文件**（`AUTH.yaml`，两种写法）：
+**账密与权限文件**（`AUTH.yaml`）：
 
 ```yaml
 # 简化写法：只有密码，可读所有日志源
-admin: admin123
+sciflow: "123456"
 
-# 完整写法：指定可读源（sources 为 config.json 里 inputs[].name 列表，或 ["*"] 全量）
+# 完整写法：sources = 可读源（config.json 里 inputs[].name 列表，或 ["*"] 全量）
+#           role: admin = 超级管理员，可通过 /users 接口管理账号
 viewer:
   password: viewer456
   sources: ["prefixed-logs", "plain-text"]
+
+admin:
+  password: admin123
+  role: admin
 ```
+
+**热更新**：AUTH.yaml 修改后无需重启，网关按 `auth.reload_interval`（默认 5s）轮询文件变化并自动生效（无效 YAML 会被拒绝并保留原账号，日志输出原因）。通过 `/users` 接口的增删改会原子写回 AUTH.yaml（临时文件 + rename，权限 `0600`，会丢失人工注释并写入统一文件头）。密码修改或账号删除会**立即失效该账号已签发的 token**（token 与密码派生标记绑定）；token 签名密钥不受热更新影响，其他用户不受牵连。
 
 ### 控制面接口（Bearer token 鉴权）
 
 | 接口 | 方法 | 说明 |
 |------|------|------|
-| `/login` | POST | 传 `{"user_name","password"}`，返回 `token` 与该用户可见的 `sources` |
+| `/login` | POST | 传 `{"user_name","password"}`，返回 `token`、`role` 与该用户可见的 `sources` |
 | `/sessions` | POST | 传 `Authorization: Bearer <token>` + `{"sources":[...]}`，创建会话返回 `session_id` |
 | `/sessions/{id}` | GET | 查询会话语订阅信息 |
 | `/sessions/{id}/sources` | PUT | 替换会话订阅源（自动按权限过滤） |
 | `/sessions/{id}` | DELETE | 关闭会话 |
 | `/sources` | GET | 列出当前用户可见的源及各自文件路径 |
+| `/users` | GET | **[超级管理员]** 列出全部账号（不含密码） |
+| `/users` | POST | **[超级管理员]** 新建账号：`{"name","password","sources"?,"role"?}` |
+| `/users/{name}` | PUT | **[超级管理员]** 修改账号：`password` / `sources` / `role` 任意组合 |
+| `/users/{name}` | DELETE | **[超级管理员]** 删除账号 |
+
+用户管理接口要求当前 token 对应账号在 AUTH.yaml 中带 `role: admin`（普通用户调用返回 `403`）。用户名限 `[A-Za-z0-9][A-Za-z0-9._-]{0,63}`（会用作工作区目录名）；密码非空且不含换行/空字符。为防止锁死，**最后一个管理员不可删除、不可降级**（返回 `409`）；重复创建返回 `409`，目标不存在返回 `404`。
+
+```bash
+# 超级管理员通过接口管理账号（热更新，无需重启）
+TOK=$(curl -s -X POST http://127.0.0.1:52001/login -H 'Content-Type: application/json' \
+  -d '{"user_name":"admin","password":"admin123"}' | python3 -c 'import sys,json;print(json.load(sys.stdin)["token"])')
+
+# 新建
+curl -s -X POST http://127.0.0.1:52001/users -H "Authorization: Bearer $TOK" \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"alice","password":"pw","sources":["prefixed-logs"]}'
+
+# 改密码 / 改权限 / 改角色
+curl -s -X PUT http://127.0.0.1:52001/users/alice -H "Authorization: Bearer $TOK" \
+  -H 'Content-Type: application/json' -d '{"password":"newpw"}'
+
+# 删除
+curl -s -X DELETE http://127.0.0.1:52001/users/alice -H "Authorization: Bearer $TOK"
+```
+
+> 安全提示：AUTH.yaml 明文存储密码（与旧版一致），请限制文件权限（接口写回的版本为 `0600`）并避免提交到版本库；生产环境请务必修改示例口令。
 
 SSE 推流用会话连接：`GET /events?session=<session_id>`；会话订阅变更会实时生效（无需重连）。
 
@@ -255,6 +293,17 @@ curl -N "http://127.0.0.1:8080/events?session=$sid"
 ```
 
 演示页 `http://127.0.0.1:8080/` 内置登录→建会话→推流的 JS 逻辑。
+
+### 重启后的会话恢复
+
+会话本身保存在内存中，但网关**启动时会扫描任务工作区** `$SCIFLOW_WORKSPACE_ROOT/<user>/<session>/`（`agent.enabled=true` 时），把仍留有任务产物的历史会话重新注册到会话列表。判定内容为以下任一文件存在：`gateway_first_user.txt`、`gateway_manifest*.yaml`、`task_logs/<user>/<session>/RAW.log`、`run/.logs/interaction.log`（纯空目录不恢复）：
+
+- **会话 ID 保留**：前端本地保存的 `session_id` 在网关重启后依旧可用（`activate` / SSE 订阅 / invoke 均照常），无需重新建会话；
+- **名称与时间**：会话名取自首问文件或 manifest 的 `task`（首行、折叠空白、截断 120 字符），列表 `last_active` 取自磁盘文件最新修改时间，排序与重启前一致；
+- **历史回放**：SSE 连接后自动 backfill 历史 RAW.log / interaction.log / task_logs/parallel_subprocess.log（heavy）内容，前端据此重建对话；
+- **续聊**：再次 invoke 复用同一工作区，ScienceFlow memory 自动加载，实现跨重启多轮对话；
+- **TTL**：恢复的会话不受空闲 TTL 清理（内容在磁盘）；`DELETE /sessions/{id}` 仅从内存列表移除（软删除），目录仍在时下次重启会再次出现；
+- 提示：`workspace_root` 变化或目录被清理后无法恢复；启动日志会打印 `restored N historical session(s) from task workspaces`。
 
 ### SSE 消息格式
 
@@ -353,12 +402,13 @@ $SCIFLOW_WORKSPACE_ROOT/task_logs/<user>/<session>/RAW.log
 
 该文件被 gateway 的 tailer 自动监听（源名 `agent-logs`），新增的每一行通过 SSE `event: log` 推送至已订阅该源的会话。前端无需轮询，打开 SSE 连接即可实时看到 agent 的逐行输出。
 
-**双 transcript**：安装版 CLI（0.2.0b5+）在 `--plain` 模式下 stdout 几乎为空（仅 banner 与一行提示），完整交互（user/assistant/tool 轮次）写入 `<session>/run/.logs/interaction.log`。因此任务启动时 gateway 同时 tail 两个文件，均经 SSE `event: log` 推送，以 `file` 字段区分：
+**transcript 说明**：安装版 CLI（0.2.0b5+）在 `--plain` 模式下 stdout 几乎为空（仅 banner 与一行提示），完整交互（user/assistant/tool 轮次）写入 `<session>/run/.logs/interaction.log`；heavy（LNR）任务的完整研究过程由 `cli parallel` 的 worker 写入 `<session>/run/task_logs/parallel_subprocess.log`（RAW.log 此时只含 parallel 启动横幅与最终汇总）。任务启动时 gateway 同时 tail 这三个文件（存在哪个推哪个），均经 SSE `event: log` 推送，以 `file` 字段区分：
 
-- `RAW.log`：stdout/stderr 镜像（banner、API 报错、traceback、任务 header）
-- `interaction.log`：完整交互记录；推送前会剥离 ANSI 色彩码与 loguru 时间戳前缀，保留 `[user] ...`、`[tool-call] ...`、`[assistant] ...`、工具输出等有效载荷
+- `RAW.log`：stdout/stderr 镜像（banner、API 报错、traceback、任务 header、heavy 的启动/汇总）
+- `interaction.log`：lite 任务的完整交互记录；推送前会剥离 ANSI 色彩码与 loguru 时间戳前缀，保留 `[user] ...`、`[tool-call] ...`、`[assistant] ...`、工具输出等有效载荷
+- `parallel_subprocess.log`：heavy 任务的 LNR worker 全程输出（Agent Iteration、工具与阶段进度、最终 `Result: {...}` 统计）
 
-SSE 事件与 backfill 均携带 `session` 字段做跨会话隔离。注意：前端旧版聊天解析器（`agentLogParser.ts`）面向源码仓时代的 RAW.log 格式（`=== Task: ===`/`→ tool`/`## Summary`），对接安装版交互格式需相应适配。
+SSE 事件与 backfill 均携带 `session` 字段做跨会话隔离；三个文件在 SSE 重连/会话切换/网关重启后都会自动回放（backfill）。注意：前端旧版聊天解析器（`agentLogParser.ts`）面向源码仓时代的 RAW.log 格式（`=== Task: ===`/`→ tool`/`## Summary`），对接安装版交互格式需相应适配。
 
 SSE 消息示例（`file` 字段为 `RAW.log`）：
 

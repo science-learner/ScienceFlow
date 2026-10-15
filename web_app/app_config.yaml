@@ -1,1 +1,11 @@
+# ScienceFlow 桌面应用配置
+# 查找顺序：可执行文件所在目录 -> 当前工作目录
+
+# 日志网关地址（桌面应用与网页服务均使用）
 gateway: http://127.0.0.1:52001
+
+# 网页服务监听地址（仅 server 模式生效，即 `wails3 task build:server` 产物）
+# 默认 0.0.0.0:8080；可用环境变量 WAILS_SERVER_HOST / WAILS_SERVER_PORT 覆盖。
+# server:
+#   host: 0.0.0.0
+#   port: 8080

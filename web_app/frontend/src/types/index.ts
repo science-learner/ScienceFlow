@@ -298,6 +298,8 @@ export interface AuthUser {
   username: string;
   display_name: string;
   created_at: string;
+  // Gateway role: "admin" = super admin (user management), "user" = normal.
+  role?: string;
 }
 
 export interface AuthState {

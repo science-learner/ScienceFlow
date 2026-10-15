@@ -84,6 +84,12 @@ export function SessionPanel() {
         setChatSessionId('');
         clearTimeline();
       }
+      if (sessionId === gwSessionId) {
+        // 删除的是当前会话：清空本地聊天并复位状态，避免消息残留和 badge 卡在 running
+        setChatMessages([]);
+        setChatBusy(false);
+        setChatRunState('idle');
+      }
     } finally {
       setDeletingId('');
     }

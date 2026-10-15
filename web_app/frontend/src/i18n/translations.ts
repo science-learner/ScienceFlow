@@ -15,6 +15,9 @@ export interface Translations {
     switchToEnglish: string;
     logout: string;
   };
+  // Labels for the heavy runner's Result summary card (keys are parsed
+  // verbatim from the log; unknown keys fall back to the raw key text).
+  runSummary: Record<string, string>;
   login: {
     tagline1: string;
     tagline2: string;
@@ -26,8 +29,16 @@ export interface Translations {
     signIn: string;
     welcome: string;
     loginFailed: string;
+    invalidCredentials: string;
     cachedHint: string;
     engineName: string;
+    gatewayLabel: string;
+    gatewayEdit: string;
+    gatewayChecking: string;
+    gatewayReachable: string;
+    gatewayUnreachable: string;
+    gatewaySave: string;
+    gatewayCancel: string;
   };
   agentMap: {
     imgAlt: string;
@@ -281,6 +292,7 @@ export interface Translations {
     modelNamePlaceholder: string;
     coderModel: string;
     feedbackModel: string;
+    noStageModel: string;
     apiKey: string;
     apiKeyPlaceholder: string;
     apiUrl: string;
@@ -307,6 +319,7 @@ export interface Translations {
     modelActivated: string;
     loadingModels: string;
     noModels: string;
+    modelsUnsupported: string;
     close: string;
     reset: string;
     test: string;
@@ -318,6 +331,34 @@ export interface Translations {
     saved: string;
     unknownError: string;
     ready: string;
+  };
+  userAdmin: {
+    entry: string;
+    title: string;
+    close: string;
+    addUser: string;
+    editUser: string;
+    name: string;
+    namePlaceholder: string;
+    password: string;
+    passwordPlaceholder: string;
+    passwordEditPlaceholder: string;
+    role: string;
+    roleAdmin: string;
+    roleUser: string;
+    loading: string;
+    empty: string;
+    add: string;
+    save: string;
+    cancel: string;
+    edit: string;
+    delete: string;
+    confirmDelete: string;
+    created: string;
+    updated: string;
+    deleted: string;
+    failed: string;
+    lastAdminHint: string;
   };
   statePanel: {
     stateDetails: string;
@@ -358,6 +399,25 @@ export const zhCN: Translations = {
     switchToEnglish: '切换到英文',
     logout: '退出登录',
   },
+  runSummary: {
+    status: '状态',
+    stop_reason: '停止原因',
+    failure_kind: '失败类型',
+    outcome: '结果',
+    worker_run_succeeded: 'Worker 成功',
+    num_workers: 'Worker 数',
+    stage_count: '阶段数',
+    global_candidate_count: '候选方案',
+    merge_status: '合并状态',
+    final_artifact_count: '最终产物',
+    estra_decisions: 'ESTRA 决策',
+    estra_switch_count: 'ESTRA 切换',
+    main_llm_calls: '主 LLM 调用',
+    main_tokens_input: '主输入 Tokens',
+    main_tokens_output: '主输出 Tokens',
+    stage_llm_calls: '阶段 LLM 调用',
+    stage_tokens_input: '阶段输入 Tokens',
+  },
   login: {
     tagline1: '让长程研究',
     tagline2: '可恢复 · 可适应 · 高效',
@@ -369,8 +429,16 @@ export const zhCN: Translations = {
     signIn: '登录',
     welcome: '欢迎使用 ScienceFlow',
     loginFailed: '登录失败',
+    invalidCredentials: '用户名或密码不正确',
     cachedHint: '登录状态缓存 7 天',
     engineName: 'ScienceFlow 智能体引擎',
+    gatewayLabel: '网关',
+    gatewayEdit: '修改网关地址',
+    gatewayChecking: '正在检测网关…',
+    gatewayReachable: '网关可达',
+    gatewayUnreachable: '网关不可达',
+    gatewaySave: '保存网关地址',
+    gatewayCancel: '取消',
   },
   agentMap: {
     imgAlt: 'Agent地图工作空间',
@@ -624,6 +692,7 @@ export const zhCN: Translations = {
     modelNamePlaceholder: '请输入模型名称',
     coderModel: 'Coder 模型',
     feedbackModel: 'Feedbacker 模型',
+    noStageModel: '暂无模型',
     apiKey: 'API Key',
     apiKeyPlaceholder: '请输入 API Key',
     apiUrl: '模型路径',
@@ -650,6 +719,7 @@ export const zhCN: Translations = {
     modelActivated: '模型已切换，新任务生效',
     loadingModels: '加载模型中...',
     noModels: '暂无模型',
+    modelsUnsupported: '当前网关版本不支持模型管理（缺少 /models 接口，请升级网关）',
     close: '关闭',
     reset: '重置',
     test: '测试连接',
@@ -661,6 +731,34 @@ export const zhCN: Translations = {
     saved: '已保存',
     unknownError: '未知错误',
     ready: '就绪',
+  },
+  userAdmin: {
+    entry: '用户管理',
+    title: '用户管理',
+    close: '关闭',
+    addUser: '新增用户',
+    editUser: '编辑用户',
+    name: '用户名',
+    namePlaceholder: '字母/数字开头，可含 . _ -',
+    password: '密码',
+    passwordPlaceholder: '登录密码',
+    passwordEditPlaceholder: '留空表示不修改',
+    role: '角色',
+    roleAdmin: '管理员',
+    roleUser: '普通用户',
+    loading: '加载中...',
+    empty: '暂无用户',
+    add: '新增',
+    save: '保存',
+    cancel: '取消',
+    edit: '编辑',
+    delete: '删除',
+    confirmDelete: '确定删除该用户吗？',
+    created: '用户已创建',
+    updated: '用户已更新',
+    deleted: '用户已删除',
+    failed: '失败',
+    lastAdminHint: '系统至少需保留一个管理员',
   },
   statePanel: {
     stateDetails: '状态详情',
@@ -701,6 +799,25 @@ export const enUS: Translations = {
     switchToEnglish: 'Switch to English',
     logout: 'Sign out',
   },
+  runSummary: {
+    status: 'Status',
+    stop_reason: 'Stop reason',
+    failure_kind: 'Failure kind',
+    outcome: 'Outcome',
+    worker_run_succeeded: 'Worker ok',
+    num_workers: 'Workers',
+    stage_count: 'Stages',
+    global_candidate_count: 'Candidates',
+    merge_status: 'Merge',
+    final_artifact_count: 'Final artifacts',
+    estra_decisions: 'ESTRA decisions',
+    estra_switch_count: 'ESTRA switches',
+    main_llm_calls: 'Main LLM calls',
+    main_tokens_input: 'Main tokens in',
+    main_tokens_output: 'Main tokens out',
+    stage_llm_calls: 'Stage LLM calls',
+    stage_tokens_input: 'Stage tokens in',
+  },
   login: {
     tagline1: 'Making Long-Horizon Research',
     tagline2: 'Recoverable, Adaptive, and Efficient',
@@ -712,8 +829,16 @@ export const enUS: Translations = {
     signIn: 'Sign In',
     welcome: 'Welcome to ScienceFlow',
     loginFailed: 'Login failed',
+    invalidCredentials: 'Incorrect username or password',
     cachedHint: 'Login state cached for 7 days',
     engineName: 'ScienceFlow Agent Engine',
+    gatewayLabel: 'Gateway',
+    gatewayEdit: 'Edit gateway address',
+    gatewayChecking: 'Checking gateway...',
+    gatewayReachable: 'Gateway reachable',
+    gatewayUnreachable: 'Gateway unreachable',
+    gatewaySave: 'Save gateway address',
+    gatewayCancel: 'Cancel',
   },
   agentMap: {
     imgAlt: 'Agent map workspace',
@@ -967,6 +1092,7 @@ export const enUS: Translations = {
     modelNamePlaceholder: 'Enter model name',
     coderModel: 'Coder Model',
     feedbackModel: 'Feedbacker Model',
+    noStageModel: 'No model',
     apiKey: 'API Key',
     apiKeyPlaceholder: 'Enter API key',
     apiUrl: 'Model Url',
@@ -993,6 +1119,7 @@ export const enUS: Translations = {
     modelActivated: 'Model switched; applies to new tasks',
     loadingModels: 'Loading models...',
     noModels: 'No models',
+    modelsUnsupported: 'This gateway build does not support model management (missing /models API; please upgrade the gateway)',
     close: 'Close',
     reset: 'Reset',
     test: 'Test Connection',
@@ -1004,6 +1131,34 @@ export const enUS: Translations = {
     saved: 'Saved',
     unknownError: 'Unknown error',
     ready: 'Ready',
+  },
+  userAdmin: {
+    entry: 'User Management',
+    title: 'User Management',
+    close: 'Close',
+    addUser: 'Add User',
+    editUser: 'Edit User',
+    name: 'Username',
+    namePlaceholder: 'Starts with a letter/digit; may contain . _ -',
+    password: 'Password',
+    passwordPlaceholder: 'Login password',
+    passwordEditPlaceholder: 'Leave blank to keep unchanged',
+    role: 'Role',
+    roleAdmin: 'Administrator',
+    roleUser: 'User',
+    loading: 'Loading...',
+    empty: 'No users',
+    add: 'Add',
+    save: 'Save',
+    cancel: 'Cancel',
+    edit: 'Edit',
+    delete: 'Delete',
+    confirmDelete: 'Delete this user?',
+    created: 'User created',
+    updated: 'User updated',
+    deleted: 'User deleted',
+    failed: 'Failed',
+    lastAdminHint: 'At least one administrator must remain',
   },
   statePanel: {
     stateDetails: 'State Details',

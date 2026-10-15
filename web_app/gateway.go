@@ -12,10 +12,11 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
-const defaultGatewayURL = "http://127.0.0.1:8080"
+const defaultGatewayURL = "http://127.0.0.1:52001"
 
 // errGatewayUnauthorized is returned when the gateway rejects the token or the
 // session (HTTP 401). The frontend uses it to trigger a re-login / session
@@ -33,6 +34,7 @@ type GatewayLoginResult struct {
 	Token     string   `json:"token"`
 	ExpiresAt string   `json:"expires_at"`
 	User      string   `json:"user"`
+	Role      string   `json:"role"`
 	Sources   []string `json:"sources"`
 }
 
@@ -133,10 +135,13 @@ type GatewayLogEvent struct {
 }
 
 // GatewayStatusEvent is the gateway SSE connection state forwarded to the
-// frontend: connecting / connected / disconnected / unauthorized.
+// frontend: connecting / connected / disconnected / unauthorized. Server mode
+// shares one Go process across browser clients, so events carry the session id
+// they belong to and each client only applies its own.
 type GatewayStatusEvent struct {
-	Status string `json:"status"`
-	Error  string `json:"error,omitempty"`
+	SessionID string `json:"session_id,omitempty"`
+	Status    string `json:"status"`
+	Error     string `json:"error,omitempty"`
 }
 
 // GatewayBackfillEvent is the SSE "backfill" event: a snapshot of one source's
@@ -195,14 +200,49 @@ func (a *App) gatewayDo(method, path, token string, body any) (int, []byte, erro
 	if err != nil {
 		return resp.StatusCode, nil, err
 	}
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 && !isJSONOrEmpty(raw) {
+		return resp.StatusCode, raw, a.nonJSONResponseError(method, path, raw)
+	}
 	return resp.StatusCode, raw, nil
+}
+
+// isJSONOrEmpty reports whether a successful response body is empty (204 etc.)
+// or valid JSON. Non-JSON success bodies indicate the configured address is
+// not the log gateway (e.g. an SPA page or reverse-proxy HTML error page).
+func isJSONOrEmpty(raw []byte) bool {
+	trimmed := bytes.TrimSpace(raw)
+	return len(trimmed) == 0 || json.Valid(trimmed)
+}
+
+// nonJSONResponseError builds an actionable error for a success response whose
+// body is not JSON, naming the endpoint, the address actually called and a
+// body snippet so misconfigured gateway addresses can be spotted immediately.
+func (a *App) nonJSONResponseError(method, path string, raw []byte) error {
+	kind := "non-JSON"
+	if bytes.HasPrefix(bytes.TrimSpace(raw), []byte("<")) {
+		kind = "HTML"
+	}
+	return fmt.Errorf(
+		"gateway %s %s: got %s response from %s (starts with %q); the address does not look like the log gateway — check the gateway address in app_config.yaml or the app settings",
+		method, path, kind, a.gatewayURL, snippet(raw, 60),
+	)
+}
+
+// snippet returns the first n runes of a body for error messages.
+func snippet(raw []byte, n int) string {
+	s := strings.TrimSpace(string(raw))
+	runes := []rune(s)
+	if len(runes) <= n {
+		return s
+	}
+	return string(runes[:n]) + "…"
 }
 
 func gatewayHTTPError(status int, raw []byte) error {
 	if status == http.StatusUnauthorized {
 		return errGatewayUnauthorized
 	}
-	body := strings.TrimSpace(string(raw))
+	body := snippet(raw, 300)
 	if body != "" {
 		return fmt.Errorf("gateway: %d %s", status, body)
 	}
@@ -601,60 +641,113 @@ func (a *App) GatewayStopAgent(token string, sessionID string) (GatewayTaskSnaps
 
 // ── SSE bridge ──
 
-// gatewayStreamManager owns the single gateway SSE connection and its reconnect
-// loop. It mirrors chatStreamManager but subscribes with ?session=<id>.
+const (
+	// gatewayStreamIdleTimeout forces a reconnect when an intermediary
+	// (reverse proxy, tunnel) keeps the SSE connection open without
+	// forwarding any frame (the gateway sends ": ping" every 15s).
+	gatewayStreamIdleTimeout = 60 * time.Second
+	// gatewayStreamMaxStreams bounds concurrent gateway subscriptions.
+	gatewayStreamMaxStreams = 16
+)
+
+// gatewayStreamManager owns one gateway SSE connection per session. In server
+// mode multiple browser clients share this Go process; each client subscribes
+// to its own session and filters the broadcast events by session id, so one
+// client switching sessions can no longer silence another client.
 type gatewayStreamManager struct {
-	ctx    context.Context
-	mu     sync.Mutex
-	cancel context.CancelFunc
-	done   chan struct{}
+	ctx     context.Context
+	mu      sync.Mutex
+	streams map[string]*gatewaySessionStream
+}
+
+type gatewaySessionStream struct {
+	cancel   context.CancelFunc
+	done     chan struct{}
+	lastSeen atomic.Int64 // unix nanos of the last frame / activity
 }
 
 func newGatewayStreamManager(ctx context.Context) *gatewayStreamManager {
-	return &gatewayStreamManager{ctx: ctx}
+	return &gatewayStreamManager{ctx: ctx, streams: make(map[string]*gatewaySessionStream)}
 }
 
+// Start ensures a gateway SSE subscription for the session. Idempotent: an
+// existing subscription is only touched, so clients may re-assert it freely.
 func (m *gatewayStreamManager) Start(baseURL, sessionID string) {
-	m.Stop()
-	ctx, cancel := context.WithCancel(m.ctx)
+	if sessionID == "" {
+		return
+	}
 	m.mu.Lock()
-	m.cancel = cancel
-	m.done = make(chan struct{})
+	if s, ok := m.streams[sessionID]; ok {
+		s.lastSeen.Store(time.Now().UnixNano())
+		m.mu.Unlock()
+		return
+	}
+	// Bound concurrent subscriptions: drop the least recently active session.
+	for len(m.streams) >= gatewayStreamMaxStreams {
+		var victimID string
+		var victim *gatewaySessionStream
+		for id, s := range m.streams {
+			if victim == nil || s.lastSeen.Load() < victim.lastSeen.Load() {
+				victimID, victim = id, s
+			}
+		}
+		if victim == nil {
+			break
+		}
+		delete(m.streams, victimID)
+		victim.cancel()
+	}
+	ctx, cancel := context.WithCancel(m.ctx)
+	s := &gatewaySessionStream{cancel: cancel, done: make(chan struct{})}
+	s.lastSeen.Store(time.Now().UnixNano())
+	m.streams[sessionID] = s
 	m.mu.Unlock()
-	go m.run(ctx, baseURL, sessionID)
+	go m.runSession(ctx, baseURL, sessionID, s)
 }
 
+// Stop cancels every gateway subscription (logout / session teardown). Other
+// browser clients re-assert theirs through the periodic stream heartbeat.
 func (m *gatewayStreamManager) Stop() {
 	m.mu.Lock()
-	cancel := m.cancel
-	done := m.done
-	m.mu.Unlock()
-	if cancel != nil {
-		cancel()
+	streams := make([]*gatewaySessionStream, 0, len(m.streams))
+	for id, s := range m.streams {
+		delete(m.streams, id)
+		streams = append(streams, s)
 	}
-	if done != nil {
-		<-done
+	m.mu.Unlock()
+	for _, s := range streams {
+		s.cancel()
+	}
+	for _, s := range streams {
+		<-s.done
 	}
 }
 
-func (m *gatewayStreamManager) run(ctx context.Context, baseURL, sessionID string) {
-	defer close(m.done)
+func (m *gatewayStreamManager) runSession(ctx context.Context, baseURL, sessionID string, s *gatewaySessionStream) {
+	defer close(s.done)
+	defer func() {
+		m.mu.Lock()
+		if cur, ok := m.streams[sessionID]; ok && cur == s {
+			delete(m.streams, sessionID)
+		}
+		m.mu.Unlock()
+	}()
 	backoff := time.Second
 	for {
 		if ctx.Err() != nil {
 			return
 		}
-		emitEvent("gateway-status", GatewayStatusEvent{Status: "connecting"})
-		err := m.stream(ctx, baseURL, sessionID)
+		emitEvent("gateway-status", GatewayStatusEvent{SessionID: sessionID, Status: "connecting"})
+		err := m.stream(ctx, baseURL, sessionID, s)
 		if ctx.Err() != nil {
 			return
 		}
 		if errors.Is(err, errGatewayUnauthorized) {
-			emitEvent("gateway-status", GatewayStatusEvent{Status: "unauthorized"})
+			emitEvent("gateway-status", GatewayStatusEvent{SessionID: sessionID, Status: "unauthorized"})
 			return
 		}
 		if err != nil {
-			emitEvent("gateway-status", GatewayStatusEvent{Status: "disconnected", Error: err.Error()})
+			emitEvent("gateway-status", GatewayStatusEvent{SessionID: sessionID, Status: "disconnected", Error: err.Error()})
 		} else {
 			backoff = time.Second
 		}
@@ -669,9 +762,15 @@ func (m *gatewayStreamManager) run(ctx context.Context, baseURL, sessionID strin
 	}
 }
 
-func (m *gatewayStreamManager) stream(ctx context.Context, baseURL, sessionID string) error {
+func (m *gatewayStreamManager) stream(ctx context.Context, baseURL, sessionID string, s *gatewaySessionStream) error {
 	endpoint := baseURL + "/events?session=" + url.QueryEscape(sessionID)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+
+	// Per-connection context so the stall watchdog can break a silently
+	// buffered response without tearing down the session subscription.
+	streamCtx, streamCancel := context.WithCancel(ctx)
+	defer streamCancel()
+
+	req, err := http.NewRequestWithContext(streamCtx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return err
 	}
@@ -691,7 +790,25 @@ func (m *gatewayStreamManager) stream(ctx context.Context, baseURL, sessionID st
 		return fmt.Errorf("gateway stream status %d", resp.StatusCode)
 	}
 
-	emitEvent("gateway-status", GatewayStatusEvent{Status: "connected"})
+	emitEvent("gateway-status", GatewayStatusEvent{SessionID: sessionID, Status: "connected"})
+	s.lastSeen.Store(time.Now().UnixNano())
+
+	go func() {
+		t := time.NewTicker(15 * time.Second)
+		defer t.Stop()
+		for {
+			select {
+			case <-streamCtx.Done():
+				return
+			case <-t.C:
+				if time.Since(time.Unix(0, s.lastSeen.Load())) > gatewayStreamIdleTimeout {
+					streamCancel()
+					return
+				}
+			}
+		}
+	}()
+
 	reader := bufio.NewReader(resp.Body)
 
 	var (
@@ -703,6 +820,7 @@ func (m *gatewayStreamManager) stream(ctx context.Context, baseURL, sessionID st
 		if err != nil {
 			return err
 		}
+		s.lastSeen.Store(time.Now().UnixNano())
 		line = strings.TrimRight(line, "\r\n")
 		switch {
 		case line == "":

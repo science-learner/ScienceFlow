@@ -92,8 +92,15 @@ func (a *App) GatewayFetchMonitor(token string, sessionID string) (GatewayMonito
 		body, _ := io.ReadAll(resp.Body)
 		return GatewayMonitorMetrics{}, fmt.Errorf("fetch monitor status %d: %s", resp.StatusCode, string(body))
 	}
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return GatewayMonitorMetrics{}, err
+	}
+	if !isJSONOrEmpty(raw) {
+		return GatewayMonitorMetrics{}, a.nonJSONResponseError(http.MethodGet, "/sessions/"+url.PathEscape(sessionID)+"/monitor", raw)
+	}
 	var result GatewayMonitorMetrics
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := json.Unmarshal(raw, &result); err != nil {
 		return GatewayMonitorMetrics{}, err
 	}
 	return result, nil
@@ -127,8 +134,16 @@ func (a *App) GatewayFetchFiles(token string, sessionID string) (FileTreeRespons
 		return FileTreeResponse{}, fmt.Errorf("fetch files status %d: %s", resp.StatusCode, string(body))
 	}
 
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return FileTreeResponse{}, err
+	}
+	if !isJSONOrEmpty(raw) {
+		return FileTreeResponse{}, a.nonJSONResponseError(http.MethodGet, "/sessions/"+url.PathEscape(sessionID)+"/files", raw)
+	}
+
 	var result FileTreeResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := json.Unmarshal(raw, &result); err != nil {
 		return FileTreeResponse{}, err
 	}
 	return result, nil

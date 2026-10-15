@@ -224,8 +224,9 @@ export function GetGatewayURL(): $CancellablePromise<string> {
 }
 
 /**
- * GetSystemStats returns live resource usage of the local machine. Non-Windows
- * platforms return zeroed values (the desktop build targets Windows).
+ * GetSystemStats returns live resource usage of the local machine. Windows
+ * collects real counters (sysstats_windows.go); other platforms return zeroed
+ * values (sysstats_other.go) so server-mode deployments still build and run.
  */
 export function GetSystemStats(): $CancellablePromise<$models.SystemStats> {
     return $Call.ByID(549671605).then(($result: any) => {

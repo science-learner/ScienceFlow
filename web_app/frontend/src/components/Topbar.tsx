@@ -1,9 +1,12 @@
+import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useAppStore } from '../store/useAppStore';
 import { useGatewayStore } from '../store/useGatewayStore';
 import { useT } from '../i18n/useT';
 import type { Lang } from '../i18n/translations';
 import type { AuthUser } from '../types';
-import { LogOut, Settings, User, Languages } from 'lucide-react';
+import { LogOut, Settings, User, UserCog, Languages } from 'lucide-react';
+import { UserManagementModal } from './UserManagementModal';
 import clsx from 'clsx';
 
 interface TopbarProps {
@@ -21,6 +24,8 @@ export function Topbar({ authUser, onLogout }: TopbarProps) {
   const gatewayStatus = useGatewayStore((s) => s.status);
   const gatewayError = useGatewayStore((s) => s.lastError);
   const t = useT();
+  const [userAdminOpen, setUserAdminOpen] = useState(false);
+  const isAdmin = authUser?.role === 'admin';
 
   const runCount = currentState?.runs?.length || 0;
   const showBatchToggle = currentView !== 'l0' && currentView !== 'l1';
@@ -98,11 +103,29 @@ export function Topbar({ authUser, onLogout }: TopbarProps) {
             <span className="batch-rail-count">{runCount}</span>
           </button>
         )}
+        {isAdmin && (
+          <button
+            className="btn icon-btn"
+            type="button"
+            data-user-admin-entry
+            aria-label={t.userAdmin.entry}
+            title={t.userAdmin.entry}
+            onClick={() => setUserAdminOpen(true)}
+          >
+            <UserCog size={17} />
+          </button>
+        )}
         <button className="btn icon-btn" id="frontOpenSettings" type="button" aria-label={t.topbar.settings}
           onClick={() => setSettingsPanelOpen(true)}>
           <Settings size={17} />
         </button>
       </div>
+      {/* The topbar's backdrop-filter creates a containing block for fixed
+          descendants, so the modal must be portaled to <body> to escape it. */}
+      {createPortal(
+        <UserManagementModal open={userAdminOpen} onClose={() => setUserAdminOpen(false)} />,
+        document.body,
+      )}
     </header>
   );
 }

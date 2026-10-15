@@ -14,7 +14,7 @@ import type {
 } from '../types';
 import type { Lang } from '../i18n/translations';
 import * as api from '../api/client';
-import { gatewayFetchFiles, workspaceDownloadFile } from '../api/gateway';
+import { gatewayFetchFiles, workspaceDownloadFile, isGatewaySessionGone } from '../api/gateway';
 import { useGatewayStore } from './useGatewayStore';
 
 type ReportListItem = {
@@ -345,6 +345,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       const content = await downloadGatewayFileText(token, currentSessionId, selected.path);
       set({ reportContent: content });
     } catch (e) {
+      // A stale session is rebuilt by the status watchdog; don't spam here.
+      if (isGatewaySessionGone(e)) return;
       console.error('[KeyReport] fetchReports failed:', e);
     }
   },

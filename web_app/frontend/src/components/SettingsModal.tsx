@@ -12,6 +12,7 @@ import {
   gatewayListModels,
   gatewaySetModelStages,
   gatewayUpdateModel,
+  isGatewayEndpointMissing,
   type GatewayModelInfo,
 } from '../api/gateway';
 
@@ -33,6 +34,7 @@ export function SettingsModal() {
   const [selectedFeedbackId, setSelectedFeedbackId] = useState('');
   const [modelForm, setModelForm] = useState({ model_name: '', api_key: '', api_url: '' });
   const [modelsLoading, setModelsLoading] = useState(false);
+  const [modelsUnsupported, setModelsUnsupported] = useState(false);
   const [addingModel, setAddingModel] = useState(false);
   const [activatingModel, setActivatingModel] = useState(false);
   const [modelDialogOpen, setModelDialogOpen] = useState(false);
@@ -56,8 +58,10 @@ export function SettingsModal() {
       setSelectedModelId('');
       setSelectedCoderId('');
       setSelectedFeedbackId('');
+      setModelsUnsupported(false);
       return;
     }
+    setModelsUnsupported(false);
     setModelsLoading(true);
     gatewayListModels(token)
       .then((items) => {
@@ -66,17 +70,30 @@ export function SettingsModal() {
         setSelectedModelId(active?.id || '');
         if (active) setLlmModel(active.model_name);
         if (sessionId) {
-          return gatewayGetModelStages(token, sessionId).then((stages) => {
-            // Stage dropdowns display the main model's entry unless an
-            // explicit override was saved for the session.
-            setSelectedCoderId(stages.coder_model_id || active?.id || '');
-            setSelectedFeedbackId(stages.feedback_model_id || active?.id || '');
-          });
+          return gatewayGetModelStages(token, sessionId)
+            .then((stages) => {
+              // Stage dropdowns display the main model's entry unless an
+              // explicit override was saved for the session.
+              setSelectedCoderId(stages.coder_model_id || active?.id || '');
+              setSelectedFeedbackId(stages.feedback_model_id || active?.id || '');
+            })
+            .catch((e: unknown) => {
+              if (isGatewayEndpointMissing(e)) setModelsUnsupported(true);
+            });
         }
       })
-      .catch((e: unknown) => setStatus(`Failed: ${(e as Error)?.message || t.settingsModal.unknownError}`))
+      .catch((e: unknown) => {
+        if (isGatewayEndpointMissing(e)) {
+          // Older gateway build without the /models API: keep the panel usable
+          // and explain, instead of surfacing a raw "HTTP 404".
+          setModelsUnsupported(true);
+          setStatus(t.settingsModal.modelsUnsupported);
+          return;
+        }
+        setStatus(`Failed: ${(e as Error)?.message || t.settingsModal.unknownError}`);
+      })
       .finally(() => setModelsLoading(false));
-  }, [token, sessionId, t.settingsModal.unknownError]);
+  }, [token, sessionId, t.settingsModal.unknownError, t.settingsModal.modelsUnsupported]);
 
   const handleModelChange = async (modelId: string) => {
     setSelectedModelId(modelId);
@@ -287,7 +304,7 @@ export function SettingsModal() {
                   className="btn icon-btn"
                   type="button"
                   onClick={handleOpenAddModel}
-                  disabled={!token || addingModel || deletingModel}
+                  disabled={!token || addingModel || deletingModel || modelsUnsupported}
                   aria-label={t.settingsModal.addModel}
                   title={t.settingsModal.addModel}
                 >
@@ -297,7 +314,7 @@ export function SettingsModal() {
                   className="btn icon-btn"
                   type="button"
                   onClick={() => setModelManagerOpen(true)}
-                  disabled={!token || modelsLoading}
+                  disabled={!token || modelsLoading || modelsUnsupported}
                   aria-label={t.settingsModal.modelManagement}
                   title={t.settingsModal.modelManagement}
                 >
@@ -312,10 +329,16 @@ export function SettingsModal() {
                   data-settings-llm-model
                   value={selectedModelId}
                   onChange={(e) => void handleModelChange(e.target.value)}
-                  disabled={modelsLoading || activatingModel || models.length === 0}
+                  disabled={modelsLoading || activatingModel || models.length === 0 || modelsUnsupported}
                 >
                   {models.length === 0 ? (
-                    <option value="">{modelsLoading ? t.settingsModal.loadingModels : t.settingsModal.noModels}</option>
+                    <option value="">
+                      {modelsUnsupported
+                        ? t.settingsModal.modelsUnsupported
+                        : modelsLoading
+                          ? t.settingsModal.loadingModels
+                          : t.settingsModal.noModels}
+                    </option>
                   ) : models.map((item) => (
                     <option key={item.id} value={item.id}>{item.model_name}</option>
                   ))}
@@ -328,11 +351,18 @@ export function SettingsModal() {
                 <select
                   value={selectedCoderId}
                   onChange={(e) => void handleStageChange(e.target.value, selectedFeedbackId)}
-                  disabled={modelsLoading || activatingModel || models.length === 0}
+                  disabled={modelsLoading || activatingModel || models.length === 0 || modelsUnsupported}
                 >
-                  {models.map((item) => (
-                    <option key={item.id} value={item.id}>{item.model_name}</option>
-                  ))}
+                  {models.length === 0 ? (
+                    <option value="">{modelsUnsupported ? t.settingsModal.modelsUnsupported : modelsLoading ? t.settingsModal.loadingModels : t.settingsModal.noStageModel}</option>
+                  ) : (
+                    <>
+                      {!selectedCoderId && <option value="" disabled hidden>{t.settingsModal.noStageModel}</option>}
+                      {models.map((item) => (
+                        <option key={item.id} value={item.id}>{item.model_name}</option>
+                      ))}
+                    </>
+                  )}
                 </select>
               </div>
               <div className="field">
@@ -340,11 +370,18 @@ export function SettingsModal() {
                 <select
                   value={selectedFeedbackId}
                   onChange={(e) => void handleStageChange(selectedCoderId, e.target.value)}
-                  disabled={modelsLoading || activatingModel || models.length === 0}
+                  disabled={modelsLoading || activatingModel || models.length === 0 || modelsUnsupported}
                 >
-                  {models.map((item) => (
-                    <option key={item.id} value={item.id}>{item.model_name}</option>
-                  ))}
+                  {models.length === 0 ? (
+                    <option value="">{modelsUnsupported ? t.settingsModal.modelsUnsupported : modelsLoading ? t.settingsModal.loadingModels : t.settingsModal.noStageModel}</option>
+                  ) : (
+                    <>
+                      {!selectedFeedbackId && <option value="" disabled hidden>{t.settingsModal.noStageModel}</option>}
+                      {models.map((item) => (
+                        <option key={item.id} value={item.id}>{item.model_name}</option>
+                      ))}
+                    </>
+                  )}
                 </select>
               </div>
             </div>

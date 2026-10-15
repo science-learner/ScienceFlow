@@ -5,6 +5,8 @@ import { useAppStore } from '../store/useAppStore';
 import {
   formatGatewayLogEvent,
   gatewayAgentStatus,
+  gatewayStartStream,
+  isGatewaySessionGone,
   type GatewayLogEvent,
   type GatewayStatusEvent,
   type GatewayBackfillEvent,
@@ -113,12 +115,50 @@ export function useGatewayStream() {
 
     const offStatus = Events.On('gateway-status', (ev) => {
       const e = ev.data as GatewayStatusEvent;
+      // Server mode shares the Go process across browser clients: only apply
+      // the connection state of our own session.
+      if (!isCurrentSessionEvent(e.session_id)) return;
       useGatewayStore.getState().setStatus(e.status, e.error);
     });
+
+    // Terminal task failures (agent process failed to start, crashed, timed
+    // out or was killed) would otherwise be invisible in the chat: the agent
+    // never produced a transcript, so the user just sees "no reply". Surface
+    // the task error once per task as a platform message.
+    const notifiedTerminal = new Set<string>();
+    const notifyTaskTerminal = (task: { id?: string; error?: string } | null | undefined, kind: 'failed' | 'cancelled') => {
+      if (!task || !task.id || notifiedTerminal.has(task.id)) return;
+      notifiedTerminal.add(task.id);
+      const detail = (task.error || '').trim();
+      const label = kind === 'failed' ? 'Task failed' : 'Task cancelled';
+      useAppStore.getState().addChatMessage({
+        message_id: `task-${kind}-${task.id}`,
+        role: 'platform',
+        content: detail ? `${label}: ${detail}` : label,
+        created_at: new Date().toISOString(),
+      });
+    };
+
+    // Re-assert cadence: every ~10s when healthy, every ~3s while not
+    // connected so a stalled/evicted stream recovers quickly.
+    let lastStreamEnsureAt = 0;
+    const ensureStreamSubscription = (sessionId: string) => {
+      const now = Date.now();
+      const connected = useGatewayStore.getState().status === 'connected';
+      const interval = connected ? 10000 : 3000;
+      if (now - lastStreamEnsureAt < interval) return;
+      lastStreamEnsureAt = now;
+      gatewayStartStream(sessionId);
+    };
 
     const statusTimer = window.setInterval(async () => {
       const { token, sessionId } = useGatewayStore.getState();
       if (!token || !sessionId) return;
+      // Re-assert our gateway SSE subscription (idempotent server-side). This
+      // self-heals two server-mode cases: another browser client stopped all
+      // streams (logout / session switch), or the stream silently stalled.
+      // Cheap when already subscribed; more eager while disconnected.
+      ensureStreamSubscription(sessionId);
       // While a stop request is in flight, don't let the poll overwrite the
       // "cancelling" state (the backend may still report "running" briefly).
       if (useAppStore.getState().chatRunState === 'cancelling') return;
@@ -133,17 +173,30 @@ export function useGatewayStream() {
           app.setChatBusy(false);
           app.setChatRunState('completed');
           syncChatMessages(true);
-        } else if (taskStatus === 'failed' || taskStatus === 'error' || taskStatus === 'idle') {
+        } else if (taskStatus === 'failed' || taskStatus === 'error') {
           app.setChatBusy(false);
-          app.setChatRunState(taskStatus === 'idle' ? 'idle' : 'failed');
+          app.setChatRunState('failed');
+          notifyTaskTerminal(status.task, 'failed');
+          syncChatMessages(true);
+        } else if (taskStatus === 'idle') {
+          app.setChatBusy(false);
+          app.setChatRunState('idle');
           syncChatMessages(true);
         } else if (taskStatus === 'killed' || taskStatus === 'cancelled') {
           app.setChatBusy(false);
           app.setChatRunState('cancelled');
+          notifyTaskTerminal(status.task, 'cancelled');
           syncChatMessages(true);
         }
-      } catch {
-        // The SSE stream remains the primary live status channel.
+      } catch (e) {
+        // The SSE stream remains the primary live status channel. A stale
+        // session id (typically after a gateway restart) surfaces as 404
+        // "session not found": rebuild the session so the chat, report and
+        // monitor panels recover instead of spamming failed calls.
+        if (isGatewaySessionGone(e)) {
+          const newId = await useGatewayStore.getState().recoverSession();
+          if (newId) useAppStore.getState().setChatSessionId(newId);
+        }
       }
     }, 1500);
 

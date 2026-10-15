@@ -10,7 +10,10 @@
 //  5. offers to pip-install / pip-upgrade automatically after user
 //     confirmation (declining a required install aborts startup with the
 //     manual command shown),
-//  6. prints a summary of the effective gateway configuration.
+//  6. asks for the listening port (interactive default 8901) and - when the
+//     port is already taken - shows the occupying process and offers to stop
+//     it after explicit confirmation (interactive only, never unattended),
+//  7. prints a summary of the effective gateway configuration.
 //
 // Non-interactive runs (stdin not a TTY, e.g. nohup/systemd) never hang: a
 // missing scienceflow install aborts with the manual command, a pending
@@ -63,10 +66,10 @@ func Run(cfg *config.Config, opts Options) error {
 
 	u.blank()
 	u.banner()
-	u.quiet("启动自检：Python 环境 · scienceflow 安装与版本更新 · 配置总览")
+	u.quiet("启动自检：Python 环境 · scienceflow 安装与版本更新 · 启动端口 · 配置总览")
 
-	// ---- [1/3] Python interpreter -------------------------------------
-	u.step(1, 3, "检测 Python 环境")
+	// ---- [1/4] Python interpreter -------------------------------------
+	u.step(1, 4, "检测 Python 环境")
 	raw := splitCommand(ag.Python)
 	if len(raw) == 0 {
 		u.fail("agent.python 未配置")
@@ -74,61 +77,80 @@ func Run(cfg *config.Config, opts Options) error {
 	}
 	base := prepareBase(raw)
 	exe, pyVer, pyErr := pythonInfo(base)
-	if pyErr != nil {
+	envOK := pyErr == nil
+	cur := ""
+	if !envOK {
 		u.fail("无法运行解释器 %q：%v", ag.Python, pyErr)
 		if ag.Enabled {
 			return fmt.Errorf("%w: interpreter %q unavailable: %v", ErrAborted, ag.Python, pyErr)
 		}
-		u.info("agent 未启用，跳过环境引导，继续启动")
-		printSummary(u, cfg, "", "", "")
-		return nil
-	}
-	u.ok("Python %s · %s", pyVer, exe)
-
-	// ---- [2/3] scienceflow installation -------------------------------
-	u.step(2, 3, "检测 scienceflow 安装")
-	cur, curErr := sfVersion(base, dist)
-	installed := curErr == nil
-	if installed {
-		u.ok("已安装 scienceflow %s", cur)
+		u.info("agent 未启用，跳过环境检测，继续端口与配置检查")
 	} else {
-		u.warn("未检测到 scienceflow（包名 %s）", dist)
+		u.ok("Python %s · %s", pyVer, exe)
 	}
 
-	// ---- [3/3] latest version on the index -----------------------------
-	u.step(3, 3, "检查最新版本")
-	latest, pre, latErr := latestVersion(base, dist)
-	if latErr != nil {
-		u.warn("无法获取索引上的最新版本（网络或 pip 索引不可达）")
-		u.quiet("%v", latErr)
-	} else {
-		u.ok("索引最新版本 %s", latest)
-	}
-
-	// ---- decision: install / upgrade / up-to-date ----------------------
-	if !installed {
-		if !ag.Enabled {
-			u.info("agent.enabled=false，scienceflow 非必需，跳过安装引导")
+	if envOK {
+		// ---- [2/4] scienceflow installation ---------------------------
+		u.step(2, 4, "检测 scienceflow 安装")
+		var curErr error
+		cur, curErr = sfVersion(base, dist)
+		installed := curErr == nil
+		if installed {
+			u.ok("已安装 scienceflow %s", cur)
 		} else {
-			v, err := ensureInstalled(u, stdin, interactive, opts, raw, base, dist, pre, exe, pyVer)
-			if err != nil {
-				return err
+			u.warn("未检测到 scienceflow（包名 %s）", dist)
+		}
+
+		// ---- [3/4] latest version on the index -------------------------
+		u.step(3, 4, "检查最新版本")
+		latest, pre, latErr := latestVersion(base, dist)
+		if latErr != nil {
+			u.warn("无法获取索引上的最新版本（网络或 pip 索引不可达）")
+			u.quiet("%v", latErr)
+		} else {
+			u.ok("索引最新版本 %s", latest)
+		}
+
+		// ---- decision: install / upgrade / up-to-date ------------------
+		if !installed {
+			if !ag.Enabled {
+				u.info("agent.enabled=false，scienceflow 非必需，跳过安装引导")
+			} else {
+				v, err := ensureInstalled(u, stdin, interactive, opts, raw, base, dist, pre, exe, pyVer)
+				if err != nil {
+					return err
+				}
+				cur = v
+				u.ok("安装完成：scienceflow %s", v)
 			}
-			cur = v
-			u.ok("安装完成：scienceflow %s", v)
+		} else if latErr == nil {
+			c, cmpOK := cmpVer(cur, latest)
+			switch {
+			case cmpOK && c < 0:
+				maybeUpgrade(u, stdin, interactive, opts, raw, base, dist, pre, cur, latest, ag.Enabled)
+			case cmpOK:
+				u.ok("已是最新版本（%s）", cur)
+			default:
+				u.quiet("无法比较版本 %s 与 %s，保留当前版本", cur, latest)
+			}
+		} else {
+			u.quiet("保留当前版本 %s", cur)
 		}
-	} else if latErr == nil {
-		c, cmpOK := cmpVer(cur, latest)
-		switch {
-		case cmpOK && c < 0:
-			maybeUpgrade(u, stdin, interactive, opts, raw, base, dist, pre, cur, latest, ag.Enabled)
-		case cmpOK:
-			u.ok("已是最新版本（%s）", cur)
-		default:
-			u.quiet("无法比较版本 %s 与 %s，保留当前版本", cur, latest)
-		}
+	}
+
+	// ---- [4/4] startup port --------------------------------------------
+	// Interactive runs may pick the port (default 8901); non-interactive and
+	// -yes runs use config server.port. Port conflicts are always surfaced;
+	// only an interactive user may authorize terminating the occupier.
+	u.step(4, 4, "配置启动端口")
+	canPrompt := interactive && !opts.AssumeYes
+	if canPrompt {
+		cfg.Server.Port = askPort(u, stdin, defaultStartPort)
 	} else {
-		u.quiet("保留当前版本 %s", cur)
+		u.quiet("使用配置端口 %d", cfg.Server.Port)
+	}
+	if err := resolvePort(u, stdin, canPrompt, cfg); err != nil {
+		return err
 	}
 
 	// ---- config summary -------------------------------------------------
@@ -580,7 +602,7 @@ func (u *ui) blank() {
 func (u *ui) banner() {
 	const width = 66
 	title := "ScienceFlow Log Gateway · 启动引导"
-	sub := "环境自检 · 版本更新 · 配置总览"
+	sub := "环境自检 · 版本更新 · 端口检查 · 配置总览"
 	inner := width - 2
 	u.print("%s", u.paint(cCyan, "┌"+strings.Repeat("─", inner)+"┐"))
 	u.print("%s%s%s", u.paint(cCyan, "│"), center(u.paint(cBold, title), inner), u.paint(cCyan, "│"))
@@ -648,6 +670,22 @@ func (u *ui) kv(label, value string) {
 		pad = 1
 	}
 	u.print("  %s%s%s", u.paint(cDim, label), strings.Repeat(" ", pad), value)
+}
+
+// ask prints a free-text prompt with a default value and returns the user's
+// input; empty input (or EOF) yields def. The answer is returned verbatim
+// (trimmed); validation belongs to the caller.
+func (u *ui) ask(question, def string, stdin *bufio.Reader) string {
+	fmt.Fprintf(u.w, "  %s %s %s ", u.paint(cBold+cCyan, "?"), question, u.paint(cDim, "["+def+"]"))
+	line, err := stdin.ReadString('\n')
+	if err != nil {
+		fmt.Fprintln(u.w)
+		return def
+	}
+	if line = strings.TrimSpace(line); line == "" {
+		return def
+	}
+	return line
 }
 
 // confirm prints a yes/no prompt and reads the answer. Empty input picks

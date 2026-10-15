@@ -13,6 +13,12 @@ var assets embed.FS
 func main() {
 	app := NewApp()
 
+	// Server mode (-tags server): host/port come from app_config.yaml and are
+	// also overridable with WAILS_SERVER_HOST / WAILS_SERVER_PORT. The desktop
+	// build ignores these options.
+	serverHost, serverPort := resolveServerAddress()
+	log.Printf("ScienceFlow (%s): gateway=%s server(config)=%s:%d", buildMode, app.GetGatewayURL(), serverHost, serverPort)
+
 	wailsApp := application.New(application.Options{
 		Name: "ScienceFlow",
 		Services: []application.Service{
@@ -20,6 +26,10 @@ func main() {
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
+		},
+		Server: application.ServerOptions{
+			Host: serverHost,
+			Port: serverPort,
 		},
 		Mac: application.MacOptions{
 			ApplicationShouldTerminateAfterLastWindowClosed: true,

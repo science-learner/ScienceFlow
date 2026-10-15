@@ -23,6 +23,22 @@ tasks:
     cmds:
       - task: "{{.GOOS}}:build"
 
+  build:frontend:
+    summary: Builds only the frontend into frontend/dist (same artifact wails3 build embeds; no Wails CLI needed)
+    dir: frontend
+    cmds:
+      - test -d node_modules || npm install
+      - npm run build:dist
+
+  serve:
+    summary: Builds the production web service and starts it (server mode, one-click remote web UI)
+    cmds:
+      - task: common:build:server
+      - cmd: ./{{.BIN_DIR}}/{{.APP_NAME}}-server.exe
+        platforms: [windows]
+      - cmd: ./{{.BIN_DIR}}/{{.APP_NAME}}-server
+        platforms: [linux, darwin]
+
   package:
     summary: Packages a production build of the application
     cmds:
@@ -52,6 +68,27 @@ tasks:
     summary: Builds the application in server mode (no GUI, HTTP server only)
     cmds:
       - task: common:build:server
+
+  build:server:linux:
+    summary: Cross-compiles the production server binary for Linux (any host)
+    desc: |
+      Runs the same frontend + bindings build as build:server (so the embedded
+      UI is never stale), then cross-compiles a stripped linux/amd64 binary with
+      -tags server,production. Server mode has no native GUI dependencies, so no
+      cgo or Docker is required. Output: bin/scienceflow_gui-server-linux-amd64.
+
+      Usage: wails3 task build:server:linux [LINUX_ARCH=arm64]
+    vars:
+      LINUX_ARCH: '{{.LINUX_ARCH | default "amd64"}}'
+      SERVER_BUILD_FLAGS: '-tags server,production -trimpath -buildvcs=false -ldflags="-w -s"'
+    deps:
+      - task: common:build:frontend
+        vars:
+          DEV: 'false'
+          OBFUSCATED: 'false'
+          BUILD_FLAGS: '{{.SERVER_BUILD_FLAGS}}'
+    cmds:
+      - GOOS=linux GOARCH={{.LINUX_ARCH}} CGO_ENABLED=0 go build {{.SERVER_BUILD_FLAGS}} -o "{{.BIN_DIR}}/{{.APP_NAME}}-server-linux-{{.LINUX_ARCH}}" .
 
   run:server:
     summary: Runs the application in server mode

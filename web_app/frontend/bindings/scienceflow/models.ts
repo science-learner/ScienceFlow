@@ -246,6 +246,7 @@ export class GatewayLoginResult {
     "token": string;
     "expires_at": string;
     "user": string;
+    "role": string;
     "sources": string[];
 
     /** Creates a new GatewayLoginResult instance. */
@@ -259,6 +260,9 @@ export class GatewayLoginResult {
         if (!("user" in $$source)) {
             this["user"] = "";
         }
+        if (!("role" in $$source)) {
+            this["role"] = "";
+        }
         if (!("sources" in $$source)) {
             this["sources"] = [];
         }
@@ -270,10 +274,10 @@ export class GatewayLoginResult {
      * Creates a new GatewayLoginResult instance from a string or object.
      */
     static createFrom($$source: any = {}): GatewayLoginResult {
-        const $$createField3_0 = $$createType6;
+        const $$createField4_0 = $$createType6;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("sources" in $$parsedSource) {
-            $$parsedSource["sources"] = $$createField3_0($$parsedSource["sources"]);
+            $$parsedSource["sources"] = $$createField4_0($$parsedSource["sources"]);
         }
         return new GatewayLoginResult($$parsedSource as Partial<GatewayLoginResult>);
     }
@@ -880,8 +884,7 @@ export class ProxyResponse {
 
 /**
  * SystemStats carries live resource usage of the local machine running the
- * desktop app: overall CPU load, memory usage, and storage of the Windows
- * system drive (normally C:\).
+ * app: overall CPU load, memory usage and storage of the primary drive.
  */
 export class SystemStats {
     "cpu_percent": number;

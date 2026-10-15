@@ -118,7 +118,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T & 
           }
         })()
       : '';
-    throw new Error(message || `HTTP ${res.status}`);
+    throw new Error((message || `HTTP ${res.status}`).slice(0, 300));
   }
 
   const data = res.body ? JSON.parse(res.body) : {};
@@ -221,18 +221,49 @@ export async function fetchReportContent(reportPath: string, taskRoot?: string, 
 
 // ── Auth (gateway_server /login) ──
 
-export async function validateAuth(): Promise<boolean> {
+export type AuthValidation = 'valid' | 'invalid' | 'unreachable';
+
+// validateAuth re-checks the cached token against the gateway. Distinguishes
+// a rejected token ('invalid' → the session must be dropped) from a gateway
+// that is merely unreachable ('unreachable' → keep the 7-day cache entry; a
+// transient outage or a wrong address must not burn the session).
+export async function validateAuth(): Promise<AuthValidation> {
   const token = _getAuthToken();
-  if (!token) return false;
+  if (!token) return 'invalid';
+  let res;
   try {
-    const res = await Proxy({
+    res = await Proxy({
       method: 'GET',
       path: '/sources',
       headers: { Authorization: `Bearer ${token}` },
     });
-    return res.status >= 200 && res.status < 300;
   } catch {
-    return false;
+    return 'unreachable';
+  }
+  if (res.status === 401 || res.status === 403) return 'invalid';
+  if (res.status >= 500) return 'unreachable';
+  if (res.status < 200 || res.status >= 300) return 'invalid';
+  // A valid gateway answers with {"sources": [...]} (older builds: a bare
+  // array). HTML bodies (SPA fallback, reverse proxy page) mean the address
+  // is not the log gateway.
+  try {
+    const data = JSON.parse(res.body || '{}');
+    if (Array.isArray(data)) return 'valid';
+    if (data && typeof data === 'object' && Array.isArray((data as { sources?: unknown }).sources)) {
+      return 'valid';
+    }
+  } catch {
+    /* not JSON */
+  }
+  return 'invalid';
+}
+
+// InvalidCredentialsError marks a login rejection (HTTP 401/403). The UI maps
+// it to a single unified message instead of echoing the gateway text.
+export class InvalidCredentialsError extends Error {
+  constructor() {
+    super('invalid credentials');
+    this.name = 'InvalidCredentialsError';
   }
 }
 
@@ -243,6 +274,9 @@ export async function login(username: string, password: string): Promise<{ token
     body: JSON.stringify({ user_name: username, password }),
     headers: { 'Content-Type': 'application/json' },
   });
+  if (res.status === 401 || res.status === 403) {
+    throw new InvalidCredentialsError();
+  }
   if (res.status < 200 || res.status >= 300) {
     const bodyText = res.body || '';
     const message = bodyText
@@ -254,13 +288,24 @@ export async function login(username: string, password: string): Promise<{ token
           }
         })()
       : 'Login failed';
-    throw new Error(message);
+    throw new Error(message.slice(0, 300));
   }
-  const data = JSON.parse(res.body || '{}');
+  let data: { token?: string; expires_at?: string; user?: string; role?: string };
+  try {
+    data = JSON.parse(res.body || '{}');
+  } catch {
+    throw new Error(
+      `Unexpected non-JSON response (HTTP ${res.status}): ${(res.body || '(empty)').slice(0, 200)}`,
+    );
+  }
+  if (!data.token) {
+    throw new Error(`Login response is missing a token: ${(res.body || '').slice(0, 200)}`);
+  }
   const user: AuthUser = {
     username: data.user || username,
     display_name: data.user || username,
     created_at: data.expires_at || '',
+    role: data.role || 'user',
   };
   saveAuth(data.token, user);
   return { token: data.token, user };

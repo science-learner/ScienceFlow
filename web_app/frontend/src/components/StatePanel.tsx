@@ -60,12 +60,12 @@ export function StatePanel() {
             <div className="settings-section-title">{t.statePanel.transport}</div>
             <div className="kv" data-state-transport-details>
               {transportEntries.length === 0 ? (
-                <div className="kv-row"><span>{t.common.dash}</span><span>{t.statePanel.noTransport}</span></div>
+                <div className="kv-row"><span title={t.common.dash}>{t.common.dash}</span><span title={t.statePanel.noTransport}>{t.statePanel.noTransport}</span></div>
               ) : (
                 transportEntries.map(([key, value]) => (
                   <div className="kv-row" key={key}>
-                    <span>{key}</span>
-                    <span>{valueOrDash(value)}</span>
+                    <span title={key}>{key}</span>
+                    <span title={valueOrDash(value)}>{valueOrDash(value)}</span>
                   </div>
                 ))
               )}
@@ -76,12 +76,12 @@ export function StatePanel() {
             <div className="settings-section-title">{t.statePanel.scheduler}</div>
             <div className="kv" data-state-scheduler-details>
               {schedulerEntries.length === 0 ? (
-                <div className="kv-row"><span>{t.common.dash}</span><span>{t.statePanel.noScheduler}</span></div>
+                <div className="kv-row"><span title={t.common.dash}>{t.common.dash}</span><span title={t.statePanel.noScheduler}>{t.statePanel.noScheduler}</span></div>
               ) : (
                 schedulerEntries.map(([key, value]) => (
                   <div className="kv-row" key={key}>
-                    <span>{key}</span>
-                    <span>{valueOrDash(value)}</span>
+                    <span title={key}>{key}</span>
+                    <span title={valueOrDash(value)}>{valueOrDash(value)}</span>
                   </div>
                 ))
               )}
@@ -92,12 +92,12 @@ export function StatePanel() {
             <div className="settings-section-title">{t.statePanel.moduleEtags}</div>
             <div className="kv" data-state-modules-details>
               {etagEntries.length === 0 ? (
-                <div className="kv-row"><span>{t.common.dash}</span><span>{t.statePanel.noEtags}</span></div>
+                <div className="kv-row"><span title={t.common.dash}>{t.common.dash}</span><span title={t.statePanel.noEtags}>{t.statePanel.noEtags}</span></div>
               ) : (
                 etagEntries.map(([key, value]) => (
                   <div className="kv-row" key={key}>
-                    <span>{key}</span>
-                    <span>{valueOrDash(value)}</span>
+                    <span title={key}>{key}</span>
+                    <span title={valueOrDash(value)}>{valueOrDash(value)}</span>
                   </div>
                 ))
               )}

@@ -1,6 +1,7 @@
 import { useRef, useEffect, useMemo } from 'react';
 import { useGatewayStore } from '../store/useGatewayStore';
-import { formatToolArgPreview } from '../utils/agentLogParser';
+import { useT } from '../i18n/useT';
+import { formatToolArgPreview, type ParsedAgentRun } from '../utils/agentLogParser';
 import clsx from 'clsx';
 import { Terminal, FileText, Pencil, FileEdit, Search, FolderOpen, List, Code, Wrench } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -19,6 +20,7 @@ const TOOL_ICONS: Record<string, LucideIcon> = {
 
 export function AgentLineageView() {
   const { parsedLog, status } = useGatewayStore();
+  const t = useT();
   const scrollRef = useRef<HTMLDivElement>(null);
   const stickRef = useRef(true);
 
@@ -36,13 +38,29 @@ export function AgentLineageView() {
 
   const grouped = useMemo(() => groupByTool(toolCalls), [toolCalls]);
 
+  // Heavy runs carry no interaction tool calls in the streamed transcript;
+  // render their run timeline (iterations / notices / stage summary) instead
+  // of the lite step lineage.
+  const heavyRun = useMemo(
+    () => (lastRun && lastRun.mode === 'heavy' && lastRun.steps.length > 0 ? lastRun : null),
+    [lastRun],
+  );
+
   if (toolCalls.length === 0) {
+    if (heavyRun) {
+      return <HeavyLineage run={heavyRun} />;
+    }
+    const heavy = lastRun?.mode === 'heavy';
     return (
       <div className="dim" style={{ display: 'grid', placeItems: 'center', height: '100%', textAlign: 'center' }}>
         <div>
           <p style={{ margin: 0, fontSize: 14 }}>Agent Lineage</p>
           <p style={{ margin: '8px 0 0', fontSize: 12 }}>
-            {status === 'idle' ? '连接日志网关后，智能体的 step 演进将在此呈现。' : '等待工具调用…'}
+            {status === 'idle'
+              ? '连接日志网关后，智能体的 step 演进将在此呈现。'
+              : heavy
+                ? 'HEAVY 模式下 worker 的工具调用记录在工作区子日志中；本卡的迭代进度与阶段结果见驾驶舱「运行」卡片。'
+                : '等待工具调用…'}
           </p>
         </div>
       </div>
@@ -143,6 +161,112 @@ export function AgentLineageView() {
         </div>
       )}
     </div>
+  );
+}
+
+// Heavy run timeline: iterations, progress notices and the stage-result
+// summary, rendered on the same vertical rail as the lite step lineage.
+function HeavyLineage({ run }: { run: ParsedAgentRun }) {
+  const t = useT();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const stickRef = useRef(true);
+
+  useEffect(() => {
+    if (scrollRef.current && stickRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [run.steps.length]);
+
+  return (
+    <div className="lineage-view" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+      <div style={{ display: 'flex', gap: 16, padding: '8px 14px', borderBottom: '1px solid var(--line)', flexShrink: 0, flexWrap: 'wrap' }}>
+        <Stat label="Mode" value="heavy" />
+        {run.taskId && <Stat label="Task" value={run.taskId.replace(/^task-/, '').slice(-12)} />}
+        {run.iteration && <Stat label="Iteration" value={`${run.iteration.current}/${run.iteration.max}`} />}
+        <Stat label="Events" value={String(run.steps.length)} />
+      </div>
+      <div
+        ref={scrollRef}
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
+        }}
+        style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '14px' }}
+      >
+        <div className="lineage-timeline" style={{ position: 'relative', paddingLeft: 24 }}>
+          <div style={{ position: 'absolute', left: 8, top: 0, bottom: 0, width: 2, background: 'var(--line)' }} />
+          {run.steps.map((step, i) => {
+            if (step.kind === 'summary') {
+              return (
+                <div key={i} className="lineage-node" style={{ position: 'relative', marginBottom: 12 }}>
+                  <LineageDot active />
+                  <div className="run-summary" style={{ margin: 0 }}>
+                    {step.items.map((item) => (
+                      <div className="run-summary-item" key={item.label}>
+                        <span className="run-summary-label">{t.runSummary[item.label] || item.label}</span>
+                        <span className="run-summary-value">{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            }
+            const isIteration = step.kind === 'iteration';
+            const text =
+              step.kind === 'iteration'
+                ? `${t.chatRail.iterationsShort} ${step.current}/${step.max}`
+                : step.kind === 'notice'
+                  ? step.text
+                  : step.kind === 'thought'
+                    ? step.text
+                    : step.kind === 'tool'
+                      ? step.tool
+                      : '';
+            if (!text) return null;
+            return (
+              <div
+                key={i}
+                className="lineage-node"
+                style={{ position: 'relative', marginBottom: isIteration ? 10 : 6 }}
+              >
+                <LineageDot active={isIteration} />
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontFamily: 'var(--mono)',
+                    lineHeight: 1.5,
+                    color: isIteration ? 'var(--cyan, #5cc8ff)' : 'var(--soft)',
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                    padding: '1px 0',
+                  }}
+                >
+                  {text}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LineageDot({ active }: { active?: boolean }) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: -22,
+        top: 4,
+        width: active ? 12 : 9,
+        height: active ? 12 : 9,
+        borderRadius: '50%',
+        background: 'var(--panel)',
+        border: `2px solid ${active ? 'var(--accent, #5cc8ff)' : 'var(--line)'}`,
+        zIndex: 1,
+      }}
+    />
   );
 }
 

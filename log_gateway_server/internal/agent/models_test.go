@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -38,8 +39,12 @@ func TestModelStoreCRUDRegistrySchema(t *testing.T) {
 	if err != nil {
 		t.Fatalf("registry file missing: %v", err)
 	}
-	if fi, _ := os.Stat(path); fi.Mode().Perm() != 0o600 {
-		t.Fatalf("registry perms = %v, want 0600", fi.Mode().Perm())
+	if runtime.GOOS != "windows" {
+		// Windows does not preserve Unix permission bits, so the 0600 check
+		// only applies on Unix-like platforms.
+		if fi, _ := os.Stat(path); fi.Mode().Perm() != 0o600 {
+			t.Fatalf("registry perms = %v, want 0600", fi.Mode().Perm())
+		}
 	}
 	var reg registryFile
 	if err := json.Unmarshal(b, &reg); err != nil {

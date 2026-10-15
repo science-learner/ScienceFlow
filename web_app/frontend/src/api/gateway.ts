@@ -25,6 +25,7 @@ import {
   GatewayDeleteModel,
   WorkspaceDownload,
   WorkspaceUploadFiles,
+  GetGatewayURL,
   SetGatewayURL,
   GetSystemStats,
 } from '../../bindings/scienceflow/app';
@@ -99,6 +100,7 @@ export interface GatewayLogEvent {
 }
 
 export interface GatewayStatusEvent {
+  session_id?: string;
   status: 'connecting' | 'connected' | 'disconnected' | 'unauthorized';
   error?: string;
 }
@@ -329,8 +331,14 @@ export async function workspaceUploadFiles(
   return WorkspaceUploadFiles(token, sessionId, targetDir, uploadedFiles) as Promise<WorkspaceUploadResult>;
 }
 
-export function setGatewayURL(url: string): void {
-  void SetGatewayURL(url || '');
+export function setGatewayURL(url: string): Promise<void> {
+  return SetGatewayURL(url || '');
+}
+
+// getGatewayURL returns the Go-side resolved gateway base URL (app_config.yaml
+// value or the runtime override).
+export function getGatewayURL(): Promise<string> {
+  return GetGatewayURL();
 }
 
 // Auth failures are signalled by the gateway with HTTP 401 and the fixed body
@@ -339,6 +347,23 @@ export function setGatewayURL(url: string): void {
 export function isGatewayAuthError(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);
   return msg.includes('用户不存在或密码错误');
+}
+
+// Session-not-found failures (HTTP 404 with "session not found") mean the id
+// in the frontend is stale — typically the gateway restarted (stateless tokens
+// stay valid, in-memory sessions do not). Callers use this to rebuild the
+// session instead of retrying with the dead id.
+export function isGatewaySessionGone(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /404/.test(msg) && /session not found/i.test(msg);
+}
+
+// Endpoint-not-found failures (HTTP 404 without a session context) usually
+// mean the deployed gateway build predates the requested API (e.g. /models).
+// Callers use this to degrade gracefully instead of showing a raw error.
+export function isGatewayEndpointMissing(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /(^|\D)404(\D|$)/.test(msg) && !/session not found/i.test(msg);
 }
 
 // Decode a gateway log event into a single display line.

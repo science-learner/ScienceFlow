@@ -73,7 +73,7 @@ type AgentConfig struct {
 	InputDataDir     string   `json:"input_data_dir"`     // optional -d shared dataset root
 	ExpID            string   `json:"exp_id"`             // optional --exp-id
 	Timeout          Duration `json:"timeout"`            // per-invocation wall-clock cap; 0 = unbounded
-	HeavyTimeout     Duration `json:"heavy_timeout"`      // wall-clock cap for heavy (run --type lnr) tasks; 0 = use timeout
+	HeavyTimeout     Duration `json:"heavy_timeout"`      // wall-clock cap for heavy (parallel LNR) tasks; 0 = use timeout
 	MaxConcurrent    int      `json:"max_concurrent"`     // max simultaneous running agent processes (0 = unlimited)
 	MaxQueue         int      `json:"max_queue"`          // max tasks waiting in queue when all slots full; 0 = unlimited
 	FileSyncInterval Duration `json:"file_sync_interval"` // workspace file-tree change polling interval
@@ -83,11 +83,12 @@ type AgentConfig struct {
 }
 
 type AuthConfig struct {
-	Enabled     bool     `json:"enabled"`
-	File        string   `json:"file"`
-	TokenSecret string   `json:"token_secret"`
-	TokenTTL    Duration `json:"token_ttl"`
-	SessionTTL  Duration `json:"session_ttl"`
+	Enabled        bool     `json:"enabled"`
+	File           string   `json:"file"`
+	TokenSecret    string   `json:"token_secret"`
+	TokenTTL       Duration `json:"token_ttl"`
+	SessionTTL     Duration `json:"session_ttl"`
+	ReloadInterval Duration `json:"reload_interval"` // AUTH.yaml mtime poll interval for hot reload
 }
 
 // WorkspaceConfig limits the file/directory transfer endpoints.
@@ -238,6 +239,9 @@ func (c *Config) applyDefaults() {
 	}
 	if c.Auth.SessionTTL.Duration == 0 {
 		c.Auth.SessionTTL.Duration = 1 * time.Hour
+	}
+	if c.Auth.ReloadInterval.Duration == 0 {
+		c.Auth.ReloadInterval.Duration = 5 * time.Second
 	}
 	if c.Registry.Path == "" {
 		c.Registry.Path = "data/registry.json"

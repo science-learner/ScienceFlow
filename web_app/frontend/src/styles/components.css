@@ -205,6 +205,31 @@
       white-space: nowrap;
     }
 
+    .user-admin-badge {
+      flex: none;
+      padding: 0 7px;
+      border: 1px solid rgba(22, 119, 255, .35);
+      border-radius: 999px;
+      background: rgba(22, 119, 255, .12);
+      color: #7cb2ff;
+      font-family: var(--mono);
+      font-size: 10px;
+      line-height: 16px;
+      white-space: nowrap;
+    }
+
+    .user-admin-badge.user {
+      border-color: rgba(255, 255, 255, .14);
+      background: rgba(255, 255, 255, .05);
+      color: var(--muted);
+    }
+
+    /* Two-column layout: user (+role badge) and actions. */
+    .user-admin-card .model-manager-head.user-admin-row,
+    .user-admin-card .model-manager-row.user-admin-row {
+      grid-template-columns: minmax(0, 1fr) 58px;
+    }
+
     .model-cube-icon {
       color: var(--cyan);
       font-size: 16px;
@@ -291,6 +316,13 @@
 
     .add-model-body {
       overflow: visible;
+    }
+
+    /* The user form (sources checklist) can exceed the viewport: let the body
+       scroll while head/actions stay pinned. */
+    .user-admin-dialog .add-model-body {
+      overflow: auto;
+      min-height: 0;
     }
 
     .add-model-fields {

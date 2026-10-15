@@ -1675,6 +1675,7 @@
       font-family: var(--mono);
       font-size: 11px;
       box-shadow: inset 3px 0 0 rgba(92, 200, 255, .18);
+      cursor: pointer;
     }
 
     .session-card:hover {

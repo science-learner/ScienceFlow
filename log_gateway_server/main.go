@@ -23,7 +23,7 @@ import (
 
 func main() {
 	cfgPath := flag.String("config", "config.json", "path to config file")
-	bootstrapOn := flag.Bool("bootstrap", true, "run the startup bootstrap: Python/scienceflow environment detection, optional install/upgrade guidance, config summary")
+	bootstrapOn := flag.Bool("bootstrap", true, "run the startup bootstrap: Python/scienceflow environment detection, optional install/upgrade guidance, startup-port check, config summary")
 	assumeYes := flag.Bool("yes", false, "auto-answer bootstrap prompts (unattended install/upgrade; implies -bootstrap)")
 	flag.Parse()
 
@@ -36,9 +36,10 @@ func main() {
 
 	// Startup bootstrap (see internal/bootstrap): banner, Python/scienceflow
 	// environment detection with optional pip install/upgrade after user
-	// confirmation, then a summary of the effective configuration. Skippable
-	// with -bootstrap=false for service/nohup deployments that must not
-	// touch stdin.
+	// confirmation, listening-port selection and conflict resolution, then a
+	// summary of the effective configuration. Skippable with
+	// -bootstrap=false for service/nohup deployments that must not touch
+	// stdin.
 	if *assumeYes {
 		*bootstrapOn = true
 	}
@@ -70,6 +71,12 @@ func main() {
 		} else {
 			logger.Printf("auth enabled: %d user(s) loaded from %s", authStore.Count(), cfg.Auth.File)
 		}
+		// Hot reload: external edits to AUTH.yaml and mutations made through
+		// the admin /users API both take effect without restarting. Invalid
+		// edits are logged and ignored, keeping the current accounts active.
+		stopAuthReload := authStore.WatchReload(cfg.Auth.ReloadInterval.Duration, logger)
+		defer stopAuthReload()
+		logger.Printf("auth hot reload enabled: watching %s every %s", cfg.Auth.File, cfg.Auth.ReloadInterval.Duration)
 	}
 
 	sessions := session.NewManager(cfg.Auth.SessionTTL.Duration)
@@ -85,17 +92,26 @@ func main() {
 		// Dynamic per-session log tracking: instead of a static glob that
 		// tails every session's files, we register the "agent-logs" source
 		// name up front (so ACL/subscription filtering works from login) and
-		// attach/detach individual files as tasks start/finish. Two
-		// transcripts are streamed per task: RAW.log (stdout/stderr: banners,
-		// errors, tracebacks) and run/.logs/interaction.log (the installed
-		// CLI's full interaction record — user/assistant/tool turns — which
-		// does NOT reach stdout in --plain mode).
+		// attach/detach individual files as tasks start/finish. Streamed
+		// transcripts per task: RAW.log (subprocess stdout/stderr — banners,
+		// errors, launch/summary lines), run/.logs/interaction.log (the
+		// installed CLI's full interaction record — user/assistant/tool turns
+		// — which does NOT reach stdout in --plain mode) and, for heavy
+		// (LNR) tasks, run/task_logs/parallel_subprocess.log (the research
+		// worker's own transcript, written by `cli parallel`).
 		t.RegisterSourceName(agent.RawLogSource)
 		agentRunner.OnTaskStart = func(task *agent.Task) {
 			if task.RawLogPath != "" {
 				t.WatchFile(task.RawLogPath, agent.RawLogSource, 100*time.Millisecond)
 			}
 			if p := task.InteractionLogPath(); p != "" {
+				t.WatchFile(p, agent.RawLogSource, 100*time.Millisecond)
+			}
+			// Heavy: the worker log appears once the parallel scheduler
+			// spawns the LNR subprocess; the tailer attaches on its next
+			// scan (registration baseline is offset 0, so no early bytes are
+			// skipped).
+			if p := task.HeavyLogPath(); p != "" {
 				t.WatchFile(p, agent.RawLogSource, 100*time.Millisecond)
 			}
 		}
@@ -106,6 +122,9 @@ func main() {
 				t.UnwatchFileAfter(task.RawLogPath, 10*time.Second)
 			}
 			if p := task.InteractionLogPath(); p != "" {
+				t.UnwatchFileAfter(p, 10*time.Second)
+			}
+			if p := task.HeavyLogPath(); p != "" {
 				t.UnwatchFileAfter(p, 10*time.Second)
 			}
 		}
@@ -128,6 +147,15 @@ func main() {
 		fileWatcher,
 		cfg.Workspace,
 	)
+
+	// Restart continuity: re-register sessions found in the task workspace
+	// root so the frontend's session list (and stored session id) survives a
+	// gateway restart; the agent workspace/memory is reused on the next
+	// invoke. In-memory-only sessions without task content are not restored.
+	if n := srv.RestoreSessions(); n > 0 {
+		logger.Printf("restored %d historical session(s) from task workspaces", n)
+	}
+
 	httpSrv := &http.Server{Addr: srv.Addr(), Handler: srv.Handler()}
 
 	go func() {
