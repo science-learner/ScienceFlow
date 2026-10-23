@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/science-learner/ScienceFlow/actions/workflows/scienceflow-contract-ci.yml"><img src="https://github.com/science-learner/ScienceFlow/actions/workflows/scienceflow-contract-ci.yml/badge.svg?branch=preview" alt="CI"></a>
-  <a href="https://pypi.org/project/scienceflow/"><img src="https://img.shields.io/pypi/v/scienceflow?label=PyPI&amp;color=0f766e&amp;cacheSeconds=300&amp;release=0.2.0b10" alt="PyPI"></a>
+  <a href="https://pypi.org/project/scienceflow/"><img src="https://img.shields.io/pypi/v/scienceflow?label=PyPI&amp;color=0f766e&amp;cacheSeconds=300&amp;release=0.2.0b11" alt="PyPI"></a>
   <a href="https://arxiv.org/abs/2608.14354"><img src="https://img.shields.io/badge/arXiv-2608.14354-B31B1B.svg" alt="arXiv paper"></a>
   <a href="https://github.com/science-learner/ScienceFlow/issues"><img src="https://img.shields.io/badge/feedback-open-334155" alt="Feedback"></a>
   <img src="https://img.shields.io/badge/Python-3.11%2B-3776AB" alt="Python 3.11+">
@@ -18,7 +18,7 @@ TUI and Web monitor.
 </p>
 
 > [!IMPORTANT]
-> **Testing preview · 0.2.0b10.**
+> **Testing preview · 0.2.0b11.**
 > Interfaces and workspace metadata may change before the stable release.
 
 ## News
@@ -36,7 +36,7 @@ Install ScienceFlow with <a href="https://pipx.pypa.io/latest/how-to/install-pip
 the command is available from any directory while its Python dependencies remain isolated:
 
 ```bash
-pipx install scienceflow==0.2.0b10
+pipx install scienceflow==0.2.0b11
 scienceflow --help
 ```
 
@@ -48,13 +48,13 @@ scienceflow --help
 ```bash
 conda create -n scienceflow python=3.12 -y
 conda activate scienceflow
-python -m pip install scienceflow==0.2.0b10
+python -m pip install scienceflow==0.2.0b11
 ```
 
 **uv**
 
 ```bash
-uv tool install scienceflow==0.2.0b10
+uv tool install scienceflow==0.2.0b11
 ```
 
 **Python virtual environment**
@@ -62,7 +62,7 @@ uv tool install scienceflow==0.2.0b10
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install scienceflow==0.2.0b10
+python -m pip install scienceflow==0.2.0b11
 ```
 
 </details>
@@ -185,7 +185,7 @@ dependencies only when needed:
 </p>
 
 ```bash
-python -m pip install "scienceflow[full]"==0.2.0b10
+python -m pip install "scienceflow[full]"==0.2.0b11
 ```
 
 <p align="justify">
