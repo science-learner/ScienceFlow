@@ -71,6 +71,7 @@ def test_registry_populates_code_and_feedback_stages(tmp_path):
         "qwen3-coder",
     ]
     assert cfg.agent.code.api_keys == ["a", "b", "c"]
+    assert cfg.agent.code.use_proxies == [False, False, False]
     assert cfg.agent.feedback.model_aliases == ["deepseek"]
     assert cfg.agent.feedback.models == ["deepseek-v4-flash", "deepseek-v4-flash"]
     prices = load_model_config_prices(path)
@@ -87,6 +88,20 @@ def test_task_stage_can_select_registry_subset(tmp_path):
     assert stage.api_keys == ["c"]
     assert stage.api_routing_mode == "sticky_failover"
     assert stage.reasoning_replay == "preserve"
+
+
+def test_registry_projects_proxy_flags_per_endpoint(tmp_path):
+    path = tmp_path / "models.json"
+    _write_registry(path)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["models"]["deepseek"]["use_proxy"] = True
+    payload["models"]["qwen"]["use_proxy"] = False
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    cfg = Config()
+    assert apply_model_registry(cfg, path)
+    assert cfg.agent.code.use_proxies == [True, True, False]
+    assert cfg.agent.feedback.use_proxies == [True, True]
 
 
 def test_registry_applies_reasoning_replay_and_stage_override(tmp_path):

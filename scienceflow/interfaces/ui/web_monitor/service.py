@@ -61,7 +61,10 @@ def start(workspace, *, host="127.0.0.1", port=8765):
                 stderr=log,
                 start_new_session=True,
             )
-        for _ in range(100):
+        # A fresh interpreter may need more than ten seconds to import the Web
+        # stack on a busy or cold filesystem; a real startup error exits early.
+        deadline = time.monotonic() + 30
+        while time.monotonic() < deadline:
             row = read_service(workspace)
             if row and row["pid"] == process.pid:
                 return dict(row, reused=False)
@@ -88,9 +91,30 @@ def stop(workspace):
         ).close()
         for _ in range(30):
             if not read_service(workspace):
-                break
+                return "Web monitor stopped. Research tasks continue running."
             time.sleep(0.1)
-        return "Web monitor stopping. Research tasks continue running."
+        # A scan can outlive the HTTP shutdown. Only terminate the process
+        # recorded for this workspace, never a research worker or reused PID.
+        current = read_service(workspace)
+        if (
+            current
+            and current["pid"] == row["pid"]
+            and current["created"] == row["created"]
+        ):
+            try:
+                process = psutil.Process(row["pid"])
+                if abs(process.create_time() - row["created"]) < 0.01:
+                    process.terminate()
+                    try:
+                        process.wait(timeout=2)
+                    except psutil.TimeoutExpired:
+                        process.kill()
+                        process.wait(timeout=2)
+            except psutil.NoSuchProcess:
+                pass
+        if read_service(workspace):
+            raise ValueError("Web monitor did not stop; retry /web stop")
+        return "Web monitor stopped. Research tasks continue running."
 
 
 def instructions(row, workspace):

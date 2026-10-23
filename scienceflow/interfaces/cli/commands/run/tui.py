@@ -3,13 +3,11 @@
 from __future__ import annotations
 
 from functools import wraps
-from importlib.metadata import PackageNotFoundError, version
 from inspect import signature
 from pathlib import Path
 
 import click
 from inquirycraft.cli import create_cli
-from inquirycraft.runtime import AgentRuntime
 
 from scienceflow.foundation.config.llm.model_registry import (
     default_model_config_path,
@@ -19,7 +17,7 @@ from scienceflow.foundation.config.runtime.llm_lists import values
 from scienceflow.interfaces.cli.user_config import set_tui_state_defaults
 from scienceflow.interfaces.ui.llm_cli import TuiPoolRuntimeFactory, plural_cli_options
 from scienceflow.interfaces.ui.logo import COMPACT_LOGO_PIXELS, LOGO_PIXELS
-from scienceflow.interfaces.ui.long_research import LongResearchInteraction
+from scienceflow.interfaces.version import get_version
 
 
 def _pin_tui_chat_model(command: click.Command) -> click.Command:
@@ -53,6 +51,7 @@ def build_tui_command(*, initial_command: str = "") -> click.Command:
     """Reuse InquiryCraft's TUI command while injecting one ScienceFlow interceptor."""
 
     import inquirycraft.tui as tui_host
+    from inquirycraft.runtime import AgentRuntime
 
     required_host_parameters = {
         "include_tui",
@@ -99,12 +98,21 @@ def build_tui_command(*, initial_command: str = "") -> click.Command:
         if key in branding_parameters
     }
 
-    try:
-        package_version = version("scienceflow")
-    except PackageNotFoundError:
-        package_version = "dev"
+    package_version = get_version()
 
     runtime_factory = TuiPoolRuntimeFactory()
+
+    def build_interceptor(workspace):
+        from scienceflow.interfaces.ui.long_research import LongResearchInteraction
+
+        return LongResearchInteraction(
+            Path(workspace),
+            managed=True,
+            multi_task=True,
+            initial_command=initial_command,
+            preparation_runtime_factory=runtime_factory,
+        )
+
     host = create_cli(
         name="scienceflow-tui-host",
         runtime_factory=runtime_factory,
@@ -135,13 +143,7 @@ def build_tui_command(*, initial_command: str = "") -> click.Command:
             welcome_emphasis=("Long Research", "parallel workers", "best result"),
             **presentation_options,
         ),
-        tui_interceptor_factory=lambda workspace: LongResearchInteraction(
-            Path(workspace),
-            managed=True,
-            multi_task=True,
-            initial_command=initial_command,
-            preparation_runtime_factory=runtime_factory,
-        ),
+        tui_interceptor_factory=build_interceptor,
     )
     command = host.commands.get("tui")
     if command is None:  # pragma: no cover - defensive contract guard

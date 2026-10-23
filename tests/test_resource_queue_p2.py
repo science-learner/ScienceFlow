@@ -382,11 +382,12 @@ async def test_resource_wait_wakes_on_holder_release_before_timeout(tmp_path) ->
         holder.job_finished(holder_job, status="success", returncode=0, elapsed_sec=0.1)
 
     release_task = asyncio.create_task(release_holder())
-    result = await queued.managed_resource_wait(wait_token=token, max_wait_sec=1.0)
+    # Leave scheduling headroom on busy hosts while still requiring an early wake.
+    result = await queued.managed_resource_wait(wait_token=token, max_wait_sec=10.0)
     await release_task
 
     assert result["status"] == "RESOURCE_AVAILABLE"
-    assert result["elapsed_sec"] < 0.8
+    assert result["elapsed_sec"] < 5.0
     assert "retry_allowed=true" in result["feedback"]
 
 

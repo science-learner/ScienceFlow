@@ -6,8 +6,10 @@ import json
 import os
 import shutil
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from inquirycraft.llm import ModelRegistry
+if TYPE_CHECKING:
+    from inquirycraft.llm import ModelRegistry
 
 from scienceflow.foundation.config.schema.models.contracts.schema import (
     Config,
@@ -21,6 +23,8 @@ def default_model_config_path() -> Path:
 
 
 def load_model_registry(path: str | Path | None = None) -> ModelRegistry:
+    from inquirycraft.llm import ModelRegistry
+
     selected = Path(path or default_model_config_path()).expanduser()
     _migrate_role_prefixed_aliases(selected)
     return ModelRegistry.from_json(selected)
@@ -28,6 +32,8 @@ def load_model_registry(path: str | Path | None = None) -> ModelRegistry:
 
 def _migrate_role_prefixed_aliases(path: Path) -> bool:
     """Merge legacy ``code-*``/``feedback-*`` aliases into clean role routes."""
+
+    from inquirycraft.llm import ModelRegistry
 
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -64,9 +70,12 @@ def _migrate_role_prefixed_aliases(path: Path) -> bool:
         target = target or {
             "model": raw_spec.get("model"),
             "pricing": raw_spec.get("pricing"),
+            "use_proxy": raw_spec.get("use_proxy", False),
             "endpoints": {},
         }
         if target.get("pricing") != raw_spec.get("pricing"):
+            return False
+        if target.get("use_proxy", False) != raw_spec.get("use_proxy", False):
             return False
         endpoint_map = target.get("endpoints")
         if not isinstance(endpoint_map, dict):
@@ -136,6 +145,9 @@ def apply_registry_to_stage(
     stage.models = list(resolved.models)
     stage.api_keys = list(resolved.api_keys)
     stage.base_urls = list(resolved.base_urls)
+    stage.use_proxies = list(
+        getattr(resolved, "use_proxies", (None,) * len(resolved.api_keys))
+    )
     stage.model = stage.models[0]
     stage.api_key = stage.api_keys[0]
     stage.base_url = stage.base_urls[0]

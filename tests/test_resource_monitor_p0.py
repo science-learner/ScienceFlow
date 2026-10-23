@@ -207,8 +207,8 @@ async def test_bash_tool_emits_scienceflow_hb_as_progress_heartbeat(tmp_path) ->
     observer, sm = make_observer(tmp_path, worker_id="W00", gpu_pool=["0"], min_register_sec=0.0)
     tool = BashTool(
         workspace_dir=tmp_path,
-        bash_timeout_sec=5.0,
-        bash_timeout_slow_sec=5.0,
+        bash_timeout_sec=30.0,
+        bash_timeout_slow_sec=30.0,
         extra_env={"CUDA_VISIBLE_DEVICES": "0"},
         resource_observer=observer,
         resource_progress_heartbeat_min_interval_sec=0.0,

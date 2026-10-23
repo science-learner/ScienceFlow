@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import click
-from inquirycraft.llm import write_model_registry_template
 
 from scienceflow.foundation.config.llm.model_registry import default_model_config_path
 
@@ -22,6 +21,8 @@ def config_path():
 @config_command.command("init")
 def config_init():
     """Create a private configuration template; never overwrite an existing file."""
+    from inquirycraft.llm import write_model_registry_template
+
     path = default_model_config_path()
     try:
         write_model_registry_template(path)

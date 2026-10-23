@@ -27,6 +27,8 @@ class StageConfig:
     reasoning_effort: str | None = None
     api_keys: list[str] = field(default_factory=list)
     base_urls: list[str] = field(default_factory=list)
+    # Per-endpoint proxy overrides projected from models.json; None inherits use_proxy.
+    use_proxies: list[bool | None] = field(default_factory=list)
     api_routing_mode: str = "round_robin"
     api_sticky_id: str = ""
     api_sticky_primary_index: int | None = None
@@ -35,7 +37,7 @@ class StageConfig:
     http_timeout: int = 300
     # Extra OpenAI client default_headers (e.g. gateway tokens); per code/feedback.
     headers: dict[str, str] = field(default_factory=dict)
-    # When true, pass httpx.AsyncClient(proxy=..., verify=False, Proxy-Authorization from env).
+    # When true, use the environment proxy and optional proxy credentials.
     use_proxy: bool = False
     # Provider compatibility: vLLM chat templates may allow only one leading system message.
     coalesce_system_messages: bool = False

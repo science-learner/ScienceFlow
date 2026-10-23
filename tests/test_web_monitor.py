@@ -18,14 +18,10 @@ from scienceflow.interfaces.ui.web_monitor.server import (
 
 
 def test_page_bundles_packaged_assets_and_real_version():
-    from importlib.metadata import PackageNotFoundError, version
-
     from scienceflow.interfaces.ui.web_monitor.page import PAGE
+    from scienceflow.interfaces.version import get_version
 
-    try:
-        expected = version("scienceflow")
-    except PackageNotFoundError:
-        expected = "dev"
+    expected = get_version()
     assert f"v{expected}</div>" in PAGE
     assert "function layoutLineage" in PAGE
     assert "function createLineageViewport" in PAGE
@@ -751,8 +747,6 @@ async def test_background_detail_refreshes_only_requested_nonterminal_tasks(
     tmp_path,
     monkeypatch,
 ):
-    from scienceflow.interfaces.ui.web_monitor import server as server_module
-
     server = MonitorServer(("127.0.0.1", 0), tmp_path, "test-token")
     now = time.monotonic()
     server.requested = {"1": now, "2": now}
@@ -774,10 +768,11 @@ async def test_background_detail_refreshes_only_requested_nonterminal_tasks(
     calls = []
     server.monitor.detail = lambda key: calls.append(key) or {"key": key}
 
-    async def finish(_):
+    def finish(_):
         server.stopping.set()
+        return True
 
-    monkeypatch.setattr(server_module.asyncio, "sleep", finish)
+    monkeypatch.setattr(server.stopping, "wait", finish)
     try:
         await server.refresh()
         assert calls == ["1"]

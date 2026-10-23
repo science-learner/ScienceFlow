@@ -2,72 +2,37 @@
 
 from __future__ import annotations
 
-import json
 from dataclasses import replace
 
 import click
-from inquirycraft.adapters import AskLLMAdapter
-from inquirycraft.cli import ChatMonitor
-from inquirycraft.cli.chat_profiles import ChatProfile, ProfileStore
-from inquirycraft.llm import SameRoundRetryPolicy
-from inquirycraft.memory import Conversation, JsonlConversationStore
-from inquirycraft.runtime import AgentRuntime
-from inquirycraft.tools import (
-    ReadTextTool,
-    ShellTool,
-    ToolCollection,
-    WriteTextTool,
-    default_tools,
-)
+from inquirycraft.tools import ShellTool
 
-from scienceflow.foundation.config.llm.llm_factory import build_stage_llm
 from scienceflow.foundation.config.llm.model_registry import default_model_config_path
 from scienceflow.foundation.config.runtime.llm_lists import values
 from scienceflow.foundation.config.schema.settings import StageConfig
 
 
-class _ScienceFlowProfileStore(ProfileStore):
-    """Keep chat profiles in SF while reading an existing IQ profile on first use."""
+def build_stage_llm(stage: StageConfig):
+    """Load the provider client only when a chat runtime is created."""
+    from scienceflow.foundation.config.llm.llm_factory import build_stage_llm as build
 
-    def __init__(self):
-        super().__init__(default_model_config_path().with_name("chat_profiles.json"))
-        self._legacy = ProfileStore()
-
-    def load(self, key):
-        for store in (self, self._legacy):
-            if store.path.exists() and key in json.loads(store.path.read_text()):
-                return super().load(key) if store is self else store.load(key)
-        return ChatProfile(output_reserve=32768).validate()
-
-
-class _ScienceFlowChatMonitor(ChatMonitor):
-    """Expose the effective backend limit with both released and source IQ."""
-
-    @property
-    def output_limit(self):
-        instances = getattr(self.backend, "_instances", [self.backend])
-        return min(int(instance.max_tokens) for instance in instances)
-
-    def _sync_output_limit(self):
-        instances = getattr(self.backend, "_instances", [self.backend])
-        if self.runtime is not None and instances:
-            self.runtime.options = replace(self.runtime.options, max_tokens=self.output_limit)
-
-    def bind(self, runtime):
-        bound = super().bind(runtime)
-        self._sync_output_limit()
-        return bound
-
-    def set_profile(self, index, profile):
-        super().set_profile(index, profile)
-        self._sync_output_limit()
+    return build(stage)
 
 
 class PoolRuntimeFactory:
     def _tools(self):
+        from inquirycraft.tools import default_tools
+
         return default_tools()
 
     def create_runtime(self, options, *, api_key, base_url, event_sink, tools=None):
+        from inquirycraft.adapters import AskLLMAdapter
+        from inquirycraft.cli import ChatMonitor
+        from inquirycraft.cli.chat_profiles import ProfileStore
+        from inquirycraft.llm import SameRoundRetryPolicy
+        from inquirycraft.memory import Conversation, JsonlConversationStore
+        from inquirycraft.runtime import AgentRuntime
+
         models = values(options.model)
         keys = values(api_key)
         endpoints = values(base_url)
@@ -79,6 +44,7 @@ class PoolRuntimeFactory:
             models=models,
             api_keys=keys,
             base_urls=endpoints,
+            use_proxies=list(getattr(options, "use_proxies", ())),
             max_tokens=options.max_tokens or 32768,
             http_timeout=options.timeout or 300,
             api_routing_mode=options.model_routing,
@@ -90,13 +56,29 @@ class PoolRuntimeFactory:
         store = (
             JsonlConversationStore(options.session_log) if options.session_log else None
         )
-        monitor = _ScienceFlowChatMonitor(
+        monitor = ChatMonitor(
             options,
             client.backend,
             endpoints,
             models,
             len(keys),
-            store=_ScienceFlowProfileStore(),
+            store=ProfileStore(
+                default_model_config_path().with_name("chat_profiles.json"),
+                fallback_path=ProfileStore().path,
+            ),
+        )
+        monitor.backend_builder = lambda resolved, routing, max_tokens: build_stage_llm(
+            StageConfig(
+                models=list(resolved.models),
+                api_keys=list(resolved.api_keys),
+                base_urls=list(resolved.base_urls),
+                use_proxies=list(
+                    getattr(resolved, "use_proxies", (None,) * len(resolved.api_keys))
+                ),
+                max_tokens=max_tokens,
+                http_timeout=options.timeout or 300,
+                api_routing_mode=routing,
+            )
         )
         return monitor.bind(
             AgentRuntime(
@@ -129,6 +111,8 @@ class TuiShellTool(ShellTool):
 
 class TuiPoolRuntimeFactory(PoolRuntimeFactory):
     def _tools(self):
+        from inquirycraft.tools import ReadTextTool, ToolCollection, WriteTextTool
+
         from scienceflow.interfaces.ui.research.control.workspace_tool import (
             WorkspaceInfoTool,
         )

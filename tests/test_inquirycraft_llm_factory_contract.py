@@ -109,6 +109,40 @@ def test_stage_config_maps_exact_pool_contract(
     }
 
 
+def test_stage_proxy_overrides_get_separate_clients(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class CapturingPool:
+        @classmethod
+        def from_endpoints(cls, **kwargs: Any) -> dict[str, Any]:
+            return kwargs
+
+    monkeypatch.setattr(agent_runtime, "PooledLLM", CapturingPool)
+    monkeypatch.setattr(
+        agent_runtime,
+        "llm_extra_client_kwargs",
+        lambda stage: {"http_asyncclient": f"proxy={stage.use_proxy}"},
+    )
+    stage = StageConfig(
+        models=["a", "b"],
+        api_keys=["key-a", "key-b"],
+        base_urls=["https://a.example/v1", "https://b.example/v1"],
+        use_proxies=[True, False],
+    )
+
+    result = agent_runtime.build_stage_llm(stage)
+
+    assert result["endpoint_client_kwargs"] == (
+        {"http_asyncclient": "proxy=True"},
+        {"http_asyncclient": "proxy=False"},
+    )
+    assert "http_asyncclient" not in result
+
+    stage.use_proxies = [True]
+    with pytest.raises(ValueError, match="use_proxies"):
+        agent_runtime.build_stage_llm(stage)
+
+
 def test_stage_reasoning_replay_policy_is_attached_to_client(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

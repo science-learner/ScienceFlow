@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from types import SimpleNamespace
 
 import httpx
@@ -16,7 +15,7 @@ from scienceflow.foundation.config.schema.models.loading.serialization import (
     dump_resolved_config_yaml,
 )
 from scienceflow.foundation.config.llm.model_registry import apply_model_registry
-from scienceflow.foundation.config.schema.settings import Config, _apply_env, load_cfg
+from scienceflow.foundation.config.schema.settings import Config, load_cfg
 from scienceflow.interfaces.ui.llm_cli import PoolRuntimeFactory, plural_cli_options
 
 
@@ -103,6 +102,36 @@ def test_model_registry_projects_models_for_existing_consumers(tmp_path):
     assert cfg.agent.code.model == "m1"
     assert cfg.agent.code.models == ["m1", "m2"]
     assert cfg.agent.code.api_keys == ["key-a", "key-b"]
+
+
+def test_chat_model_switch_uses_scienceflow_proxy_client_builder(tmp_path, monkeypatch):
+    from scienceflow.interfaces.ui import llm_cli
+
+    stages = []
+
+    def build(stage):
+        stages.append(stage)
+        return SimpleNamespace(max_tokens=stage.max_tokens)
+
+    monkeypatch.setattr(llm_cli, "build_stage_llm", build)
+    runtime = PoolRuntimeFactory().create_runtime(
+        RuntimeOptions(model="m1", workspace=tmp_path, use_proxies=(False,)),
+        api_key="key-a",
+        base_url="https://a/v1",
+        event_sink=NullEventSink(),
+    )
+    resolved = SimpleNamespace(
+        models=("m2",),
+        api_keys=("key-b",),
+        base_urls=("https://b/v1",),
+        use_proxies=(True,),
+    )
+
+    runtime.chat_monitor.backend_builder(resolved, "sticky_failover", 4096)
+
+    assert stages[0].use_proxies == [False]
+    assert stages[1].use_proxies == [True]
+    assert stages[1].max_tokens == 4096
 
 
 @pytest.mark.asyncio

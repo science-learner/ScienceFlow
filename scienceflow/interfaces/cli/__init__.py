@@ -40,6 +40,7 @@ from scienceflow.foundation.config.schema.settings import (
 from scienceflow.research.state.workspace.storage.git import (
     normalize_workspace_git_track_globs,
 )
+from scienceflow.interfaces.version import get_version
 
 _SCIENCEFLOW_REPO_ROOT = Path(__file__).resolve().parents[3]
 
@@ -365,6 +366,7 @@ def _install_cleanup_signals() -> None:
 
 
 @click.group()
+@click.version_option(version=get_version(), prog_name="scienceflow")
 @click.option("--env-file", type=click.Path(path_type=Path, dir_okay=False), default=None,
               envvar="SCIENCEFLOW_ENV_FILE", help="Explicit dotenv configuration file.")
 @click.pass_context
@@ -395,7 +397,7 @@ from scienceflow.interfaces.cli.commands.run.control import resume, status, stop
 from scienceflow.interfaces.cli.commands.run.parallel import parallel
 from scienceflow.interfaces.cli.commands.run.repl import repl
 from scienceflow.interfaces.cli.commands.run.task import prep, run
-from scienceflow.interfaces.cli.commands.run.tui import tui
+from scienceflow.interfaces.cli.commands.run.lazy import tui
 
 _ADVANCED_COMMANDS = {
     "prep", "repl", "parallel", "monitor", "monitor-trace",
@@ -421,28 +423,10 @@ for _command in (
     main.add_command(_command)
 
 
-# Additive composition point: existing ScienceFlow commands keep their exact names and
-# handlers, while ``scienceflow agent ...`` exposes the independent InquiryCraft CLI using
-# ScienceFlow supplies its structured model registry while InquiryCraft owns the CLI.
-from inspect import signature as _call_signature
+# The agent keeps its InquiryCraft command tree, loaded only when invoked.
+from scienceflow.interfaces.cli.commands.run.lazy import agent
 
-from inquirycraft.cli import create_cli as _create_inquirycraft_cli
-
-from scienceflow.foundation.config.llm.model_registry import default_model_config_path
-from scienceflow.interfaces.ui.llm_cli import PoolRuntimeFactory, plural_cli_options
-
-_inquirycraft_cli_options: dict[str, Any] = {
-    "name": "agent",
-    "runtime_factory": PoolRuntimeFactory(),
-    "model_config_default": default_model_config_path(),
-    "model_default_key": "code_models",
-}
-if "include_tui" in _call_signature(_create_inquirycraft_cli).parameters:
-    _inquirycraft_cli_options["include_tui"] = False
-
-_agent_command = plural_cli_options(_create_inquirycraft_cli(**_inquirycraft_cli_options))
-_agent_command.hidden = True
-main.add_command(_agent_command, name="agent")
+main.add_command(agent)
 
 
 from scienceflow.interfaces.cli.user_config import (

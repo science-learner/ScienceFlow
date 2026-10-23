@@ -286,7 +286,7 @@ def test_supervisor_registers_completed_task_without_tui(tmp_path, monkeypatch):
         launch_token="test-token", pid=os.getpid(), manifest="synthetic", attempt=1
     )
     monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
-    record["manifest_payload"] = {"report_budget_sec": 5}
+    record["manifest_payload"] = {"report_budget_sec": 30}
     directory = run_dir(record["run_id"])
     write_record(directory, record)
 

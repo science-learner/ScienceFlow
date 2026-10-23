@@ -123,7 +123,9 @@ class MonitorServer(ThreadingHTTPServer):
                 current = self.snapshot
             refresh_sec = self.publish_snapshot(current, started=started)
             # Single producer, no overlapping scans; slow disks automatically reduce polling.
-            await asyncio.sleep(refresh_sec)
+            # Wake immediately on /stop instead of delaying process exit for a
+            # full refresh interval (normally at least ten seconds).
+            await asyncio.to_thread(self.stopping.wait, refresh_sec)
 
 
 class Handler(BaseHTTPRequestHandler):

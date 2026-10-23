@@ -3,6 +3,7 @@
   "models": {
     "deepseek-v4-flash": {
       "model": "deepseek-v4-flash",
+      "use_proxy": false,
       "reasoning_replay": "preserve",
       "endpoints": {
         "code": [

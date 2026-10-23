@@ -39,7 +39,25 @@ def build_stage_llm(
                 raise ValueError(
                     f"{name} must contain one value or one per api_keys entry"
                 )
-    options = LLMFactoryConfig(
+        if stage.use_proxies and len(stage.use_proxies) != len(stage.api_keys):
+            raise ValueError("use_proxies must contain one value per api_keys entry")
+    if any(flag is not None for flag in stage.use_proxies):
+        endpoint_client_kwargs = tuple(
+            llm_extra_client_kwargs(
+                replace(
+                    stage,
+                    api_key=key,
+                    api_keys=[key],
+                    use_proxy=stage.use_proxy if flag is None else flag,
+                )
+            )
+            for key, flag in zip(stage.api_keys, stage.use_proxies, strict=True)
+        )
+        shared_client_kwargs = {}
+    else:
+        endpoint_client_kwargs = ()
+        shared_client_kwargs = llm_extra_client_kwargs(stage)
+    options_kwargs = dict(
         model=stage.model,
         max_tokens=stage.max_tokens,
         frequency_penalty=stage.frequency_penalty,
@@ -55,8 +73,11 @@ def build_stage_llm(
         rate_limit_cooldown_sec=stage.api_rate_limit_cooldown_sec,
         connection_cooldown_sec=stage.api_connection_cooldown_sec,
         request_seed=int(request_seed) if request_seed is not None else None,
-        extra_client_kwargs=llm_extra_client_kwargs(stage),
+        extra_client_kwargs=shared_client_kwargs,
     )
+    if endpoint_client_kwargs:
+        options_kwargs["endpoint_client_kwargs"] = endpoint_client_kwargs
+    options = LLMFactoryConfig(**options_kwargs)
     client = build_llm(
         options,
         online_llm_factory=OnlineLLM,

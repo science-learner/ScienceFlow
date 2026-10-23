@@ -33,7 +33,6 @@ Optional corporate proxy is wired through the same client when
 
 from __future__ import annotations
 
-import base64
 import logging
 import os
 from typing import TYPE_CHECKING, Any
@@ -71,35 +70,33 @@ def is_empty_api_key_sentinel(key: str | None) -> bool:
     return key.strip().upper() == _EMPTY_SENTINEL
 
 
-def proxy_basic_auth_header(user: str, password: str) -> str:
-    token = base64.b64encode(f"{user}:{password}".encode()).decode("ascii")
-    return f"Basic {token}"
+def _resolve_proxy_settings(stage: StageConfig) -> httpx.Proxy | None:
+    """Return a transport-only proxy from env when ``stage.use_proxy``.
 
-
-def _resolve_proxy_settings(stage: StageConfig) -> tuple[str | None, dict[str, str]]:
-    """Return ``(proxy_url, proxy_headers)`` from env when ``stage.use_proxy``.
-
-    Returns ``(None, {})`` when not using a proxy. When ``use_proxy=true`` but
-    no proxy URL is set in the environment, logs a warning and returns
-    ``(None, {})`` (the client is still built, just without proxy).
+    Returns ``None`` when not using a proxy. An explicitly requested proxy
+    must be configured so calls cannot silently fall back to a direct route.
     """
     if not stage.use_proxy:
-        return None, {}
+        return None
 
-    proxy_url = (os.environ.get("http_proxy") or os.environ.get("HTTP_PROXY") or "").strip()
+    proxy_url = (
+        os.environ.get("https_proxy")
+        or os.environ.get("HTTPS_PROXY")
+        or os.environ.get("http_proxy")
+        or os.environ.get("HTTP_PROXY")
+        or ""
+    ).strip()
     if not proxy_url:
-        logger.warning(
-            "[LLM] use_proxy=true but http_proxy/HTTP_PROXY is unset; "
-            "building AsyncClient without proxy",
+        raise ValueError(
+            "use_proxy=true requires HTTPS_PROXY or HTTP_PROXY in the environment"
         )
-        return None, {}
 
     user = (os.environ.get("USER_NAME") or "").strip()
     pwd = (os.environ.get("USER_PWD") or "").strip()
-    headers: dict[str, str] = {}
-    if user and pwd:
-        headers["Proxy-Authorization"] = proxy_basic_auth_header(user, pwd)
-    return proxy_url, headers
+    try:
+        return httpx.Proxy(proxy_url, auth=(user, pwd) if user and pwd else None)
+    except (ValueError, httpx.InvalidURL) as exc:
+        raise ValueError("Invalid proxy URL configuration") from exc
 
 
 def build_llm_async_client(stage: StageConfig, *, pooled: bool) -> httpx.AsyncClient | None:
@@ -116,7 +113,7 @@ def build_llm_async_client(stage: StageConfig, *, pooled: bool) -> httpx.AsyncCl
     elif is_empty_api_key_sentinel(stage.api_key):
         return None
 
-    proxy_url, proxy_headers = _resolve_proxy_settings(stage)
+    proxy = _resolve_proxy_settings(stage)
 
     timeout = httpx.Timeout(
         connect=_HTTPX_CONNECT_TIMEOUT_SEC,
@@ -133,18 +130,18 @@ def build_llm_async_client(stage: StageConfig, *, pooled: bool) -> httpx.AsyncCl
     try:
         transport = httpx.AsyncHTTPTransport(
             retries=_HTTPX_TRANSPORT_RETRIES,
-            verify=not stage.use_proxy,
+            verify=True,
             limits=limits,
-            proxy=proxy_url,
+            proxy=proxy,
         )
         client_kwargs: dict[str, Any] = {
             "transport": transport,
             "timeout": timeout,
         }
-        if proxy_headers:
-            client_kwargs["headers"] = proxy_headers
         return httpx.AsyncClient(**client_kwargs)
     except Exception as e:
+        if stage.use_proxy:
+            raise ValueError(f"Could not configure proxy transport: {type(e).__name__}") from e
         logger.warning("[LLM] failed to build AsyncClient: %s", e)
         return None
 

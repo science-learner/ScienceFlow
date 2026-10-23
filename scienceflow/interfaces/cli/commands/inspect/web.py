@@ -5,9 +5,6 @@ from pathlib import Path
 
 import click
 
-from scienceflow.interfaces.ui.web_monitor.service import instructions, start, stop
-
-
 @click.command("web")
 @click.argument("action", type=click.Choice(["start", "stop"]), default="start")
 @click.option("--workspace", type=click.Path(file_okay=False, exists=True), default=".")
@@ -22,6 +19,8 @@ from scienceflow.interfaces.ui.web_monitor.service import instructions, start, s
 @click.option("--open", "open_browser", is_flag=True)
 def web(action, workspace, host, port, open_browser):
     """Start or stop the Web monitor and final-report viewer."""
+    from scienceflow.interfaces.ui.web_monitor.service import instructions, start, stop
+
     try:
         if action == "stop":
             click.echo(stop(Path(workspace)))

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from pathlib import Path
+import subprocess
+import sys
+import tomllib
 
 from click.testing import CliRunner
 
@@ -11,6 +14,31 @@ from scienceflow.interfaces.ui.logo import LOGO_PIXELS
 def test_scienceflow_logo_marks_empty_cells_as_transparent() -> None:
     assert LOGO_PIXELS[0][0] == "transparent"
     assert any(pixel != "transparent" for row in LOGO_PIXELS for pixel in row)
+
+
+def test_scienceflow_root_version_reports_active_source() -> None:
+    result = CliRunner().invoke(main, ["--version"])
+
+    assert result.exit_code == 0
+    project = Path(__file__).resolve().parents[1] / "pyproject.toml"
+    source_version = tomllib.loads(project.read_text(encoding="utf-8"))["project"]["version"]
+    assert result.output.strip() == f"scienceflow, version {source_version}"
+
+
+def test_scienceflow_root_defers_optional_command_runtimes() -> None:
+    script = """
+import sys
+from scienceflow.interfaces.cli import main
+assert not main.commands['tui']._resolved
+assert not main.commands['agent']._resolved
+assert 'openai' not in sys.modules
+assert 'scienceflow.interfaces.ui.long_research' not in sys.modules
+assert 'scienceflow.interfaces.ui.web_monitor.server' not in sys.modules
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", script], capture_output=True, text=True, check=False
+    )
+    assert result.returncode == 0, result.stderr
 
 
 def test_scienceflow_root_help_prioritizes_primary_commands() -> None:
@@ -53,6 +81,9 @@ def test_scienceflow_agent_group_excludes_optional_inquirycraft_tui() -> None:
     assert result.exit_code == 0
     assert "tui" not in result.output.split()
     assert {"run", "repl", "tools", "events"}.issubset(result.output.split())
+    assert main.commands["agent"].hidden
+    root_help = CliRunner().invoke(main, ["--help"])
+    assert "agent" not in root_help.output.split("Commands:", 1)[1]
 
 
 def test_scienceflow_root_tui_uses_existing_inquirycraft_options() -> None:
@@ -68,6 +99,10 @@ def test_scienceflow_root_tui_uses_existing_inquirycraft_options() -> None:
     assert "--model" in result.output
     assert "One chat model alias" in result.output
     assert "full-screen ScienceFlow terminal interface" in result.output
+    timeout = next(
+        param for param in main.commands["tui"].params if param.name == "max_tokens"
+    )
+    assert "SCIENCEFLOW_TUI_MAX_TOKENS" in timeout.envvar
 
 
 def test_scienceflow_tui_registers_one_resume_option() -> None:

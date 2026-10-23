@@ -15,6 +15,7 @@ scienceflow config path
   "models": {
     "deepseek-v4-flash": {
       "model": "deepseek-v4-flash",
+      "use_proxy": false,
       "reasoning_replay": "preserve",
       "pricing": {
         "input_usd_per_1m": 0.15,
@@ -49,6 +50,13 @@ scienceflow config path
 `models` 的键使用干净模型名，不添加 `code-` 或 `feedback-`。同一个模型可以为
 Code 和 Feedback 配置不同 endpoint；旧的共享 endpoint 数组仍兼容。请求限流、
 超时或连接失败时，InquiryCraft 在对应角色的 endpoint 内执行冷却和故障转移。
+
+`use_proxy` 可在每个模型 alias 下设为 `true` 或 `false`，同时作用于该 alias
+的 Code、Feedback 端点；省略时默认 `false`，即直连。设为 `true` 时，
+ScienceFlow 使用环境中的 `HTTPS_PROXY` / `HTTP_PROXY`（也接受小写形式，可配
+`USER_NAME` / `USER_PWD`）；TUI 模型切换沿用同一路由设置，`NO_PROXY`
+不会覆盖显式启用的代理。`false` 明确直连。代理地址与密码不要写入 `models.json`。
+若代理替换 HTTPS 证书，需要通过系统信任链或 `SSL_CERT_FILE` 配置其 CA。
 
 `pricing` 是聊天、Long Research、TUI 和 Web 费用估算的唯一价格配置，三个字段均为
 USD/百万 token。三个值必须同时填写；缺少价格的模型显示 `Cost —`。价格按实际请求的

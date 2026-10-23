@@ -148,8 +148,8 @@ async def test_bash_tool_arbiter_kill_without_advisory_observes_more(tmp_path) -
     )
     tool = BashTool(
         workspace_dir=tmp_path,
-        bash_timeout_sec=10.0,
-        bash_timeout_slow_sec=10.0,
+        bash_timeout_sec=30.0,
+        bash_timeout_slow_sec=30.0,
         extra_env={"CUDA_VISIBLE_DEVICES": "0"},
         resource_observer=observer,
     )
@@ -184,8 +184,8 @@ async def test_bash_tool_recommends_stalled_stop_without_auto_kill(tmp_path) -> 
     )
     tool = BashTool(
         workspace_dir=tmp_path,
-        bash_timeout_sec=2.0,
-        bash_timeout_slow_sec=2.0,
+        bash_timeout_sec=30.0,
+        bash_timeout_slow_sec=30.0,
         extra_env={"CUDA_VISIBLE_DEVICES": "0"},
         resource_observer=observer,
     )

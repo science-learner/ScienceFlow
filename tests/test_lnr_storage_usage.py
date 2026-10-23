@@ -7,39 +7,44 @@ import os
 from pathlib import Path
 
 from scienceflow.research.solver.lnr.lifecycle.records import storage_usage
-from scienceflow.research.solver.lnr.lifecycle.snapshots.snapshot_store import SnapshotStore
+from scienceflow.research.solver.lnr.lifecycle.snapshots.snapshot_store import (
+    SnapshotStore,
+)
 
 
 def _read(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def test_snapshot_samples_reuse_existing_counters_without_scanning(tmp_path, monkeypatch):
+def test_snapshot_samples_reuse_existing_counters_without_scanning(
+    tmp_path, monkeypatch
+):
     def reject_scan(*_args, **_kwargs):
         raise AssertionError("snapshot telemetry must not scan directories")
 
-    monkeypatch.setattr(storage_usage.os, "scandir", reject_scan)
     stats = {
         "logical_size_bytes": 3 * 1024**2,
         "new_physical_bytes": 1024**2,
         "captured_file_count": 4,
     }
-    for worker in ("w00", "w01"):
+    with monkeypatch.context() as patch:
+        patch.setattr(storage_usage.os, "scandir", reject_scan)
+        for worker in ("w00", "w01"):
+            assert storage_usage.record_snapshot_storage(
+                task_root_dir=tmp_path,
+                worker_id=worker,
+                stage_id="S01",
+                snapshot_id=f"{worker}-s01",
+                stats=stats,
+            )
+        # Replaying the same sample must not double count new object bytes.
         assert storage_usage.record_snapshot_storage(
             task_root_dir=tmp_path,
-            worker_id=worker,
+            worker_id="w00",
             stage_id="S01",
-            snapshot_id=f"{worker}-s01",
+            snapshot_id="w00-s01",
             stats=stats,
         )
-    # Replaying the same sample must not double count new object bytes.
-    assert storage_usage.record_snapshot_storage(
-        task_root_dir=tmp_path,
-        worker_id="w00",
-        stage_id="S01",
-        snapshot_id="w00-s01",
-        stats=stats,
-    )
 
     latest = _read(tmp_path / "task_logs" / storage_usage.STORAGE_LATEST_FILENAME)
     assert latest["exact"] is False
@@ -74,11 +79,12 @@ def test_final_measurement_skips_dataset_explicit_inputs_and_symlink_targets(
         assert Path(path).name not in {"dataset", "raw_inputs", "external"}
         return real_scandir(path)
 
-    monkeypatch.setattr(storage_usage.os, "scandir", guarded_scandir)
-    result = storage_usage.measure_generated_storage(
-        root,
-        excluded_paths=(configured_input,),
-    )
+    with monkeypatch.context() as patch:
+        patch.setattr(storage_usage.os, "scandir", guarded_scandir)
+        result = storage_usage.measure_generated_storage(
+            root,
+            excluded_paths=(configured_input,),
+        )
 
     assert result["error_count"] == 0
     assert result["excluded_directory_count"] == 2
@@ -157,11 +163,13 @@ def test_managed_worker_records_terminal_storage_after_outputs(tmp_path, monkeyp
     }
     worker._record_terminal_storage(record_data)
 
-    assert calls == [{
-        "task_root_dir": str(tmp_path / "task"),
-        "excluded_paths": (
-            str(tmp_path / "large-input"),
-            str(tmp_path / "default-input"),
-            str(tmp_path / "task-input"),
-        ),
-    }]
+    assert calls == [
+        {
+            "task_root_dir": str(tmp_path / "task"),
+            "excluded_paths": (
+                str(tmp_path / "large-input"),
+                str(tmp_path / "default-input"),
+                str(tmp_path / "task-input"),
+            ),
+        }
+    ]

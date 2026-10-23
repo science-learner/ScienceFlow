@@ -1,8 +1,9 @@
 """Self-contained browser UI. No CDN, model calls, or arbitrary file serving."""
 
 from html import escape
-from importlib.metadata import PackageNotFoundError, version
 from importlib.resources import files
+
+from scienceflow.interfaces.version import get_version
 
 from ..logo import LOGO_PIXELS
 
@@ -22,10 +23,7 @@ def _brand_logo_svg():
     )
 
 
-try:
-    _VERSION = version("scienceflow")
-except PackageNotFoundError:
-    _VERSION = "dev"
+_VERSION = get_version()
 
 _SCRIPTS = (
     "core.js",

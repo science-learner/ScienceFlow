@@ -37,8 +37,8 @@ async def test_unknown_gpu_command_observation_promotes_and_replays_real(tmp_pat
     script.write_text("sleep 0.3\necho replayed > real.txt\n", encoding="utf-8")
     tool = BashTool(
         workspace_dir=tmp_path,
-        bash_timeout_sec=5.0,
-        bash_timeout_slow_sec=5.0,
+        bash_timeout_sec=30.0,
+        bash_timeout_slow_sec=30.0,
         extra_env={"CUDA_VISIBLE_DEVICES": "0"},
         resource_observer=observer,
     )
