@@ -28,8 +28,8 @@ def test_scienceflow_exposes_only_mcp_as_optional_inquirycraft_integration() -> 
         for name, dependencies in project["optional-dependencies"].items()
         if name.startswith("inquirycraft-")
     }
-    assert "inquirycraft[openai,tui]==0.9.7" in project["dependencies"]
-    assert inquirycraft_extras == {"inquirycraft-mcp": ["inquirycraft[mcp]==0.9.7"]}
+    assert "inquirycraft[openai,tui]==0.9.8" in project["dependencies"]
+    assert inquirycraft_extras == {"inquirycraft-mcp": ["inquirycraft[mcp]==0.9.8"]}
     assert "inquirycraft" not in config["tool"]["uv"]["sources"]
 
 
@@ -66,7 +66,7 @@ def test_tui_rejects_old_runtime_without_manual_compaction(monkeypatch) -> None:
     assert result.exit_code != 0
     assert "InquiryCraft is missing manual context compaction" in result.output
     assert "AgentRuntime.compact_context" in result.output
-    assert "inquirycraft[openai,tui]==0.9.7" in result.output
+    assert "inquirycraft[openai,tui]==0.9.8" in result.output
     assert "pre-history input hook" not in result.output
 
 

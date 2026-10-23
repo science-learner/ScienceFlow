@@ -11,7 +11,7 @@
 </p>
 
 > [!IMPORTANT]
-> **测试预览版 · 0.2.0b11。**
+> **测试预览版 · 0.2.0b12。**
 > 稳定版发布前，接口和工作区元数据仍可能调整。
 
 ScienceFlow 是一个端到端自动研究 Agent 框架，面向持续数小时或数天的高效、稳定且目标一致的研究过程。它以可恢复的可执行工作空间为核心，将持久状态、自适应探索与证据感知执行控制统一起来，使 Agent 能够在保留已验证进展的同时继续、调整或恢复研究路线。
@@ -37,7 +37,7 @@ ScienceFlow 在机器学习、科学建模和数学优化任务上持续开展�
 Python 依赖会保持隔离，同时 `scienceflow` 命令可以在任意目录直接使用：
 
 ```bash
-pipx install scienceflow==0.2.0b11
+pipx install scienceflow==0.2.0b12
 scienceflow --help
 ```
 
@@ -49,13 +49,13 @@ scienceflow --help
 ```bash
 conda create -n scienceflow python=3.12 -y
 conda activate scienceflow
-python -m pip install scienceflow==0.2.0b11
+python -m pip install scienceflow==0.2.0b12
 ```
 
 **uv**
 
 ```bash
-uv tool install scienceflow==0.2.0b11
+uv tool install scienceflow==0.2.0b12
 ```
 
 **Python 虚拟环境**
@@ -63,7 +63,7 @@ uv tool install scienceflow==0.2.0b11
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install scienceflow==0.2.0b11
+python -m pip install scienceflow==0.2.0b12
 ```
 
 </details>
@@ -118,10 +118,10 @@ uv run scienceflow tui
 才使用 `uv sync --extra full --group dev`。发布包的 Full profile 应在虚拟环境内安装：
 
 ```bash
-python -m pip install "scienceflow[full]"==0.2.0b11
+python -m pip install "scienceflow[full]"==0.2.0b12
 ```
 
-ScienceFlow 在进程内使用 InquiryCraft `0.9.7` 作为通用 Agent Runtime，不需要另起服务。
+ScienceFlow 在进程内使用 InquiryCraft `0.9.8` 作为通用 Agent Runtime，不需要另起服务。
 源码环境与 PyPI 安装使用相同的 CLI 和用户私有模型注册表。
 
 ## 文档
