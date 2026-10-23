@@ -11,8 +11,8 @@
 </p>
 
 > [!IMPORTANT]
-> **测试预览版 · 0.2.0b12。**
-> 稳定版发布前，接口和工作区元数据仍可能调整。
+> **ScienceFlow 0.2.0。**
+> 研究任务、模型配置和本地会话使用文档所述的工作区约定。
 
 ScienceFlow 是一个端到端自动研究 Agent 框架，面向持续数小时或数天的高效、稳定且目标一致的研究过程。它以可恢复的可执行工作空间为核心，将持久状态、自适应探索与证据感知执行控制统一起来，使 Agent 能够在保留已验证进展的同时继续、调整或恢复研究路线。
 
@@ -28,8 +28,7 @@ ScienceFlow 在机器学习、科学建模和数学优化任务上持续开展�
 
 ## 快速开始
 
-**前置要求：** Python 3.11+ 和可用的模型 API。当前 PyPI 包是测试预览版，下面固定
-具体版本，避免测试环境随后续 Preview 改变。
+**前置要求：** Python 3.11–3.13 和可用的模型 API。以下命令固定版本，保证安装结果可复现。
 
 ### 安装
 
@@ -37,7 +36,7 @@ ScienceFlow 在机器学习、科学建模和数学优化任务上持续开展�
 Python 依赖会保持隔离，同时 `scienceflow` 命令可以在任意目录直接使用：
 
 ```bash
-pipx install scienceflow==0.2.0b12
+pipx install scienceflow==0.2.0
 scienceflow --help
 ```
 
@@ -49,13 +48,13 @@ scienceflow --help
 ```bash
 conda create -n scienceflow python=3.12 -y
 conda activate scienceflow
-python -m pip install scienceflow==0.2.0b12
+python -m pip install scienceflow==0.2.0
 ```
 
 **uv**
 
 ```bash
-uv tool install scienceflow==0.2.0b12
+uv tool install scienceflow==0.2.0
 ```
 
 **Python 虚拟环境**
@@ -63,7 +62,7 @@ uv tool install scienceflow==0.2.0b12
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install scienceflow==0.2.0b12
+python -m pip install scienceflow==0.2.0
 ```
 
 </details>
@@ -86,7 +85,7 @@ manifest、session 或报告中。详细字段见[模型配置说明](LLM_CONFIG
 ## 最新动态
 
 - **[2026-09]** 发布科学家智能体 Harness 预览版，支持 TUI 与 Web 交互。
-- **[2026-08]** ScienceFlow 正式开源，包含框架代码、任务包与文档；论文同步上线 [arXiv](https://arxiv.org/abs/2608.14354)。
+- **[2026-08]** ScienceFlow 开源（[commit ad1f7dd](https://github.com/science-learner/ScienceFlow/commit/ad1f7ddae57873807da5a9c0070c68ba9a740515)），论文同步上线 [arXiv](https://arxiv.org/abs/2608.14354)。
 
 ## 核心概念
 
@@ -118,7 +117,7 @@ uv run scienceflow tui
 才使用 `uv sync --extra full --group dev`。发布包的 Full profile 应在虚拟环境内安装：
 
 ```bash
-python -m pip install "scienceflow[full]"==0.2.0b12
+python -m pip install "scienceflow[full]"==0.2.0
 ```
 
 ScienceFlow 在进程内使用 InquiryCraft `0.9.8` 作为通用 Agent Runtime，不需要另起服务。

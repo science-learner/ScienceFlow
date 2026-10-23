@@ -6,11 +6,15 @@ jobs:
   minimal-install:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
       - uses: astral-sh/setup-uv@v6
       - name: Verify committed dependency resolution
         run: uv lock --check
@@ -28,13 +32,17 @@ jobs:
   compatibility-contracts:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
     env:
       PYTEST_ADDOPTS: "--timeout=90 --timeout-method=thread -o faulthandler_timeout=60"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
       - name: Install lightweight ScienceFlow contract environment
         run: |
           python -m pip install -e . numpy pytest pytest-asyncio pytest-timeout

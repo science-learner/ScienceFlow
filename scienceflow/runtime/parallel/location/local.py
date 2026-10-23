@@ -16,7 +16,13 @@ def resolve_local_root(management_workspace: Path, requested_root: str) -> Path:
         )
     try:
         root = Path(text).expanduser()
-        root = (root if root.is_absolute() else management_workspace / root).resolve()
+        candidate = root if root.is_absolute() else management_workspace / root
+        try:
+            root = candidate.resolve(strict=True)
+        except FileNotFoundError:
+            # A new execution root is valid, but strict resolution is needed
+            # to reject symlink loops on Python 3.13 and newer.
+            root = candidate.resolve(strict=False)
     except RuntimeError as exc:
         raise ValueError(f"Cannot resolve local execution root: {text}") from exc
     if root.exists() and not root.is_dir():

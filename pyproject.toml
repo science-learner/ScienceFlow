@@ -4,19 +4,20 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scienceflow"
-version = "0.2.0b12"
+version = "0.2.0"
 description = "An end-to-end autoresearch agent framework for long-horizon ML research, scientific discovery, and beyond"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.11,<3.14"
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Science/Research",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 # The default install is the Light, CPU-only ScienceFlow control plane. The Full product
@@ -50,7 +51,7 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/science-learner/ScienceFlow"
 Repository = "https://github.com/science-learner/ScienceFlow"
-Documentation = "https://github.com/science-learner/ScienceFlow/tree/preview/docs"
+Documentation = "https://github.com/science-learner/ScienceFlow/tree/master/docs"
 Issues = "https://github.com/science-learner/ScienceFlow/issues"
 
 [project.optional-dependencies]

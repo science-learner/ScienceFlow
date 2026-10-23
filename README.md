@@ -1,13 +1,13 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/science-learner/ScienceFlow/preview/docs/assets/brand/scienceflow-banner.svg" alt="ScienceFlow" width="800">
+  <img src="https://raw.githubusercontent.com/science-learner/ScienceFlow/master/docs/assets/brand/scienceflow-banner.svg" alt="ScienceFlow" width="800">
 </p>
 
 <p align="center">
-  <a href="https://github.com/science-learner/ScienceFlow/actions/workflows/scienceflow-contract-ci.yml"><img src="https://github.com/science-learner/ScienceFlow/actions/workflows/scienceflow-contract-ci.yml/badge.svg?branch=preview" alt="CI"></a>
-  <a href="https://pypi.org/project/scienceflow/"><img src="https://img.shields.io/pypi/v/scienceflow?label=PyPI&amp;color=0f766e&amp;cacheSeconds=300&amp;release=0.2.0b12" alt="PyPI"></a>
+  <a href="https://github.com/science-learner/ScienceFlow/actions/workflows/scienceflow-contract-ci.yml"><img src="https://github.com/science-learner/ScienceFlow/actions/workflows/scienceflow-contract-ci.yml/badge.svg?branch=master" alt="CI"></a>
+  <a href="https://pypi.org/project/scienceflow/"><img src="https://img.shields.io/pypi/v/scienceflow?label=PyPI&amp;color=0f766e&amp;cacheSeconds=300" alt="PyPI"></a>
   <a href="https://arxiv.org/abs/2608.14354"><img src="https://img.shields.io/badge/arXiv-2608.14354-B31B1B.svg" alt="arXiv paper"></a>
   <a href="https://github.com/science-learner/ScienceFlow/issues"><img src="https://img.shields.io/badge/feedback-open-334155" alt="Feedback"></a>
-  <img src="https://img.shields.io/badge/Python-3.11%2B-3776AB" alt="Python 3.11+">
+  <img src="https://img.shields.io/badge/Python-3.11--3.13-3776AB" alt="Python 3.11–3.13">
 </p>
 
 <p align="justify">
@@ -18,17 +18,17 @@ TUI and Web monitor.
 </p>
 
 > [!IMPORTANT]
-> **Testing preview · 0.2.0b12.**
-> Interfaces and workspace metadata may change before the stable release.
+> **ScienceFlow 0.2.0.**
+> Research runs, model settings, and local sessions use the documented workspace contracts.
 
 ## News
 
 - **[2026-09]** Released the ScienceFlow harness preview for long-horizon scientific research agents, with TUI and Web interfaces.
-- **[2026-08]** Released ScienceFlow [code](https://github.com/EE-PandaMinG/ScienceFlow_Noah/commit/ad1f7ddae57873807da5a9c0070c68ba9a740515) and [paper](https://arxiv.org/abs/2608.14354).
+- **[2026-08]** Released ScienceFlow [commit ad1f7dd](https://github.com/science-learner/ScienceFlow/commit/ad1f7ddae57873807da5a9c0070c68ba9a740515) and [arXiv](https://arxiv.org/abs/2608.14354).
 
 ## Quick start
 
-<p align="justify"><strong>Requirements:</strong> Python 3.11+ and access to a supported model API.</p>
+<p align="justify"><strong>Requirements:</strong> Python 3.11–3.13 and access to a supported model API.</p>
 
 ### Install
 
@@ -36,7 +36,7 @@ Install ScienceFlow with <a href="https://pipx.pypa.io/latest/how-to/install-pip
 the command is available from any directory while its Python dependencies remain isolated:
 
 ```bash
-pipx install scienceflow==0.2.0b12
+pipx install scienceflow==0.2.0
 scienceflow --help
 ```
 
@@ -48,13 +48,13 @@ scienceflow --help
 ```bash
 conda create -n scienceflow python=3.12 -y
 conda activate scienceflow
-python -m pip install scienceflow==0.2.0b12
+python -m pip install scienceflow==0.2.0
 ```
 
 **uv**
 
 ```bash
-uv tool install scienceflow==0.2.0b12
+uv tool install scienceflow==0.2.0
 ```
 
 **Python virtual environment**
@@ -62,7 +62,7 @@ uv tool install scienceflow==0.2.0b12
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install scienceflow==0.2.0b12
+python -m pip install scienceflow==0.2.0
 ```
 
 </details>
@@ -132,7 +132,7 @@ See the [runtime guide](docs/public/RUNTIME_GUIDE.md) for workspace and executio
 ## How it works
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/science-learner/ScienceFlow/v0.2.0b6/docs/public/scienceflow/assets/scienceflow_system_architecture.png" alt="ScienceFlow system architecture" width="100%">
+  <img src="https://raw.githubusercontent.com/science-learner/ScienceFlow/v0.2.0/docs/public/scienceflow/assets/scienceflow_system_architecture.png" alt="ScienceFlow system architecture" width="100%">
 </p>
 
 1. **Explore:** isolated workers advance executable workspaces under explicit CPU, GPU,
@@ -176,7 +176,7 @@ task data.
 <p>
 Model settings stay local in <code>~/.config/scienceflow/models.json</code> (mode
 <code>600</code>); API keys are excluded from task manifests, sessions, and reports. See the
-<a href="https://github.com/science-learner/ScienceFlow/blob/v0.2.0b6/docs/examples/models.example.json">redacted example</a>.
+<a href="https://github.com/science-learner/ScienceFlow/blob/master/docs/examples/models.example.json">redacted example</a>.
 </p>
 
 <p align="justify">
@@ -185,7 +185,7 @@ dependencies only when needed:
 </p>
 
 ```bash
-python -m pip install "scienceflow[full]"==0.2.0b12
+python -m pip install "scienceflow[full]"==0.2.0
 ```
 
 <p align="justify">
@@ -197,7 +197,7 @@ workspace with a different task, dataset, evaluator, prompt, or artifact contrac
 ## Develop from source
 
 ```bash
-git clone --branch preview https://github.com/science-learner/ScienceFlow.git
+git clone --branch master https://github.com/science-learner/ScienceFlow.git
 cd ScienceFlow
 uv sync --python 3.12 --group dev
 uv run scienceflow config init
@@ -219,7 +219,7 @@ runs.
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/science-learner/ScienceFlow/v0.2.0b6/docs/public/scienceflow/assets/mlebench_top10_any_medal.png" alt="Representative full MLE-bench Any-Medal leaderboard" width="100%">
+  <img src="https://raw.githubusercontent.com/science-learner/ScienceFlow/v0.2.0/docs/public/scienceflow/assets/mlebench_top10_any_medal.png" alt="Representative full MLE-bench Any-Medal leaderboard" width="100%">
 </p>
 
 ## Citation

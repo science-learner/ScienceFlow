@@ -538,8 +538,9 @@ def test_index_notification_failure_keeps_committed_directory(tmp_path, monkeypa
     assert entry["run_id"] is None
 
 
-def test_execution_root_symlink_loop_is_a_user_error(tmp_path):
+@pytest.mark.parametrize("suffix", ["", "/child"])
+def test_execution_root_symlink_loop_is_a_user_error(tmp_path, suffix):
     loop = tmp_path / "loop"
     loop.symlink_to(loop)
     with pytest.raises((ValueError, OSError)):
-        resolve_local_root(tmp_path, "loop")
+        resolve_local_root(tmp_path, "loop" + suffix)
