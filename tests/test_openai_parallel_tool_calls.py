@@ -14,7 +14,7 @@
 """OpenAI 兼容 API：多工具调用真网冒烟（可选）。
 
 ``OnlineLLM.ask_tool`` 在 ``parallel_tool_calls=None``（默认）时**不**把 ``parallel_tool_calls`` 写入请求体，
-以便智谱 GLM 等网关拒绝该 OpenAI 专有字段时仍能调用（见 ``deepcraft_core/llm/online.py``）。
+以便智谱 GLM 等网关拒绝该 OpenAI 专有字段时仍能调用（见 ``inquirycraft.llm.online``）。
 
 本文件验证行为（不依赖上游是否实现 ``parallel_tool_calls`` 开关）：
 
@@ -40,11 +40,11 @@ from typing import Any
 
 import pytest
 
-from deepcraft_core import Message
+from inquirycraft.memory import Message
 
-from scienceflow.config.settings import Config, StageConfig, load_cfg
-from scienceflow.core.llm_http import aclose_llm_clients
-from scienceflow.core.agent_runtime import _build_llm
+from scienceflow.foundation.config.schema.settings import Config, StageConfig, load_cfg
+from scienceflow.foundation.config.llm.llm_factory import build_stage_llm as _build_llm
+from scienceflow.foundation.config.llm.llm_http import aclose_llm_clients
 
 
 def _bootstrap_env() -> None:

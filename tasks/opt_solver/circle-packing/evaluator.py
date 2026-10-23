@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright (C) 2026. Huawei Technologies Co., Ltd. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify it under
@@ -17,13 +16,19 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from pathlib import Path
 from typing import Any
 
-import numpy as np
-
 DEFAULT_TOL = 1e-6
+DEFAULT_PROBLEM = {
+    "benchmark_radii_sum": 2.635,
+    "container": "unit_square",
+    "num_circles": 26,
+    "tolerance": DEFAULT_TOL,
+}
+Circle = tuple[float, float, float]
 
 
 def _load_json(path: Path) -> Any:
@@ -38,69 +43,79 @@ def _load_problem(path: Path) -> dict[str, Any]:
         raise FileNotFoundError(f"problem file not found: {path}")
     data = _load_json(path)
     if not isinstance(data, dict):
-        raise ValueError("problem JSON must be an object")
+        raise TypeError("problem JSON must be an object")
     return data
 
 
-def _load_circles(path: Path) -> np.ndarray:
+def _triple(value: Any, *, label: str) -> Circle:
+    if not isinstance(value, (list, tuple)) or len(value) != 3:
+        raise ValueError(f"{label} must be [x, y, radius]")
+    if any(isinstance(item, bool) for item in value):
+        raise ValueError(f"{label} values must be numbers")
+    try:
+        return float(value[0]), float(value[1]), float(value[2])
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{label} values must be numbers") from exc
+
+
+def _load_circles(path: Path) -> list[Circle]:
     if not path.is_file():
         raise FileNotFoundError(f"solution file not found: {path}")
     data = _load_json(path)
     if isinstance(data, dict):
         raw = data.get("circles")
         if raw is None and "centers" in data and "radii" in data:
-            centers = np.asarray(data["centers"], dtype=float)
-            radii = np.asarray(data["radii"], dtype=float)
-            if centers.ndim != 2 or centers.shape[1] != 2:
-                raise ValueError("centers must have shape (n, 2)")
-            if radii.ndim != 1 or radii.shape[0] != centers.shape[0]:
+            centers, radii = data["centers"], data["radii"]
+            if not isinstance(centers, list) or any(
+                not isinstance(center, (list, tuple)) or len(center) != 2
+                for center in centers
+            ):
+                raise ValueError("centers must be a list of [x, y] pairs")
+            if not isinstance(radii, list) or len(radii) != len(centers):
                 raise ValueError("radii must have shape (n,) and match centers")
-            return np.column_stack([centers, radii])
+            raw = [[*center, radius] for center, radius in zip(centers, radii)]
     else:
         raw = data
     if raw is None:
         raise ValueError("solution JSON must be a list of circles or contain key 'circles'")
-    circles = np.asarray(raw, dtype=float)
-    if circles.ndim != 2 or circles.shape[1] != 3:
-        raise ValueError(f"circles must have shape (n, 3), got {circles.shape}")
-    return circles
+    if not isinstance(raw, list):
+        raise TypeError("circles must be a list")
+    return [_triple(circle, label=f"circle {index}") for index, circle in enumerate(raw)]
 
 
-def _validate_shape(circles: np.ndarray, expected_n: int) -> None:
-    if circles.shape != (expected_n, 3):
-        raise ValueError(f"circles must have shape ({expected_n}, 3), got {circles.shape}")
-    if not np.isfinite(circles).all():
-        raise ValueError("circle coordinates and radii must be finite")
-    if np.any(circles[:, 2] < 0):
-        idx = int(np.where(circles[:, 2] < 0)[0][0])
-        raise ValueError(f"circle {idx} has negative radius {circles[idx, 2]}")
+def _validate_shape(circles: list[Circle], expected_n: int) -> None:
+    if len(circles) != expected_n:
+        raise ValueError(f"expected exactly {expected_n} circles, got {len(circles)}")
+    for index, circle in enumerate(circles):
+        if not all(math.isfinite(value) for value in circle):
+            raise ValueError(f"circle {index} contains a non-finite value")
+        if circle[2] < 0:
+            raise ValueError(f"circle {index} has negative radius {circle[2]}")
 
 
-def _validate_overlaps(circles: np.ndarray, tol: float) -> None:
-    centers = circles[:, :2]
-    radii = circles[:, 2]
+def _validate_overlaps(circles: list[Circle], tol: float) -> None:
     n = len(circles)
     for i in range(n):
         for j in range(i + 1, n):
-            dist = float(np.linalg.norm(centers[i] - centers[j]))
-            required = float(radii[i] + radii[j])
+            dist = math.dist(circles[i][:2], circles[j][:2])
+            required = circles[i][2] + circles[j][2]
             if dist < required - tol:
                 raise ValueError(
                     f"circles {i} and {j} overlap: dist={dist:.12g}, radii_sum={required:.12g}"
                 )
 
 
-def _validate_unit_square(circles: np.ndarray, tol: float) -> None:
+def _validate_unit_square(circles: list[Circle], tol: float) -> None:
     for idx, (x, y, r) in enumerate(circles):
         if x - r < -tol or x + r > 1.0 + tol or y - r < -tol or y + r > 1.0 + tol:
             raise ValueError(f"circle {idx} is outside the unit square")
 
 
-def _validate_rectangle_perimeter4(circles: np.ndarray, tol: float) -> tuple[float, float]:
-    min_x = float(np.min(circles[:, 0] - circles[:, 2]))
-    max_x = float(np.max(circles[:, 0] + circles[:, 2]))
-    min_y = float(np.min(circles[:, 1] - circles[:, 2]))
-    max_y = float(np.max(circles[:, 1] + circles[:, 2]))
+def _validate_rectangle_perimeter4(circles: list[Circle], tol: float) -> tuple[float, float]:
+    min_x = min(x - radius for x, _, radius in circles)
+    max_x = max(x + radius for x, _, radius in circles)
+    min_y = min(y - radius for _, y, radius in circles)
+    max_y = max(y + radius for _, y, radius in circles)
     width = max_x - min_x
     height = max_y - min_y
     if width + height > 2.0 + tol:
@@ -118,12 +133,17 @@ def evaluate(
     dataset_dir: Path,
     config: dict[str, Any],
 ) -> dict[str, Any]:
-    _ = workspace_dir, task_dir, config
-    return _evaluate_problem_solution(dataset_dir / "problem.json", artifact_path)
+    _ = workspace_dir, task_dir, dataset_dir
+    task = config.get("task") if isinstance(config.get("task"), dict) else {}
+    problem = task.get("problem") if isinstance(task.get("problem"), dict) else DEFAULT_PROBLEM
+    return _evaluate_solution(problem, artifact_path)
 
 
 def _evaluate_problem_solution(problem_path: Path, solution_path: Path) -> dict[str, Any]:
-    problem = _load_problem(problem_path)
+    return _evaluate_solution(_load_problem(problem_path), solution_path)
+
+
+def _evaluate_solution(problem: dict[str, Any], solution_path: Path) -> dict[str, Any]:
     expected_n = int(problem.get("num_circles", 26))
     container = str(problem.get("container", "unit_square"))
     tol = float(problem.get("tolerance", DEFAULT_TOL))
@@ -142,7 +162,7 @@ def _evaluate_problem_solution(problem_path: Path, solution_path: Path) -> dict[
     else:
         raise ValueError(f"unsupported circle packing container: {container}")
 
-    radii_sum = float(np.sum(circles[:, 2]))
+    radii_sum = math.fsum(radius for _, _, radius in circles)
     metadata["radii_sum"] = radii_sum
     if benchmark is not None:
         metadata["benchmark_ratio"] = radii_sum / float(benchmark)
@@ -155,12 +175,13 @@ def _evaluate_problem_solution(problem_path: Path, solution_path: Path) -> dict[
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--problem", required=True)
+    parser.add_argument("--problem")
     parser.add_argument("--solution", required=True)
     args = parser.parse_args()
     try:
-        result = _evaluate_problem_solution(Path(args.problem), Path(args.solution))
-    except Exception as exc:
+        problem = _load_problem(Path(args.problem)) if args.problem else DEFAULT_PROBLEM
+        result = _evaluate_solution(problem, Path(args.solution))
+    except (OSError, TypeError, ValueError) as exc:
         print(f"circle_packing_eval error: {exc}", file=sys.stderr)
         return 2
     print(json.dumps(result, sort_keys=True))

@@ -1,0 +1,7 @@
+schema_version: "1.0"
+policy:
+  max_function_lines: 150
+  reason: Frozen V3 behavior moved without semantic edits; subdivision needs dedicated characterization.
+  expiry: v3.2-narrow-state
+  delete_when: Typed state/ports reduce the function to at most 150 lines with parity 0/0/0.
+exceptions: []

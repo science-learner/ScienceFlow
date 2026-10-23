@@ -17,13 +17,14 @@ from types import SimpleNamespace
 
 import pytest
 
-from scienceflow.core.task_package import (
+from scienceflow.runtime.task_package import (
     description_path_for_task,
     find_task_package,
     prepare_task_runtime,
 )
-from scienceflow.gates.evaluator import EvalContext, EvaluatorManager
-from scienceflow.gates.evaluator.backends.task_package import _runner_config
+from scienceflow.foundation.contracts import EvalContext
+from scienceflow.research.quality.evaluator import EvaluatorManager
+from scienceflow.research.quality.evaluator.backends.task_package import _runner_config
 
 
 def _write(path: Path, text: str) -> None:
@@ -148,6 +149,30 @@ def test_task_package_runner_passes_trusted_worker_query_context(tmp_path: Path)
         "stage_id": "S03",
         "query_budget_scope": "worker",
     }
+
+
+def test_task_package_runner_does_not_expose_mlebench_root(tmp_path: Path) -> None:
+    spec = SimpleNamespace(
+        task_id="nomad2018-predict-transparent-conductors",
+        profile="mlebench",
+        config={"id": "nomad2018-predict-transparent-conductors"},
+    )
+    ctx = EvalContext(
+        task_profile="mlebench",
+        task_id=spec.task_id,
+        task_root=tmp_path / "task-root",
+        workspace=tmp_path,
+        worker_id="MERGE",
+        stage_id="final_00",
+        cfg=SimpleNamespace(
+            evaluator=SimpleNamespace(query_budget_scope="task"),
+            mlebench_data_root_dir="./data/mlebench_all_data",
+        ),
+    )
+
+    config = _runner_config(ctx, spec, "package-sha")
+
+    assert "mlebench_data_root_dir" not in config
 
 
 def test_task_package_runner_rejects_worker_scope_without_worker_id(tmp_path: Path) -> None:

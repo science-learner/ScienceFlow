@@ -12,10 +12,10 @@
 
 from dataclasses import replace
 
-from scienceflow.safety.resource.review_boundary import PROGRESS_WINDOW, RESOURCE_PRESSURE, ROUTE_VALUE, STALL, TIMEBOX_EXPIRED
-from scienceflow.safety.resource.review_outcome import KILL, NO_ACTION, TIMEBOX, normalize_value_review_outcome
-from scienceflow.safety.resource.review_signal import build_review_signal
-from scienceflow.safety.resource.review_state import (
+from scienceflow.runtime.safety.resource.review.review_boundary import PROGRESS_WINDOW, RESOURCE_PRESSURE, ROUTE_VALUE, STALL, TIMEBOX_EXPIRED
+from scienceflow.runtime.safety.resource.review.review_outcome import KILL, NO_ACTION, TIMEBOX, normalize_value_review_outcome
+from scienceflow.runtime.safety.resource.review.review_signal import build_review_signal
+from scienceflow.runtime.safety.resource.review.review_state import (
     TIMEBOX_ACTIVE,
     ResourceReviewConfig,
     advance_review_state,
@@ -26,7 +26,7 @@ from scienceflow.safety.resource.review_state import (
     new_review_state,
     next_review_boundary,
 )
-from scienceflow.solver.lnr.resource_runtime.review.arbiter import normalize_arbiter_decision
+from scienceflow.research.solver.lnr.resources.runtime.review.decision.arbiter import normalize_arbiter_decision
 
 from tests.lnr_resource_test_utils import make_observer
 

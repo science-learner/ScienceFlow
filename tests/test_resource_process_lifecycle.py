@@ -10,7 +10,7 @@
 # The name of Huawei and the contributors may not be used to endorse or promote
 # products derived from this software without specific prior written permission.
 
-from scienceflow.safety.resource.process_lifecycle import classify_process_lifecycle
+from scienceflow.runtime.safety.resource.lifecycle.process_lifecycle import classify_process_lifecycle
 
 
 def test_lifecycle_busy_child_is_active_work() -> None:

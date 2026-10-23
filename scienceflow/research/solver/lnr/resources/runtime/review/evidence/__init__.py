@@ -1,0 +1,1 @@
+"""Internal responsibility package."""

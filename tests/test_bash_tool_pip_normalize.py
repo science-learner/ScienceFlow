@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import pytest
 
-from scienceflow.core.tools.bash.guards import (
+from scienceflow.runtime.safety.tooling.workspace.shell_guards import (
     _format_cpu_set_compact,
     _infer_timeout,
     _parse_cpu_set_string,
@@ -29,7 +29,7 @@ from scienceflow.core.tools.bash.guards import (
     shared_python_env_write_blocked_error,
     workspace_scope_path_blocked_error,
 )
-from scienceflow.core.tools.bash_tool import (
+from scienceflow.runtime.safety.tooling.bash import (
     BashTool,
 )
 
@@ -474,8 +474,8 @@ async def test_bash_tool_infra_error_hint_on_fast_fail(tmp_path, monkeypatch) ->
         return _start
 
     with (
-        patch("scienceflow.core.tools.bash_tool.spawn_shell", return_value=fake_proc),
-        patch("scienceflow.core.tools.bash_tool.time.time", side_effect=_fast_time),
+        patch("scienceflow.runtime.safety.tooling.bash.spawn_shell", return_value=fake_proc),
+        patch("scienceflow.runtime.safety.tooling.bash.time.time", side_effect=_fast_time),
     ):
         r = await tool.execute("echo ignored")
 

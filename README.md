@@ -1,175 +1,240 @@
-<h1 align="center">ScienceFlow</h1>
-
-<p align="center"><b>An End-to-End Autoresearch Agent Framework</b></p>
-
 <p align="center">
-  <a href="https://www.noahlab.com.hk/news/212"><b>Project News</b></a>
-  ·
-  <a href="https://arxiv.org/abs/2608.14354"><b>Paper (arXiv)</b></a>
-  ·
-  <a href="doc/README_CN.md"><b>Chinese</b></a>
+  <img src="https://raw.githubusercontent.com/science-learner/ScienceFlow/preview/docs/assets/brand/scienceflow-banner.svg" alt="ScienceFlow" width="800">
 </p>
 
-ScienceFlow is an end-to-end autoresearch agent framework for productive, stable, and goal-aligned research over hours or days. It organizes research around recoverable executable workspaces, coupling persistent state, adaptive exploration, and evidence-aware execution control so agents can continue, redirect, or recover without losing validated progress.
-
-Across machine learning, scientific modeling, and mathematical optimization, ScienceFlow sustains effective long-horizon research and reaches **70.22 ± 1.18% Any-Medal** on the full 75-task MLE-bench within a 24-hour budget, exceeding the strongest reported baseline by **4.92 percentage points**.
-
 <p align="center">
-  <img src="doc/scienceflow/assets/mlebench_top10_any_medal.png" alt="Representative full MLE-bench Any-Medal leaderboard" width="100%">
+  <a href="https://github.com/science-learner/ScienceFlow/actions/workflows/scienceflow-contract-ci.yml"><img src="https://github.com/science-learner/ScienceFlow/actions/workflows/scienceflow-contract-ci.yml/badge.svg?branch=preview" alt="CI"></a>
+  <a href="https://pypi.org/project/scienceflow/"><img src="https://img.shields.io/pypi/v/scienceflow?label=PyPI&amp;color=0f766e&amp;cacheSeconds=300&amp;release=0.2.0b12" alt="PyPI"></a>
+  <a href="https://arxiv.org/abs/2608.14354"><img src="https://img.shields.io/badge/arXiv-2608.14354-B31B1B.svg" alt="arXiv paper"></a>
+  <a href="https://github.com/science-learner/ScienceFlow/issues"><img src="https://img.shields.io/badge/feedback-open-334155" alt="Feedback"></a>
+  <img src="https://img.shields.io/badge/Python-3.11%2B-3776AB" alt="Python 3.11+">
 </p>
-<p align="center"><sub><b>Figure 1a. Full MLE-bench Any-Medal leaderboard.</b> Mean ± SEM over three independent runs for ScienceFlow.</sub></p>
+
+<p align="justify">
+ScienceFlow turns an executable task with a measurable objective into persistent,
+evaluator-guided research. It coordinates parallel workers, promotes valid results into
+recoverable stages, preserves the best artifacts, and exposes the full process through a
+TUI and Web monitor.
+</p>
+
+> [!IMPORTANT]
+> **Testing preview · 0.2.0b12.**
+> Interfaces and workspace metadata may change before the stable release.
 
 ## News
 
-- **[2026-08]** ScienceFlow is open source — the framework code, task packages, and documentation are available in this repository.
-- **[2026-08]** The ScienceFlow paper is available on [arXiv](https://arxiv.org/abs/2608.14354).
-
-## Core concepts
-
-1. **Recoverable executable state.** Each persistent LNR worker advances research in an isolated executable workspace. An archived state binds that workspace to compact memory, validation evidence, and resource records.
-2. **Stage Gate.** A task-specific result signal invokes `GateService`: the configured Evaluator produces normalized evidence, and the Gate policy decides admission. An accepted result materializes an immutable Stage with ledger facts and a recoverable workspace snapshot.
-3. **ESTRA.** At a research boundary, Executable-State Transition through Re-Anchoring makes a two-axis decision: a start point (the current workspace or an archived Stage) and an intent (`continue` or `redirect`). Selecting an archived start point restores its executable state before the next research segment.
-4. **Persistent memory.** Add records accepted Stage progress. Fold keeps recent, best-validated, and anchor-relevant evidence explicit while summarizing older records; Unfold/restore retrieves indexed evidence and state, and Assemble constructs the anchor-specific context for the next segment.
-5. **Evidence-aware execution control.** Research workers choose scientific routes, while the controller admits, leases, monitors, timeboxes, and stops physical jobs using resource availability, remaining budget, validated progress, and recoverability. Valid worker states are finalized under `merge/finals/final_*`.
-
-## System architecture
-
-<p align="center">
-  <img src="doc/scienceflow/assets/scienceflow_system_architecture.png" alt="ScienceFlow system architecture" width="100%">
-</p>
-<p align="center"><sub><b>Figure 2. ScienceFlow system architecture.</b> Research workers operate over recoverable executable states and adapt long-horizon trajectories through boundary-triggered ESTRA transitions, while evidence-aware execution control coordinates physical resource allocation and runtime execution.</sub></p>
-
-## Design boundaries
-
-- LNR is **no-skill by default**: `lnr_skill_tool_enabled: false` and `lnr_skill_auto_read: false`.
-- `.scienceflow/skills/data_processing/` is retained only for the dedicated data-prep agent and validation-split workflow.
-- `auto` is the default evaluator backend and resolves registered tasks to `task_package`; `artifact_command` remains available for generic command-based evaluation.
-- Parallel runs bind CPU/GPU resources at task level, then split CPU capacity across workers. GPU leases support controlled sharing by multiple workers.
-- Result signals may create Stages without a submission when the task contract permits it. Merge can only emit finals from candidates that carry the required artifact.
-
-## Repository layout
-
-```text
-ScienceFlow/
-├── scienceflow/                         # Framework runtime
-│   ├── core/                            # Agent runtime, tools, memory, and execution
-│   ├── solver/                          # LNR, Stage lifecycle, ESTRA, resume, and merge
-│   ├── gates/                           # Stage Gate and Evaluator plugins
-│   ├── safety/                          # Evidence-aware resource and execution control
-│   ├── ui/                              # Monitor and trace interfaces
-│   ├── config/                          # Defaults and example manifests
-│   ├── utils/                           # Shared runtime utilities
-│   └── cli.py                           # Command-line entry point
-├── tasks/                               # Task packages and evaluators
-├── scripts/                             # Maintained run and monitor manifests
-├── .scienceflow/skills/data_processing/ # Data-preparation skills
-└── doc/scienceflow/                     # Detailed architecture documentation
-```
-
-## Installation
-
-**Requirements:** Python 3.11+ and [uv](https://docs.astral.sh/uv/).
-
-```bash
-# Install uv if you do not have it yet
-curl -LsSf https://astral.sh/uv/install.sh | sh   # or: pip install uv
-
-# Clone the repository and enter the project
-git clone https://github.com/huawei-noah/noah-research.git
-cd noah-research/ScienceFlow
-
-# Configure LLM credentials
-cp env.example .env   # then edit .env: set API_KEY and BASE_URL for your provider
-
-# Create .venv and install the locked environment
-uv sync
-```
-
-Notes:
-
-- `uv sync` installs the locked `uv.lock` environment, including the in-repo `deepcraft` subpackages, the official `mlebench` Git revision, and the full test/ML stack.
-- PyTorch wheels default to the **cu128** index (for CUDA 12.8-era drivers). Adjust `[[tool.uv.index]]` in `pyproject.toml` if you need a different CUDA build.
-- SciModelingBench support is an optional extra: `uv sync --extra scientific-design`.
-- Run commands either via `uv run ...` or by using `.venv/bin/python` directly.
+- **[2026-09]** Released the ScienceFlow harness preview for long-horizon scientific research agents, with TUI and Web interfaces.
+- **[2026-08]** Released ScienceFlow [code](https://github.com/EE-PandaMinG/ScienceFlow_Noah/commit/ad1f7ddae57873807da5a9c0070c68ba9a740515) and [paper](https://arxiv.org/abs/2608.14354).
 
 ## Quick start
 
-Start an interactive research REPL:
+<p align="justify"><strong>Requirements:</strong> Python 3.11+ and access to a supported model API.</p>
+
+### Install
+
+Install ScienceFlow with <a href="https://pipx.pypa.io/latest/how-to/install-pipx.html">pipx</a> so
+the command is available from any directory while its Python dependencies remain isolated:
 
 ```bash
-uv run python -m scienceflow.cli repl
+pipx install scienceflow==0.2.0b12
+scienceflow --help
 ```
 
-Run the maintained two-worker Nomad2018 example:
+<details>
+<summary><strong>Other installation methods</strong></summary>
+
+**Conda**
 
 ```bash
-uv run python -m scienceflow.cli parallel -m scripts/lnr.yaml -j 1
+conda create -n scienceflow python=3.12 -y
+conda activate scienceflow
+python -m pip install scienceflow==0.2.0b12
 ```
 
-Monitor an existing run:
+**uv**
 
 ```bash
-uv run python -m scienceflow.cli monitor --manifest scripts/lnr.yaml --refresh 5
+uv tool install scienceflow==0.2.0b12
 ```
 
-Prepare a dataset with the dedicated data-prep agent:
+**Python virtual environment**
 
 ```bash
-uv run python -m scienceflow.cli parallel -m scripts/prep.yaml -j 1
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install scienceflow==0.2.0b12
 ```
 
-Run the self-contained Circle Packing math-optimization example (no dataset or optional extra required):
+</details>
+
+### Configure and start
 
 ```bash
-uv run python tasks/opt_solver/_tools/prepare_math_opt_solver_tasks.py
-uv run python -m scienceflow.cli parallel \
-  -m scienceflow/config/examples/tasks_circle_packing_example.yaml -j 1
+scienceflow config init
+scienceflow config path     # edit the generated private model registry
+scienceflow tui
 ```
 
-The prepare step writes a tiny task package (`problem.json` plus a valid baseline) under `./data/opt_solver/`. The agent then iteratively improves `artifacts/best_solution.json`, and the system-side evaluator authoritatively validates each candidate and scores it by the sum of radii.
+<p align="justify">
+Chat normally in the TUI, or enter <code>/long-research</code> to configure and launch a
+managed task. Closing the TUI detaches from research without terminating its workers.
+</p>
 
-## Configuration essentials
+### Minimal TUI example
 
-| Setting | Purpose |
-|---|---|
-| `lnr.num_workers` | Number of persistent research workers inside one task. |
-| `task.cpu_list` / `task.gpu_list` | Task-level CPU and GPU resource boundaries; LNR further splits CPU across workers. |
-| `lnr.omp_threads_cap` | CPU thread cap for each worker slice. |
-| `lnr.wall_clock_budget_sec` | Total wall-clock budget for the LNR process. |
-| `lnr.estra_enabled` / `estra_trigger_stage_count` | Enables ESTRA and sets the trigger for boundary review and context folding. |
-| `lnr.resource_runtime_enabled` | Enables evidence-aware resource and execution control. |
-| `resume_budget_policy` | Budget accounting for resumed runs; `fresh` adds this round's `time_limit` on top of accumulated time. |
-| `evaluator.backend` | Selects `auto` (default), `task_package`, or `artifact_command`. |
-| `evaluator.stage_source_mode` | Selects the `shadow`, `adjudicate`, or `primary` Stage source mode. |
-| `evaluator.command.python_executable` | Points a task at an isolated Python environment. |
-| `profile_overrides.<profile>` | Overrides prompts, Evaluator, and resource behavior per task type. |
-| `tasks/**/task.yaml` | Declares the task-level artifact, metric, provider/profile, Evaluator, and Gate policy. |
-| `metric.authoritative: true` | Marks a metric as authoritative evidence eligible for high-trust selection. |
+<p align="justify">
+The built-in <code>circle-packing</code> example needs no dataset. After starting the TUI,
+complete these prompts in order:
+</p>
 
-## Documentation
+**1 · Prepare the task**
 
-[Architecture overview](doc/scienceflow/index.html) · [Recoverable states and LNR](doc/scienceflow/module-lnr.html) · [Evidence-aware execution control](doc/scienceflow/module-resource.html) · [Adding optimization tasks](doc/scienceflow/module-opt-solver-onboarding.html) · [SciModelingBench](tasks/sci_modeling_bench/README.md)
+```text
+/long-research circle-packing workers=2 cpu=16 gpu=cpu duration=1h
+```
 
-## Paper task coverage
+**2 · Start after preflight passes**
 
-The paper evaluates the same ScienceFlow workflow across three classes of executable research tasks:
+```text
+run
+```
 
-- **Machine learning engineering:** all 75 [MLE-bench](https://github.com/openai/mle-bench) tasks through the pipeline-construction interface.
-- **Scientific modeling and design:** 12 [SciModelingBench tasks on Hugging Face](https://huggingface.co/datasets/sci-modeling-bench/design-bench) through the candidate-optimization interface.
-- **Mathematical and engineering optimization:** [Circle Packing](https://github.com/algorithmicsuperintelligence/openevolve/tree/main/examples/circle_packing), [Ratio Minimization](https://github.com/algorithmicsuperintelligence/openevolve/tree/main/examples/alphaevolve_math_problems/minimizing_max_min_dist), [Uncertainty Inequality](https://github.com/algorithmicsuperintelligence/openevolve/tree/main/examples/alphaevolve_math_problems/uncertainty_ineq), and the easy, medium, and hard [SpOC4 KTTSP](https://www.esa.int/gsp/ACT/news/spoc-2026/) tracks through the candidate-optimization interface.
+<p align="justify">
+ScienceFlow runs preflight checks, starts two CPU workers, evaluates candidate solutions,
+and retains the best valid artifact under the workspace. Follow it with
+<code>/tasks</code> or <code>/status 1</code>.
+</p>
 
-All task families share the Stage Gate and Evaluator contract. Each `task.yaml` keeps provider/profile, artifact schema, metric direction, evaluator backend, authoritative status, and Gate policy outside the generic solver.
+<table width="100%">
+  <thead>
+    <tr>
+      <th width="500" align="center">Command</th>
+      <th width="500" align="center">Purpose</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td align="left"><code>/long-research DESCRIPTION</code></td><td align="left">Prepare and launch a research task.</td></tr>
+    <tr><td align="left"><code>/tasks</code>, <code>/status N</code></td><td align="left">List tasks or inspect results, model usage, and resources.</td></tr>
+    <tr><td align="left"><code>/stop N</code>, <code>/resume N</code>, <code>/attach N</code></td><td align="left">Control or follow a task.</td></tr>
+    <tr><td align="left"><code>/models</code></td><td align="left">Select the fixed chat model.</td></tr>
+    <tr><td align="left"><code>/web</code>, <code>/web stop</code></td><td align="left">Start or stop the workspace Web monitor.</td></tr>
+  </tbody>
+</table>
 
-## Operational notes
-
-- MLE-bench tasks require the data root, task `exp_id`, and `submission.csv` contract to be aligned.
-- Do not resume old workspaces across different task profiles, or prompts, datasets, or artifact dimensions may be inherited incorrectly.
-- `stopped_by_user` marks a resumable terminal state from a manual stop, not a failure; a later resume should continue from the accumulated budget in `state.json` and the workspace stages.
-
-## Verification
+Choose a saved chat session with:
 
 ```bash
-uv run pytest -q
+scienceflow tui --resume
 ```
 
-The project uses Python 3.11+, Pydantic, OmegaConf, Click, and Rich. The official `mlebench` dependency is pinned to a Git revision in `uv.lock`; the optional `scientific-design` extra provides SciModelingBench, Datasets, and PyArrow support. Command-based optimization tasks may use a separate Python environment injected through the evaluator configuration, with task-specific schema/scoring logic kept inside the `tasks/<category>/...` task package.
+See the [runtime guide](docs/public/RUNTIME_GUIDE.md) for workspace and execution details.
+
+## How it works
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/science-learner/ScienceFlow/v0.2.0b6/docs/public/scienceflow/assets/scienceflow_system_architecture.png" alt="ScienceFlow system architecture" width="100%">
+</p>
+
+1. **Explore:** isolated workers advance executable workspaces under explicit CPU, GPU,
+   model, and time budgets.
+2. **Evaluate:** task evaluators convert artifacts into normalized evidence and final scores.
+3. **Preserve:** Stage Gate admits valid results as immutable, recoverable stages while the
+   best artifact remains available independently of submission state.
+4. **Adapt:** ESTRA continues the current route or re-anchors work to a stronger archived
+   stage at research boundaries.
+
+<p align="justify">
+Agent messages, reasoning, tool calls, evaluator results, resource samples, costs, and stage
+lineage are retained as structured events for inspection and future training workflows.
+</p>
+
+## Task contract
+
+<table width="100%">
+  <thead>
+    <tr>
+      <th width="500" align="center">You provide</th>
+      <th width="500" align="center">ScienceFlow manages</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td align="left">Objective, constraints, and metric direction</td><td align="left">Research lifecycle and parallel workers</td></tr>
+    <tr><td align="left">Executable task code and required data</td><td align="left">Isolated workspaces and resource leases</td></tr>
+    <tr><td align="left">Evaluator and valid artifact contract</td><td align="left">Evidence normalization and Stage admission</td></tr>
+    <tr><td align="left">Baseline or starting implementation</td><td align="left">Exploration, recovery, selection, and finalization</td></tr>
+  </tbody>
+</table>
+
+<p align="justify">
+A registered <code>task.yaml</code> is the source of truth for measurement and valid
+artifacts. ScienceFlow does not invent a missing evaluator or silently replace required
+task data.
+</p>
+
+## Models, resources, and task environments
+
+<p>
+Model settings stay local in <code>~/.config/scienceflow/models.json</code> (mode
+<code>600</code>); API keys are excluded from task manifests, sessions, and reports. See the
+<a href="https://github.com/science-learner/ScienceFlow/blob/v0.2.0b6/docs/examples/models.example.json">redacted example</a>.
+</p>
+
+<p align="justify">
+The base package provides the control plane and TUI. Install task-specific ML/GPU
+dependencies only when needed:
+</p>
+
+```bash
+python -m pip install "scienceflow[full]"==0.2.0b12
+```
+
+<p align="justify">
+CPU and GPU allocations form task boundaries; CPU capacity is divided across workers. Model
+pricing is optional—without it, the UI reports <code>Cost —</code>. Do not resume a
+workspace with a different task, dataset, evaluator, prompt, or artifact contract.
+</p>
+
+## Develop from source
+
+```bash
+git clone --branch preview https://github.com/science-learner/ScienceFlow.git
+cd ScienceFlow
+uv sync --python 3.12 --group dev
+uv run scienceflow config init
+uv run scienceflow tui
+```
+
+<p align="justify">
+Use <code>uv sync --extra full --group dev</code> only when tests require the full ML/GPU
+environment.
+</p>
+
+## Research
+
+<p align="justify">
+ScienceFlow uses the same Stage Gate and evaluator contract across machine-learning
+engineering, scientific modeling, and mathematical optimization. In the reported 24-hour,
+75-task MLE-bench evaluation, it reaches <strong>70.22 ± 1.18% Any-Medal</strong> over three
+runs.
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/science-learner/ScienceFlow/v0.2.0b6/docs/public/scienceflow/assets/mlebench_top10_any_medal.png" alt="Representative full MLE-bench Any-Medal leaderboard" width="100%">
+</p>
+
+## Citation
+
+If ScienceFlow supports your research, please cite:
+
+```bibtex
+@misc{zhao2026scienceflow,
+  title         = {{ScienceFlow}: A Long-Horizon Agent for {ML} Research, Scientific Discovery and Beyond},
+  author        = {Mingming Zhao and Jiqian Dong and Kangping Xu and Zadid Hasan and Chengrui Fan and Shan Jiang and Shuai Mao and Yating Ling and Linyi Zou and Tailin Zhou and Yun Hin Chan and Wenkai Zhang and Zhanhong Zhou and Guowei Huang and Hongliang Li and Wenjing Cun and Zhitang Chen and Mingxuan Yuan and Yanhui Geng},
+  year          = {2026},
+  eprint        = {2608.14354},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.AI},
+  doi           = {10.48550/arXiv.2608.14354},
+  url           = {https://arxiv.org/abs/2608.14354}
+}
+```

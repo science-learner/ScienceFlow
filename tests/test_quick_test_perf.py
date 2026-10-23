@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from scienceflow.utils.quick_test_perf import (
+from scienceflow.research.control.execution_value.evidence.quick_test import (
     estimate_full_run_seconds,
     is_plausible_epoch_duration_sec,
     parse_epoch_line,

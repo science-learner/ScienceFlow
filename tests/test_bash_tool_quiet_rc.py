@@ -27,7 +27,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from scienceflow.core.tools.bash_tool import BashTool, _has_silent_redirect
+from scienceflow.runtime.safety.tooling.bash import BashTool, _has_silent_redirect
 
 
 # ---------------------------------------------------------------------------
@@ -99,8 +99,8 @@ async def _run_with_fast_exit(tmp_path, cmd: str, rc: int):
     )
     fake_proc = _make_fake_proc(rc)
     with (
-        patch("scienceflow.core.tools.bash_tool.spawn_shell", return_value=fake_proc),
-        patch("scienceflow.core.tools.bash_tool.time.time", side_effect=_freeze_time()),
+        patch("scienceflow.runtime.safety.tooling.bash.spawn_shell", return_value=fake_proc),
+        patch("scienceflow.runtime.safety.tooling.bash.time.time", side_effect=_freeze_time()),
     ):
         return await tool.execute(cmd)
 
@@ -211,7 +211,7 @@ async def test_spawn_failure_returns_tool_error_instead_of_raising(tmp_path) -> 
     )
     exc = BlockingIOError(11, "Resource temporarily unavailable")
 
-    with patch("scienceflow.core.tools.bash_tool.spawn_shell", side_effect=exc):
+    with patch("scienceflow.runtime.safety.tooling.bash.spawn_shell", side_effect=exc):
         r = await tool.execute("python train.py")
 
     assert r.error == "bash spawn failed: BlockingIOError"

@@ -14,9 +14,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from scienceflow.core.tools.resource_classifier import RESOURCE_HEAVY_CPU_CANDIDATE
-from scienceflow.safety.resource.completion import deliverable_completion_state
-from scienceflow.safety.resource.signals import scan_output_health
+from scienceflow.runtime.safety.tooling.resource_management.resource_policy import RESOURCE_HEAVY_CPU_CANDIDATE
+from scienceflow.runtime.safety.resource.lifecycle.completion import deliverable_completion_state
+from scienceflow.runtime.safety.resource.review.signals import scan_output_health
 from tests.lnr_resource_test_utils import make_observer
 
 

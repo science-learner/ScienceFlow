@@ -20,11 +20,13 @@ from types import SimpleNamespace
 
 import httpx
 import pytest
-from deepcraft_core import Memory, Message
+from inquirycraft.llm import (
+    is_retryable_empty_tool_stream_error as _is_retryable_empty_tool_stream_error,
+)
+from inquirycraft.memory import Memory, Message
 
-from scienceflow.core.agent import ScienceAgent
-from scienceflow.core.agent.runtime.run_loop import _is_retryable_empty_tool_stream_error
-from scienceflow.core.agent.memory.reasoning_replay import (
+from scienceflow.agent import ScienceAgent
+from scienceflow.research.state.knowledge.memory.agent.reasoning_replay import (
     messages_with_synthetic_reasoning_replay,
 )
 
@@ -195,6 +197,49 @@ async def test_ask_tool_stream_retries_missing_reasoning_content_same_round(
     ]
     assert prior.reasoning_content is None
 
+
+@pytest.mark.asyncio
+async def test_required_reasoning_replay_is_applied_before_first_request(
+    tmp_path: Path,
+) -> None:
+    class _ConfiguredThinkingModeLLM:
+        model = "deepseek-v4-flash"
+        reasoning_replay_policy = "required"
+        _last_call_input_tokens = 1
+        _last_call_output_tokens = 2
+
+        def __init__(self) -> None:
+            self.reasoning: list[str | None] = []
+
+        async def ask_tool_stream(self, **kwargs: object) -> object:
+            messages = list(kwargs.get("messages") or [])
+            self.reasoning = [
+                getattr(message, "reasoning_content", None)
+                for message in messages
+                if getattr(message, "role", None) == "assistant"
+            ]
+            handle = kwargs.get("handle")
+            if handle is not None and not getattr(handle, "interrupted", False):
+                handle.finish()
+            return SimpleNamespace(tool_calls=[], content="configured")
+
+    memory = Memory(max_messages=50)
+    prior = Message.assistant_message("legacy assistant")
+    memory.add_message(Message.user_message("prior task"))
+    memory.add_message(prior)
+    llm = _ConfiguredThinkingModeLLM()
+    agent = ScienceAgent(
+        llm=llm,
+        memory=memory,
+        workspace_dir=tmp_path,
+        max_steps=1,
+    )
+
+    assert "configured" in await agent.run("continue")
+    assert llm.reasoning == ["Synthetic replay placeholder for thinking-mode resume compatibility."]
+    assert prior.reasoning_content is None
+
+
 @pytest.mark.asyncio
 async def test_reasoning_replay_is_reused_after_first_provider_error(
     tmp_path: Path,
@@ -253,4 +298,3 @@ async def test_reasoning_replay_is_reused_after_first_provider_error(
     assert all(llm.assistant_reasoning_by_call[1])
     assert all(llm.assistant_reasoning_by_call[2])
     assert len(llm.assistant_reasoning_by_call[2]) >= 2
-

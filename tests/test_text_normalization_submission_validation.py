@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from scienceflow.core.artifact_io import wait_for_stable_file
+from scienceflow.runtime.core.support.artifact_io import wait_for_stable_file
 
 
 def test_wait_for_stable_file_flags_fresh_artifact_as_transient(tmp_path: Path) -> None:

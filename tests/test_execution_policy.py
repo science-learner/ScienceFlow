@@ -19,7 +19,7 @@ from pathlib import Path
 
 import pytest
 
-from scienceflow.safety.execution_policy import (
+from scienceflow.runtime.safety.policy.execution_policy import (
     FULL_RUN_STAMP_VERSION,
     FULL_RUN_SOURCE_SAFETY,
     _extract_metric_from_stdout,
@@ -332,7 +332,7 @@ def test_parse_lower_is_better_from_result_md_bold_list(tmp_path: Path) -> None:
 
 @pytest.mark.asyncio
 async def test_ensure_full_execution_runs_even_when_artifacts_present(tmp_path: Path) -> None:
-    from scienceflow.safety.execution_policy import ensure_full_execution
+    from scienceflow.runtime.safety.policy.execution_policy import ensure_full_execution
 
     (tmp_path / "solution.py").write_text(
         'print("Final Validation Score: 0.9")\n',
@@ -362,7 +362,7 @@ async def test_ensure_full_execution_runs_even_when_artifacts_present(tmp_path: 
 
 @pytest.mark.asyncio
 async def test_ensure_full_execution_no_stamp_on_nonfinite_final_score(tmp_path: Path) -> None:
-    from scienceflow.safety.execution_policy import ensure_full_execution
+    from scienceflow.runtime.safety.policy.execution_policy import ensure_full_execution
 
     (tmp_path / "solution.py").write_text(
         "print(\"valid_0's rmse: 0.0325365\")\nprint('Final Validation Score: inf')\n",
@@ -381,7 +381,7 @@ async def test_ensure_full_execution_no_stamp_on_nonfinite_final_score(tmp_path:
 
 @pytest.mark.asyncio
 async def test_ensure_full_execution_no_stamp_on_mcc_out_of_range(tmp_path: Path) -> None:
-    from scienceflow.safety.execution_policy import ensure_full_execution
+    from scienceflow.runtime.safety.policy.execution_policy import ensure_full_execution
 
     (tmp_path / "solution.py").write_text(
         "print('[EVAL] Val MCC: 6.001707')\n"
@@ -399,7 +399,7 @@ async def test_ensure_full_execution_no_stamp_on_mcc_out_of_range(tmp_path: Path
 
 @pytest.mark.asyncio
 async def test_ensure_full_execution_no_stamp_on_nonzero_exit(tmp_path: Path) -> None:
-    from scienceflow.safety.execution_policy import ensure_full_execution
+    from scienceflow.runtime.safety.policy.execution_policy import ensure_full_execution
 
     (tmp_path / "solution.py").write_text(
         "import sys\nsys.exit(1)\n",
@@ -413,7 +413,7 @@ async def test_ensure_full_execution_no_stamp_on_nonzero_exit(tmp_path: Path) ->
 
 @pytest.mark.asyncio
 async def test_ensure_full_execution_skips_when_stamp_present(tmp_path: Path) -> None:
-    from scienceflow.safety.execution_policy import ensure_full_execution
+    from scienceflow.runtime.safety.policy.execution_policy import ensure_full_execution
 
     (tmp_path / "solution.py").write_text('print("METRIC: 1.0")\n', encoding="utf-8")
     _write_full_run_stamp(tmp_path, "agent", metric_value=1.0)

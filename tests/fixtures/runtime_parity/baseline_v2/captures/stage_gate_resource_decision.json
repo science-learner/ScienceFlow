@@ -1,0 +1,192 @@
+{
+  "case_id": "stage_gate_resource_decision",
+  "context": {
+    "context": {
+      "cfg": {
+        "gate": {
+          "params": {
+            "max_constraint_violation": 1e-06
+          },
+          "policy": "optimization_feasibility"
+        }
+      },
+      "metadata": {},
+      "stage_id": "S01",
+      "task_id": "runtime-parity-task",
+      "task_profile": "opt_solver",
+      "task_python_executable": "",
+      "task_root": "<workspace>",
+      "wall_clock_remaining_sec": null,
+      "worker_id": "W00",
+      "workspace": "<workspace>"
+    },
+    "events": [
+      {
+        "artifact_path": "artifacts/best_solution.json",
+        "artifact_sha": "abc",
+        "candidate_id": "candidate-fixed",
+        "candidate_ready": true,
+        "evaluator_backend": "artifact_command",
+        "evaluator_status": "success",
+        "extra": {
+          "constraint_violation": 0.0
+        },
+        "lower_is_better": false,
+        "metric_name": "score",
+        "metric_note": "",
+        "metric_type": "optimization",
+        "metric_validity": "high",
+        "metric_validity_reason_code": "authoritative",
+        "metric_value": 1.25,
+        "run_time_sec": null,
+        "selection_eligible": true,
+        "stage_id": "S01",
+        "task_profile": "opt_solver",
+        "validation_ok": true,
+        "worker_id": "W00"
+      },
+      {
+        "artifact_path": "artifacts/best_solution.json",
+        "artifact_sha": "abc",
+        "candidate_id": "candidate-fixed",
+        "candidate_ready": true,
+        "evaluator_backend": "artifact_command",
+        "evaluator_status": "success",
+        "extra": {
+          "constraint_violation": 0.001
+        },
+        "lower_is_better": false,
+        "metric_name": "score",
+        "metric_note": "",
+        "metric_type": "optimization",
+        "metric_validity": "high",
+        "metric_validity_reason_code": "authoritative",
+        "metric_value": 1.25,
+        "run_time_sec": null,
+        "selection_eligible": true,
+        "stage_id": "S01",
+        "task_profile": "opt_solver",
+        "validation_ok": true,
+        "worker_id": "W00"
+      }
+    ],
+    "resource_input": {
+      "candidate_gpu_ids": [
+        "0",
+        "1"
+      ],
+      "command": "torchrun --nproc_per_node=2 train.py",
+      "default_request": 1,
+      "max_request": 2
+    },
+    "stage_text": "### S01 deterministic candidate\nmetric: 1.25\nlower_is_better: false\nBRIEF: parity candidate\nWHY: deterministic runtime fixture\nFILES: artifacts/best_solution.json\n"
+  },
+  "mechanism": {
+    "gate": {
+      "decisions": [
+        {
+          "accepted": true,
+          "action": "accept",
+          "candidate_ready": true,
+          "message": "",
+          "reason_code": "eligible",
+          "selection_eligible": true
+        },
+        {
+          "accepted": false,
+          "action": "retry",
+          "candidate_ready": true,
+          "message": "constraint violation 0.001 exceeds allowed 1e-06",
+          "reason_code": "constraint_violation_above_gate",
+          "selection_eligible": false
+        }
+      ],
+      "traces": [
+        {
+          "decision": {
+            "accepted": true,
+            "action": "accept",
+            "candidate_ready": true,
+            "message": "",
+            "reason_code": "eligible",
+            "selection_eligible": true
+          },
+          "params": {
+            "max_constraint_violation": 1e-06
+          },
+          "policy": "optimization_feasibility",
+          "trigger": "stage_end",
+          "version": "1"
+        },
+        {
+          "decision": {
+            "accepted": false,
+            "action": "retry",
+            "candidate_ready": true,
+            "message": "constraint violation 0.001 exceeds allowed 1e-06",
+            "reason_code": "constraint_violation_above_gate",
+            "selection_eligible": false
+          },
+          "params": {
+            "max_constraint_violation": 1e-06
+          },
+          "policy": "optimization_feasibility",
+          "trigger": "stage_end",
+          "version": "1"
+        }
+      ]
+    },
+    "resource": {
+      "candidate_gpu_ids": [
+        "0",
+        "1"
+      ],
+      "explicit_request": false,
+      "inferred_needed_gpu_count": 2,
+      "multi_gpu_evidence": [
+        "\\btorchrun\\b",
+        "process_count=2"
+      ],
+      "reason": "multi_gpu_launch_evidence",
+      "requested_gpu_count": 2
+    },
+    "sequence": [
+      "stage_validate",
+      "gate_accept",
+      "gate_reject",
+      "resource_plan"
+    ],
+    "stage": {
+      "cards": [
+        {
+          "body": "### S01 deterministic candidate\nmetric: 1.25\nlower_is_better: false\nBRIEF: parity candidate\nWHY: deterministic runtime fixture\nFILES: artifacts/best_solution.json",
+          "brief": "parity candidate",
+          "files": "artifacts/best_solution.json",
+          "lower_is_better": "false",
+          "metric": "1.25",
+          "metric_note": "",
+          "metric_type": "",
+          "metric_validity": "",
+          "metric_validity_reason_code": "",
+          "route_evidence": "",
+          "run_time_sec": "",
+          "selection_eligible": "",
+          "stage_events": [],
+          "stage_id": "S01",
+          "why": "deterministic runtime fixture"
+        }
+      ],
+      "reason": "",
+      "valid": true
+    }
+  },
+  "schema_version": 1,
+  "workspace": [
+    {
+      "content": "### S01 deterministic candidate\nmetric: 1.25\nlower_is_better: false\nBRIEF: parity candidate\nWHY: deterministic runtime fixture\nFILES: artifacts/best_solution.json\n",
+      "kind": "file",
+      "path": "stage_ledger.md",
+      "size": 163
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+name: ScienceFlow Contract CI
+
+on: [push, pull_request]
+
+jobs:
+  minimal-install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v6
+      - name: Verify committed dependency resolution
+        run: uv lock --check
+      - name: Install CPU-only control plane from project metadata
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python -m pip check
+      - name: Smoke test lightweight CLI and runtime imports
+        run: |
+          scienceflow --help
+          scienceflow agent tools list
+          python -c "from scienceflow.research.solver.lnr import LnrSolver; from scienceflow.research.solver.lnr.resources.runtime import ResourceRuntime"
+
+  compatibility-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTEST_ADDOPTS: "--timeout=90 --timeout-method=thread -o faulthandler_timeout=60"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install lightweight ScienceFlow contract environment
+        run: |
+          python -m pip install -e . numpy pytest pytest-asyncio pytest-timeout
+      - name: Verify CLI and provider adapters
+        run: >-
+          python -m pytest -q
+          tests/test_inquirycraft_cli_composition.py
+          tests/test_llm_system_message_compat.py
+          tests/test_workspace_contract_fixtures.py
+          tests/test_key_pool_sticky_routing.py
+          tests/test_product_install_profiles.py
+      - name: Verify ScienceAgent prompt/runtime contracts
+        run: >-
+          python -m pytest -q
+          tests/test_science_agent_repl_construction.py
+          tests/test_science_agent_repl_memory.py
+          tests/test_science_agent_repl_run_loop.py
+          tests/test_science_agent_repl_tools.py
+          tests/test_run_loop_tool_stream_retry.py
+      - name: Verify TUI shell lifecycle and LongResearch integration
+        run: >-
+          python -m pytest -v --tb=short
+          tests/test_tui_shell_safety.py
+          tests/test_tui_sessions.py
+          tests/test_tui_session_selection.py
+          tests/test_tui_model_config_isolation.py
+          tests/test_chat_runtime_resilience.py
+          tests/test_tui_preparation_limits.py
+          tests/test_long_research_interaction.py
+          tests/test_long_research_onboarding.py
+          tests/test_long_research_progress.py
+          tests/test_research_preparation.py
+      - name: Verify local execution and durable reports
+        run: >-
+          python -m pytest -v --tb=short
+          tests/test_execution_location.py
+          tests/test_tui_workspace_info.py
+          tests/test_report_publication.py
+          tests/test_report_recovery.py
+          tests/test_report_lifecycle.py
+          tests/test_final_report.py
+          tests/test_task_library.py
+          tests/test_task_selection_collision.py
+          tests/test_web_monitor.py
+          tests/test_multi_worker_cancellation.py
+          tests/test_process_runtime.py
+          tests/test_evaluator_command_env.py
+          tests/test_lnr_monitor_resume.py

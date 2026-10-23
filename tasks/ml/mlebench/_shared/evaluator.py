@@ -17,7 +17,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping
 
-from scienceflow.gates.evaluator.providers.mlebench import (
+from scienceflow.research.quality.evaluator.providers.mlebench import (
     validate_submission_light,
 )
 

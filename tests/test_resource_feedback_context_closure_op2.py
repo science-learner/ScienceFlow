@@ -12,7 +12,7 @@
 
 from __future__ import annotations
 
-from scienceflow.core.agent.memory.resource_feedback_memory import ResourceFeedbackMemoryDeduper
+from scienceflow.research.state.knowledge.memory.agent.resource_feedback_memory import ResourceFeedbackMemoryDeduper
 from tests.lnr_resource_test_utils import FakeStateMachine, event_types, make_observer
 
 

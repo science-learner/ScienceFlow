@@ -18,7 +18,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from scienceflow.core.llm_usage import read_llm_last_usage_tokens
+from scienceflow.runtime.observability.telemetry.agent.llm_usage_adapter import read_llm_last_usage_tokens
 
 
 def test_read_prefers_last_call_stats():
@@ -68,7 +68,7 @@ def _install_fake_completion_client(llm):
 
 @pytest.mark.asyncio
 async def test_online_llm_ask_omits_default_top_p():
-    from deepcraft_core.llm.online import OnlineLLM
+    from inquirycraft.llm import OnlineLLM
 
     llm = OnlineLLM(
         model="unit-test-model",
@@ -91,7 +91,7 @@ async def test_online_llm_ask_omits_default_top_p():
 
 @pytest.mark.asyncio
 async def test_online_llm_ask_forwards_explicit_top_p():
-    from deepcraft_core.llm.online import OnlineLLM
+    from inquirycraft.llm import OnlineLLM
 
     llm = OnlineLLM(
         model="unit-test-model",

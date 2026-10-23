@@ -17,8 +17,9 @@ import shlex
 import sys
 from pathlib import Path
 
-from scienceflow.gates.evaluator import EvalContext, EvaluatorManager
-from scienceflow.gates.evaluator.backends.command_env import task_command_env
+from scienceflow.foundation.contracts import EvalContext
+from scienceflow.research.quality.evaluator import EvaluatorManager
+from scienceflow.research.quality.evaluator.backends.command_env import task_command_env
 
 
 def _ctx(tmp_path: Path, cfg: dict) -> EvalContext:

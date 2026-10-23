@@ -16,7 +16,7 @@ import shutil
 
 import pytest
 
-from scienceflow.core.tools.grep_tool import GrepTool
+from inquirycraft.tools import GrepTool
 
 
 @pytest.mark.asyncio

@@ -14,21 +14,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from scienceflow.config.settings import apply_profile_overrides, load_cfg
-from scienceflow.gates.evaluator import EvalContext, EvaluatorManager
-from scienceflow.gates.evaluator.adapters import (
+from scienceflow.research.quality.assessment import CandidateAssessmentService
+from scienceflow.foundation.config.schema.settings import apply_profile_overrides, load_cfg
+from scienceflow.foundation.contracts import EvalContext, EvaluationRequest, GateDecision, MetricEvent
+from scienceflow.research.quality.evaluator import EvaluatorManager
+from scienceflow.research.quality.evaluator.adapters import (
     merge_adjudicated_stage_facts,
     merge_primary_stage_facts,
     metric_event_to_stage_facts,
 )
-from scienceflow.gates.evaluator.models import (
-    EvalContext,
-    EvaluationRequest,
-    GateDecision,
-    MetricEvent,
-)
-from scienceflow.gates.service import GateService
-from scienceflow.solver.lnr.prompts import build_first_user_prompt
+from scienceflow.research.solver.lnr.support.prompts import build_first_user_prompt
 
 
 def test_default_evaluator_config_is_task_neutral() -> None:
@@ -223,7 +218,7 @@ def test_gate_wall_clock_disclosure_is_opt_in(tmp_path: Path) -> None:
             },
         },
     )
-    service = GateService(gate_manager=_GateManager())
+    service = CandidateAssessmentService(gate_manager=_GateManager())
 
     for enabled in (False, True):
         cfg = load_cfg(cli_args=False)

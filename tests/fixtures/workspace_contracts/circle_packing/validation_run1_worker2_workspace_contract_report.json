@@ -1,0 +1,11 @@
+{
+  "actual_worker_count": 2,
+  "additional_paths": [],
+  "checked_path_count": 205,
+  "compatible": true,
+  "expected_worker_count": 2,
+  "mismatched_entries": [],
+  "missing_paths": [],
+  "mode": "compatible",
+  "schema_version": "1.0"
+}

@@ -12,8 +12,8 @@
 
 from __future__ import annotations
 
-from scienceflow.solver.lnr.prompts import build_estra_prompt
-from scienceflow.solver.lnr.stage.peer_context import build_peer_route_evidence
+from scienceflow.research.solver.lnr.support.prompts import build_estra_prompt
+from scienceflow.research.solver.lnr.lifecycle.stage.records.peer_context import build_peer_route_evidence
 
 
 def _row(

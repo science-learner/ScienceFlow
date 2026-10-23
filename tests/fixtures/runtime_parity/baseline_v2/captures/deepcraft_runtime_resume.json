@@ -1,0 +1,286 @@
+{
+  "case_id": "deepcraft_runtime_resume",
+  "context": {
+    "baseline_answer": "RESUME_PARITY_OK",
+    "baseline_conversation": [
+      {
+        "content": "resume parity system",
+        "role": "system"
+      },
+      {
+        "content": "write fixture then finish",
+        "role": "user"
+      },
+      {
+        "content": "",
+        "reasoning_content": "write before interruption",
+        "role": "assistant",
+        "tool_calls": [
+          {
+            "function": {
+              "arguments": "{\"text\":\"resume-stable\"}",
+              "name": "write_resume_fixture"
+            },
+            "id": "resume-call-fixed",
+            "type": "function"
+          }
+        ]
+      },
+      {
+        "content": "resume.txt",
+        "name": "write_resume_fixture",
+        "role": "tool",
+        "tool_call_id": "resume-call-fixed"
+      },
+      {
+        "content": "RESUME_PARITY_OK",
+        "role": "assistant"
+      }
+    ],
+    "interrupted": [
+      {
+        "content": "resume parity system",
+        "role": "system"
+      },
+      {
+        "content": "write fixture then finish",
+        "role": "user"
+      },
+      {
+        "content": "",
+        "reasoning_content": "write before interruption",
+        "role": "assistant",
+        "tool_calls": [
+          {
+            "function": {
+              "arguments": "{\"text\":\"resume-stable\"}",
+              "name": "write_resume_fixture"
+            },
+            "id": "resume-call-fixed",
+            "type": "function"
+          }
+        ]
+      },
+      {
+        "content": "resume.txt",
+        "name": "write_resume_fixture",
+        "role": "tool",
+        "tool_call_id": "resume-call-fixed"
+      },
+      {
+        "content": "RESUME_PARITY_OK",
+        "role": "assistant"
+      }
+    ],
+    "resumed_answer": "RESUME_PARITY_OK",
+    "resumed_conversation": [
+      {
+        "content": "resume parity system",
+        "role": "system"
+      },
+      {
+        "content": "write fixture then finish",
+        "role": "user"
+      },
+      {
+        "content": "",
+        "reasoning_content": "write before interruption",
+        "role": "assistant",
+        "tool_calls": [
+          {
+            "function": {
+              "arguments": "{\"text\":\"resume-stable\"}",
+              "name": "write_resume_fixture"
+            },
+            "id": "resume-call-fixed",
+            "type": "function"
+          }
+        ]
+      },
+      {
+        "content": "resume.txt",
+        "name": "write_resume_fixture",
+        "role": "tool",
+        "tool_call_id": "resume-call-fixed"
+      },
+      {
+        "content": "RESUME_PARITY_OK",
+        "role": "assistant"
+      }
+    ]
+  },
+  "mechanism": {
+    "artifact_equal": true,
+    "recorded_calls": 2,
+    "replay_consumed": 1,
+    "replay_remaining": 0
+  },
+  "schema_version": 1,
+  "workspace": [
+    {
+      "kind": "directory",
+      "path": "initial_workspace"
+    },
+    {
+      "content": "resume-stable",
+      "kind": "file",
+      "path": "initial_workspace/resume.txt",
+      "size": 13
+    },
+    {
+      "content": [
+        {
+          "operation": "complete",
+          "request": {
+            "max_tokens": null,
+            "messages": [
+              {
+                "content": "resume parity system",
+                "role": "system"
+              },
+              {
+                "content": "write fixture then finish",
+                "role": "user"
+              }
+            ],
+            "metadata": {},
+            "model": "resume-model",
+            "temperature": null,
+            "timeout": 300.0,
+            "tool_choice": "auto",
+            "tools": [
+              {
+                "function": {
+                  "description": "write a resume fixture",
+                  "name": "write_resume_fixture",
+                  "parameters": {
+                    "properties": {
+                      "text": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "text"
+                    ],
+                    "type": "object"
+                  }
+                },
+                "type": "function"
+              }
+            ]
+          },
+          "result": {
+            "content": "",
+            "finish_reason": "tool_calls",
+            "reasoning_content": "write before interruption",
+            "tool_calls": [
+              {
+                "function": {
+                  "arguments": "{\"text\":\"resume-stable\"}",
+                  "name": "write_resume_fixture"
+                },
+                "id": "resume-call-fixed",
+                "type": "function"
+              }
+            ],
+            "usage": {
+              "cached_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0
+            }
+          },
+          "schema_version": "1.0",
+          "sequence": 1
+        },
+        {
+          "operation": "complete",
+          "request": {
+            "max_tokens": null,
+            "messages": [
+              {
+                "content": "resume parity system",
+                "role": "system"
+              },
+              {
+                "content": "write fixture then finish",
+                "role": "user"
+              },
+              {
+                "content": "",
+                "reasoning_content": "write before interruption",
+                "role": "assistant",
+                "tool_calls": [
+                  {
+                    "function": {
+                      "arguments": "{\"text\":\"resume-stable\"}",
+                      "name": "write_resume_fixture"
+                    },
+                    "id": "resume-call-fixed",
+                    "type": "function"
+                  }
+                ]
+              },
+              {
+                "content": "resume.txt",
+                "name": "write_resume_fixture",
+                "role": "tool",
+                "tool_call_id": "resume-call-fixed"
+              }
+            ],
+            "metadata": {},
+            "model": "resume-model",
+            "temperature": null,
+            "timeout": 300.0,
+            "tool_choice": "auto",
+            "tools": [
+              {
+                "function": {
+                  "description": "write a resume fixture",
+                  "name": "write_resume_fixture",
+                  "parameters": {
+                    "properties": {
+                      "text": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "text"
+                    ],
+                    "type": "object"
+                  }
+                },
+                "type": "function"
+              }
+            ]
+          },
+          "result": {
+            "content": "RESUME_PARITY_OK",
+            "finish_reason": "stop",
+            "reasoning_content": "",
+            "tool_calls": [],
+            "usage": {
+              "cached_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0
+            }
+          },
+          "schema_version": "1.0",
+          "sequence": 2
+        }
+      ],
+      "kind": "file",
+      "path": "recorded_llm.jsonl",
+      "size": 1829
+    },
+    {
+      "kind": "directory",
+      "path": "resumed_workspace"
+    },
+    {
+      "content": "resume-stable",
+      "kind": "file",
+      "path": "resumed_workspace/resume.txt",
+      "size": 13
+    }
+  ]
+}

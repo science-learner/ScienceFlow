@@ -32,24 +32,32 @@ from sci_modeling_bench import (
     AgentInputView,
 )
 
-from scienceflow.config.settings import load_cfg
-from scienceflow.core.task_package import (
+from scienceflow.research.quality.assessment import CandidateAssessmentService
+from scienceflow.foundation.config.schema.settings import load_cfg
+from scienceflow.foundation.contracts import EvalContext, EvaluationRequest
+from scienceflow.runtime.task_package import (
     find_task_package,
     iter_task_packages,
     prepare_task_runtime,
 )
-from scienceflow.gates import GateService
-from scienceflow.gates.evaluator import EvalContext, EvaluationRequest
-from scienceflow.core.parallel_runner import ParallelRunner
-from scienceflow.solver.lnr.prompts import build_first_user_prompt
+from scienceflow.runtime.parallel.execution.runner import ParallelRunner
+from scienceflow.research.solver.lnr.support.prompts import build_first_user_prompt
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SUITE_ROOT = REPO_ROOT / "tasks" / "sci_modeling_bench"
 SHARED_EVALUATOR = SUITE_ROOT / "_shared" / "evaluator.py"
 SHARED_PREPARER = SUITE_ROOT / "_shared" / "prepare_data.py"
-RUN_CONFIG_ROOT = REPO_ROOT / "scienceflow" / "config" / "runs" / "sci_modeling_bench"
-PROFILE = REPO_ROOT / "scienceflow" / "config" / "sci_modeling_bench.yaml"
+RUN_CONFIG_ROOT = (
+    REPO_ROOT
+    / "scienceflow"
+    / "foundation"
+    / "config"
+    / "profiles"
+    / "runs"
+    / "sci_modeling_bench"
+)
+PROFILE = REPO_ROOT / "scienceflow" / "foundation" / "config" / "sci_modeling_bench.yaml"
 
 TASK_CONTRACTS = {
     "sci-modeling-bench-tfbind8": (32, 5, "best_k_mean", 10, "tfbind8"),
@@ -332,7 +340,7 @@ def test_shared_runtime_and_canonical_run_configs(tmp_path: Path) -> None:
         data = yaml.safe_load(path.read_text(encoding="utf-8"))
         task = data["tasks"][0]
         assert data["time_limit"] == 7800
-        assert data["defaults"]["config"] == "scienceflow/config/sci_modeling_bench.yaml"
+        assert data["defaults"]["config"] == "scienceflow/foundation/config/sci_modeling_bench.yaml"
         assert data["defaults"]["tool"]["scienceflow_bash_timeout_sec"] == 600
         assert task["lnr"]["wall_clock_budget_sec"] == 7200
         assert task["lnr"]["num_workers"] == 2
@@ -649,7 +657,7 @@ def test_tfbind8_official_evaluator_through_gate_service(tmp_path: Path) -> None
         cfg={},
     )
 
-    outcomes = GateService.default().evaluate(
+    outcomes = CandidateAssessmentService.default().evaluate(
         EvaluationRequest(context=context, trigger="stage_end")
     )
 

@@ -14,9 +14,9 @@
 
 from __future__ import annotations
 
-from deepcraft_core import Message
+from inquirycraft.memory import Message
 
-from scienceflow.core.mem.memory_context import (
+from scienceflow.research.state.knowledge.context.memory_context import (
     _best_suffix_for_budget_priority,
     _message_priority_score,
 )
@@ -103,8 +103,8 @@ def test_omitted_placeholder_is_constant_text() -> None:
     import re
     import tempfile
 
-    from deepcraft_core import Memory
-    from scienceflow.core.mem.memory_context import MemoryContextManager
+    from inquirycraft.memory import Memory
+    from scienceflow.research.state.knowledge.context.memory_context import MemoryContextManager
 
     with tempfile.TemporaryDirectory() as tmp:
         ws = pathlib.Path(tmp)
@@ -133,8 +133,8 @@ def test_omitted_placeholder_is_constant_text() -> None:
 
 def test_leading_tool_cleanup_does_not_count_as_budget_omission(tmp_path) -> None:
     """Dropping leading tool records after compact is format cleanup, not budget loss."""
-    from deepcraft_core import Memory
-    from scienceflow.core.mem.memory_context import MemoryContextManager
+    from inquirycraft.memory import Memory
+    from scienceflow.research.state.knowledge.context.memory_context import MemoryContextManager
 
     mem = Memory(max_messages=20)
     mem.add_message(Message.tool_message("old ls output", "ls", "tool-1"))
@@ -152,8 +152,8 @@ def test_leading_tool_cleanup_does_not_count_as_budget_omission(tmp_path) -> Non
 
 def test_leading_user_prefix_survives_sliding_window(tmp_path) -> None:
     """REPL/LNR first user turns must stay byte-stable when the tail overflows."""
-    from deepcraft_core import Memory
-    from scienceflow.core.mem.memory_context import MemoryContextManager
+    from inquirycraft.memory import Memory
+    from scienceflow.research.state.knowledge.context.memory_context import MemoryContextManager
 
     mem = Memory(max_messages=200)
     mem.add_message(Message.user_message("FIRST USER QUERY: keep me verbatim"))

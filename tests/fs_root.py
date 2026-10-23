@@ -12,7 +12,8 @@
 
 """Unified writable root under ``/tmp`` for tests that need execution space.
 
-Default: ``/tmp/scienceflow_tests``. Override with env ``SCIENCEFLOW_TEST_TMP_ROOT`` (absolute path).
+Each process owns a unique child under ``/tmp/scienceflow_tests``.
+Override the parent with env ``SCIENCEFLOW_TEST_TMP_ROOT`` (absolute path).
 
 All ``tmp_path`` / ``tempfile`` helpers in tests should use :data:`TEST_WORKSPACE_ROOT`
 (see ``tests/conftest.py``) so nothing is written next to the repo.
@@ -20,7 +21,11 @@ All ``tmp_path`` / ``tempfile`` helpers in tests should use :data:`TEST_WORKSPAC
 
 import os
 from pathlib import Path
+from uuid import uuid4
 
-TEST_WORKSPACE_ROOT = Path(
-    os.environ.get("SCIENCEFLOW_TEST_TMP_ROOT", "/tmp/scienceflow_tests"),
+TEST_WORKSPACE_ROOT = (
+    Path(
+        os.environ.get("SCIENCEFLOW_TEST_TMP_ROOT", "/tmp/scienceflow_tests"),
+    )
+    / f"session-{os.getpid()}-{uuid4().hex[:12]}"
 )

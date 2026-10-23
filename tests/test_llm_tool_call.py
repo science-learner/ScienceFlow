@@ -14,14 +14,14 @@
 """LLM tool-call integration checks (same stack as ScienceAgent / REPL).
 
 Validates that the configured model returns **non-empty** JSON arguments for ``bash``
-(and optionally ``read``), matching what :class:`~scienceflow.core.agent.ScienceAgent`
+(and optionally ``read``), matching what :class:`~scienceflow.agent.ScienceAgent`
 expects — catches regressions like ``bash {}`` / missing ``command``.
 
 **Manual run** (requires API keys, same as the ``scienceflow`` CLI)::
 
     cd /path/to/scienceflow
     python tests/test_llm_tool_call.py
-    python tests/test_llm_tool_call.py -c scienceflow/config/default.yaml --stage code
+    python tests/test_llm_tool_call.py -c scienceflow/foundation/config/default.yaml --stage code
 
 **Pytest** (opt-in; file is ignored in default ``addopts``)::
 
@@ -41,13 +41,14 @@ from typing import Any
 
 import pytest
 
-from deepcraft_core import Message
-from deepcraft_core.llm.base import StreamHandle
+from inquirycraft.memory import Message
+from inquirycraft.llm import StreamHandle
 
-from scienceflow.config.settings import Config, StageConfig, load_cfg
-from scienceflow.core.llm_http import aclose_llm_clients
-from scienceflow.core.agent_runtime import _build_llm
-from scienceflow.core.tools import BashTool, create_tool_collection
+from scienceflow.foundation.config.schema.settings import Config, StageConfig, load_cfg
+from scienceflow.foundation.config.llm.llm_factory import build_stage_llm as _build_llm
+from scienceflow.foundation.config.llm.llm_http import aclose_llm_clients
+from scienceflow.runtime.safety.execution.agent_runtime.tool_composition import create_tool_collection
+from scienceflow.runtime.safety.tooling.bash import BashTool
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -345,7 +346,7 @@ async def _run_all_tests(cfg: Config, stage_name: str, tmp_path: Path) -> list[t
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="LLM tool-call integration test (bash/read).")
-    parser.add_argument("--config", "-c", default=None, help="YAML path; default scienceflow/config/default.yaml")
+    parser.add_argument("--config", "-c", default=None, help="YAML path; default scienceflow/foundation/config/default.yaml")
     parser.add_argument("--stage", "-s", default="code", choices=("code", "feedback"))
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args()

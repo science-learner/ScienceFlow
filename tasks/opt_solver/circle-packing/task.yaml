@@ -9,7 +9,16 @@ metric:
   name: radii_sum
   lower_is_better: false
   type: benchmark
+  authoritative: true
+problem:
+  num_circles: 26
+  container: unit_square
+  tolerance: 1.0e-6
+  benchmark_radii_sum: 2.635
 evaluator:
   entrypoint: evaluator.py:evaluate
   timeout_sec: 300
   visible_to_agent: false
+validation:
+  valid_artifact: validation/valid_solution.json
+  invalid_artifact: validation/invalid_solution.json

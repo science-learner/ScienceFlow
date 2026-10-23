@@ -18,8 +18,10 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
-from scienceflow.core.agent.run_control.embedded_fullrun import (
-    EmbeddedFullRunMixin,
+from scienceflow.research.quality.embedded_fullrun import (
+    _append_to_last_tool_message,
+    _inject_run_control_ok_message,
+    _maybe_write_bare_run_tail_snapshot,
     _read_last_jsonl_tool_content,
     _rewrite_last_jsonl_tool_content,
     submission_rows_plausible_for_progressive_bare,
@@ -64,6 +66,7 @@ def test_submission_rows_plausible_ok_without_baseline_dataset(tmp_path: Path) -
 # JSONL helper tests
 # ---------------------------------------------------------------------------
 
+
 def _make_tool_jsonl_record(content: str) -> str:
     """Return a single JSONL line that looks like a MemoryRecord with role='tool'."""
     return json.dumps({"message": {"role": "tool", "content": content}, "role": "tool"})
@@ -85,38 +88,52 @@ def _last_content(path: Path) -> str:
 
 def test_read_last_jsonl_tool_content_ok(tmp_path: Path) -> None:
     p = tmp_path / "lt.jsonl"
-    _write_jsonl(p, [
-        _make_user_jsonl_record("first msg"),
-        _make_tool_jsonl_record("Final Score: 0.07"),
-    ])
+    _write_jsonl(
+        p,
+        [
+            _make_user_jsonl_record("first msg"),
+            _make_tool_jsonl_record("Final Score: 0.07"),
+        ],
+    )
     result = _read_last_jsonl_tool_content(p)
     assert result == "Final Score: 0.07"
 
 
 def test_read_last_jsonl_tool_content_noop_when_last_not_tool(tmp_path: Path) -> None:
     p = tmp_path / "lt.jsonl"
-    _write_jsonl(p, [
-        _make_tool_jsonl_record("some output"),
-        _make_user_jsonl_record("a user message"),
-    ])
+    _write_jsonl(
+        p,
+        [
+            _make_tool_jsonl_record("some output"),
+            _make_user_jsonl_record("a user message"),
+        ],
+    )
     assert _read_last_jsonl_tool_content(p) is None
 
 
 def test_rewrite_last_jsonl_tool_content_ok(tmp_path: Path) -> None:
     p = tmp_path / "st.json"
-    _write_jsonl(p, [
-        _make_tool_jsonl_record("original content"),
-    ])
-    ok = _rewrite_last_jsonl_tool_content(p, "original content\n\n[NODE-GATE OK] validator=sdk")
+    _write_jsonl(
+        p,
+        [
+            _make_tool_jsonl_record("original content"),
+        ],
+    )
+    ok = _rewrite_last_jsonl_tool_content(
+        p, "original content\n\n[NODE-GATE OK] validator=sdk"
+    )
     assert ok
     assert "[NODE-GATE OK]" in _last_content(p)
 
 
 def test_rewrite_last_jsonl_tool_content_noop_when_not_tool(tmp_path: Path) -> None:
     p = tmp_path / "st.json"
-    _write_jsonl(p, [
-        _make_user_jsonl_record("user stuff"),
-    ])
+    _write_jsonl(
+        p,
+        [
+            _make_user_jsonl_record("user stuff"),
+        ],
+    )
     original = p.read_bytes()
     ok = _rewrite_last_jsonl_tool_content(p, "should not overwrite")
     assert not ok
@@ -128,19 +145,26 @@ def test_rewrite_last_jsonl_tool_content_noop_when_not_tool(tmp_path: Path) -> N
 # (use real JSONL files, SimpleNamespace stub memory — no MagicMock for memory)
 # ---------------------------------------------------------------------------
 
+
 def _make_stub_agent(tmp_path: Path, *, superloop: bool = False) -> SimpleNamespace:
     """Build agent stub backed by real JSONL files."""
     short = tmp_path / "short_term.json"
     long_ = tmp_path / "long_term.jsonl"
     # Seed both with a prior user message + a tool message
-    _write_jsonl(short, [
-        _make_user_jsonl_record("task context"),
-        _make_tool_jsonl_record("Final Validation Score: 0.0829"),
-    ])
-    _write_jsonl(long_, [
-        _make_user_jsonl_record("task context"),
-        _make_tool_jsonl_record("Final Validation Score: 0.0829"),
-    ])
+    _write_jsonl(
+        short,
+        [
+            _make_user_jsonl_record("task context"),
+            _make_tool_jsonl_record("Final Validation Score: 0.0829"),
+        ],
+    )
+    _write_jsonl(
+        long_,
+        [
+            _make_user_jsonl_record("task context"),
+            _make_tool_jsonl_record("Final Validation Score: 0.0829"),
+        ],
+    )
     agent = SimpleNamespace(
         _lnr_superloop_enabled=superloop,
         memory=SimpleNamespace(
@@ -152,11 +176,11 @@ def _make_stub_agent(tmp_path: Path, *, superloop: bool = False) -> SimpleNamesp
         _short_path=short,
         _long_path=long_,
     )
-    agent._append_to_last_tool_message = (
-        EmbeddedFullRunMixin._append_to_last_tool_message.__get__(agent, type(agent))
+    agent._append_to_last_tool_message = _append_to_last_tool_message.__get__(
+        agent, type(agent)
     )
-    agent._inject_run_control_ok_message = (
-        EmbeddedFullRunMixin._inject_run_control_ok_message.__get__(agent, type(agent))
+    agent._inject_run_control_ok_message = _inject_run_control_ok_message.__get__(
+        agent, type(agent)
     )
     return agent
 
@@ -172,7 +196,9 @@ def _write_submission(ws: Path, n: int = 10) -> Path:
 def test_append_writes_to_both_jsonl_files(tmp_path: Path) -> None:
     """_append_to_last_tool_message rewrites both short_term.json and long_term.jsonl."""
     agent = _make_stub_agent(tmp_path)
-    agent._append_to_last_tool_message("[audit-marker] validator=sdk rows=240 exec_wall=18.4s")
+    agent._append_to_last_tool_message(
+        "[audit-marker] validator=sdk rows=240 exec_wall=18.4s"
+    )
     for path in (agent._short_path, agent._long_path):
         content = _last_content(path)
         assert "[audit-marker]" in content
@@ -234,10 +260,12 @@ def test_append_noop_when_last_not_tool(tmp_path: Path) -> None:
             long_term_log=str(long_),
         ),
     )
-    stub._append_to_last_tool_message = (
-        EmbeddedFullRunMixin._append_to_last_tool_message.__get__(stub, type(stub))
+    stub._append_to_last_tool_message = _append_to_last_tool_message.__get__(
+        stub, type(stub)
     )
-    stub._append_to_last_tool_message("[audit-marker] validator=sdk rows=5 exec_wall=3.0s")
+    stub._append_to_last_tool_message(
+        "[audit-marker] validator=sdk rows=5 exec_wall=3.0s"
+    )
     # Files must be byte-identical
     assert short.read_bytes() == orig_short
     assert long_.read_bytes() == orig_long
@@ -256,15 +284,17 @@ def test_append_works_when_only_long_term_exists(tmp_path: Path) -> None:
             long_term_log=str(long_),
         ),
     )
-    stub._append_to_last_tool_message = (
-        EmbeddedFullRunMixin._append_to_last_tool_message.__get__(stub, type(stub))
+    stub._append_to_last_tool_message = _append_to_last_tool_message.__get__(
+        stub, type(stub)
     )
-    stub._append_to_last_tool_message("[audit-marker] validator=sdk rows=5 exec_wall=3.0s")
+    stub._append_to_last_tool_message(
+        "[audit-marker] validator=sdk rows=5 exec_wall=3.0s"
+    )
     assert "[audit-marker]" in _last_content(long_)
 
 
-def test_opt_solver_bare_run_skips_legacy_score_contract(tmp_path: Path) -> None:
-    """Artifact evaluator profiles must not inject MLEBench score-contract repairs."""
+def test_opt_solver_bare_run_captures_final_score_without_artifact(tmp_path: Path) -> None:
+    """A final objective score is a Stage signal even without an artifact."""
     ws = tmp_path / "ws"
     ws.mkdir()
     injected: list[str] = []
@@ -280,13 +310,55 @@ def test_opt_solver_bare_run_skips_legacy_score_contract(tmp_path: Path) -> None
     )
     stub._inject_run_control_user_message = injected.append
     stub._maybe_write_bare_run_tail_snapshot = (
-        EmbeddedFullRunMixin._maybe_write_bare_run_tail_snapshot.__get__(stub, type(stub))
+        _maybe_write_bare_run_tail_snapshot.__get__(stub, type(stub))
     )
 
     asyncio.run(
         stub._maybe_write_bare_run_tail_snapshot(
             {"command": "python train.py"},
-            SimpleNamespace(output="Final Validation Score: 1.0\n", error=False),
+            SimpleNamespace(output="FINAL radii_sum=1.0\n", error=False),
+        )
+    )
+
+    assert stub._lnr_snapshot_ok is True
+    assert stub._lnr_snapshot_reason == "metric_only_tail_snapshot"
+    snapshot = json.loads(
+        (ws / ".logs" / "fullrun_tail_snapshot.json").read_text(encoding="utf-8")
+    )
+    assert snapshot["metric_value"] == 1.0
+    assert snapshot["metric_name"] == "radii_sum"
+    assert snapshot["metric_protocol"] == "benchmark"
+    assert snapshot["stage_signal_kind"] == "metric_only"
+    assert snapshot["candidate_artifact_attached"] is False
+    assert injected == []
+
+
+def test_opt_solver_bare_run_without_final_score_stays_artifact_primary(
+    tmp_path: Path,
+) -> None:
+    """Artifact tasks still avoid legacy repair prompts when no final score exists."""
+    ws = tmp_path / "ws"
+    ws.mkdir()
+    injected: list[str] = []
+    stub = SimpleNamespace(
+        _embedded_full_run_enabled=False,
+        _lnr_allow_any_stage_script=True,
+        _workspace_dir=ws,
+        _scienceflow_task_profile="opt_solver",
+        _scienceflow_evaluator_backend="artifact_command",
+        _lnr_candidate_artifact_rel="artifacts/best_solution.json",
+        _log_info=MagicMock(),
+        _log_warning=MagicMock(),
+    )
+    stub._inject_run_control_user_message = injected.append
+    stub._maybe_write_bare_run_tail_snapshot = (
+        _maybe_write_bare_run_tail_snapshot.__get__(stub, type(stub))
+    )
+
+    asyncio.run(
+        stub._maybe_write_bare_run_tail_snapshot(
+            {"command": "python train.py"},
+            SimpleNamespace(output="search completed\n", error=False),
         )
     )
 

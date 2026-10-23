@@ -1,0 +1,27 @@
+schema_version: 1
+
+owners:
+  scienceflow:
+    roots:
+      - tests
+    exclude:
+      - tests/test_inquirycraft_cli_composition.py
+      - tests/test_runtime_parity_benchmark.py
+    contracts:
+      - workspace
+      - config
+      - lnr
+      - evaluator
+      - resource_runtime
+      - multi_worker_merge
+
+  integration:
+    files:
+      - tests/test_inquirycraft_cli_composition.py
+      - tests/test_llm_system_message_compat.py
+      - tests/test_inquirycraft_dependency_boundary.py
+      - tests/test_runtime_parity_benchmark.py
+    contracts:
+      - inquirycraft_scienceflow_adapter
+      - cli_composition
+      - runtime_parity

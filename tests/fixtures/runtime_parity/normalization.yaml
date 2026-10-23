@@ -1,0 +1,79 @@
+schema_version: 1
+rules:
+  - field: ansi_escape
+    json_path: "$..*"
+    producer: interaction_log
+    replacement: empty string
+    reason: terminal color formatting only
+    risk: low; visible text remains exact after removing control bytes
+    approved_stage: C1
+  - field: timestamp
+    json_path: "$..*"
+    producer: runtime_event_or_log
+    replacement: <timestamp>
+    reason: wall-clock value
+    risk: event ordering is protected separately by list position and sequence
+    approved_stage: C1
+  - field: duration_sec
+    json_path: "$..duration_sec"
+    producer: llm_telemetry
+    replacement: <duration>
+    reason: wall-clock duration
+    risk: performance is protected by the separate serial performance suite
+    approved_stage: C1
+  - field: elapsed_sec
+    json_path: "$..elapsed_sec"
+    producer: runtime_or_tool
+    replacement: <duration>
+    reason: wall-clock duration
+    risk: performance is protected by the separate serial performance suite
+    approved_stage: C1
+  - field: ttft_sec
+    json_path: "$..ttft_sec"
+    producer: llm_telemetry
+    replacement: <duration>
+    reason: external timing
+    risk: performance is protected by the separate serial performance suite
+    approved_stage: C1
+  - field: tpot_ms
+    json_path: "$..tpot_ms"
+    producer: llm_telemetry
+    replacement: <duration>
+    reason: external timing
+    risk: performance is protected by the separate serial performance suite
+    approved_stage: C1
+  - field: pid
+    json_path: "$..pid"
+    producer: subprocess
+    replacement: <pid>
+    reason: operating-system allocation
+    risk: process lifecycle and ordering remain strict mechanism fields
+    approved_stage: C1
+  - field: pgid
+    json_path: "$..pgid"
+    producer: subprocess
+    replacement: <pid>
+    reason: operating-system allocation
+    risk: process lifecycle and ordering remain strict mechanism fields
+    approved_stage: C1
+  - field: workspace_root
+    workspace_path: "**"
+    producer: benchmark_runner
+    replacement: <workspace>
+    reason: isolated temporary root
+    risk: relative paths and symlink text remain exact
+    approved_stage: C1
+  - field: event_id
+    json_path: "$..event_id|$..parent_event_id"
+    producer: deepcraft_runtime_event
+    replacement: stable event:<sequence> mapping
+    reason: runtime event IDs use random UUIDs; event_id and parent_event_id mapping preserves exact relationships
+    risk: stable sequence mapping must preserve every parent reference
+    approved_stage: C1
+  - field: runtime_audit_artifacts
+    workspace_path: ".logs/agent_runtime_events.jsonl|.logs/agent_runtime_operations/**|.logs/agent_provider_calls.jsonl"
+    producer: inquirycraft_runtime
+    replacement: omitted from legacy workspace parity; validated by V5.1 wiring contracts
+    reason: additive append-only audit evidence was absent from the frozen legacy workspace
+    risk: model-visible context and legacy files remain strict; audit schemas have dedicated tests
+    approved_stage: V5.1-2

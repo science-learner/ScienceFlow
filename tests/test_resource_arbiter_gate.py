@@ -12,7 +12,7 @@
 
 from __future__ import annotations
 
-from scienceflow.solver.lnr.resource_runtime.review.arbiter_gate import enforce_arbiter_kill_gate
+from scienceflow.research.solver.lnr.resources.runtime.review.decision.arbiter_gate import enforce_arbiter_kill_gate
 
 
 def test_arbiter_gate_treats_replan_advisory_as_stop_support() -> None:

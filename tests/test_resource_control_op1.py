@@ -14,13 +14,13 @@ from __future__ import annotations
 
 import json
 
-from scienceflow.solver.lnr.context_hygiene import evaluate_context_hygiene_compact
-from scienceflow.solver.lnr.resource_runtime import process_liveness
-from scienceflow.solver.lnr.resource_runtime.review.arbiter import fallback_policy_decision, normalize_arbiter_decision
-from scienceflow.solver.lnr.resource_runtime.gpu_lease_store import GPULeaseStore
-from scienceflow.solver.lnr.resource_runtime.quick_probe import classify_quick_probe_command
+from scienceflow.research.solver.lnr.support.context_hygiene import evaluate_context_hygiene_compact
+from scienceflow.research.solver.lnr.resources.runtime.execution.process import process_liveness
+from scienceflow.research.solver.lnr.resources.runtime.review.decision.arbiter import fallback_policy_decision, normalize_arbiter_decision
+from scienceflow.research.solver.lnr.resources.runtime.control.gpu.gpu_lease_store import GPULeaseStore
+from scienceflow.research.solver.lnr.resources.runtime.execution.process.quick_probe import classify_quick_probe_command
 from tests.lnr_resource_test_utils import FakeStateMachine, make_observer, payloads
-from scienceflow.solver.lnr.resource_runtime.review.state_generation import build_resource_state_generation
+from scienceflow.research.solver.lnr.resources.runtime.review.evidence.state_generation import build_resource_state_generation
 
 
 def _resource_event_types(tmp_path) -> list[str]:

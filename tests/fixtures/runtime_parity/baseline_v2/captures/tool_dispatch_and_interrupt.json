@@ -1,0 +1,70 @@
+{
+  "case_id": "tool_dispatch_and_interrupt",
+  "context": {
+    "error_result": {
+      "error": "fixture failure",
+      "output": "partial",
+      "system": "raw diagnostics"
+    },
+    "first_chunk": "first",
+    "mutation_calls": [
+      {
+        "function": {
+          "arguments": "{}",
+          "name": "read"
+        }
+      },
+      {
+        "function": {
+          "arguments": "{}",
+          "name": "write"
+        }
+      }
+    ],
+    "readonly_calls": [
+      {
+        "function": {
+          "arguments": "{}",
+          "name": "read"
+        }
+      },
+      {
+        "function": {
+          "arguments": "{}",
+          "name": "grep"
+        }
+      },
+      {
+        "function": {
+          "arguments": "{}",
+          "name": "ls"
+        }
+      }
+    ]
+  },
+  "mechanism": {
+    "error_render": "Error: fixture failure\npartial",
+    "execution_trace": [
+      "start:1",
+      "start:2",
+      "start:3",
+      "finish:3",
+      "finish:2",
+      "finish:1"
+    ],
+    "forced_mode": "sequential",
+    "mutation_mode": "blocked_write_edit_bundle",
+    "ordered_results": [
+      "result:1",
+      "result:2",
+      "result:3"
+    ],
+    "readonly_mode": "parallel_readonly",
+    "stream_trace": [
+      "open",
+      "closed"
+    ]
+  },
+  "schema_version": 1,
+  "workspace": []
+}

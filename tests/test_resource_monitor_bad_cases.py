@@ -10,10 +10,10 @@
 # The name of Huawei and the contributors may not be used to endorse or promote
 # products derived from this software without specific prior written permission.
 
-from scienceflow.safety.resource.review_boundary import RESOURCE_PRESSURE, TIMEBOX_EXPIRED
-from scienceflow.safety.resource.review_outcome import TIMEBOX
-from scienceflow.safety.resource.review_signal import build_review_signal
-from scienceflow.safety.resource.review_state import (
+from scienceflow.runtime.safety.resource.review.review_boundary import RESOURCE_PRESSURE, TIMEBOX_EXPIRED
+from scienceflow.runtime.safety.resource.review.review_outcome import TIMEBOX
+from scienceflow.runtime.safety.resource.review.review_signal import build_review_signal
+from scienceflow.runtime.safety.resource.review.review_state import (
     TIMEBOX_ACTIVE,
     ResourceReviewConfig,
     advance_review_state,
@@ -22,7 +22,7 @@ from scienceflow.safety.resource.review_state import (
     new_review_state,
     next_review_boundary,
 )
-from scienceflow.solver.lnr.resource_runtime.review.arbiter import normalize_arbiter_decision
+from scienceflow.research.solver.lnr.resources.runtime.review.decision.arbiter import normalize_arbiter_decision
 
 
 def _state_with_metric_cadence(interval_sec: float = 1200.0):

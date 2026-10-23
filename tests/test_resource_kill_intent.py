@@ -14,11 +14,11 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from scienceflow.core.tools.bash_tool import (
+from scienceflow.runtime.safety.tooling.bash import (
     _kill_revalidation_allows_termination,
     _resource_call,
 )
-from scienceflow.solver.lnr.resource_runtime.review.kill_intent import (
+from scienceflow.research.solver.lnr.resources.runtime.review.decision.kill_intent import (
     build_kill_intent_snapshot,
     revalidate_kill_intent,
 )

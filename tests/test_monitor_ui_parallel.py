@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from scienceflow.ui.monitor import (
+from scienceflow.interfaces.ui.monitor import (
     _multi_status_and_progress,
     _parallel_done_for_row,
 )

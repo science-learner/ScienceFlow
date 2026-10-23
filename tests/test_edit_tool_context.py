@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import pytest
 
-from scienceflow.core.tools.edit_tool import EditTool
+from inquirycraft.tools import EditTool
 
 
 def test_change_context_shows_new_content() -> None:

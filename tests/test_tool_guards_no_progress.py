@@ -12,9 +12,9 @@
 
 from __future__ import annotations
 
-from deepcraft_core.tool import ToolResult
+from inquirycraft.tools import ToolResult
 
-from scienceflow.core.agent.tools.tool_guards import (
+from scienceflow.runtime.safety.policy.agent_policies.guards import (
     EditFailureGuard,
     GuardManager,
     NoProgressHardStopGuard,
@@ -89,7 +89,9 @@ def test_no_progress_hard_stop_cross_round_grace() -> None:
 class _PeerInjectGuard(ToolGuard):
     name = "peer_inject_guard"
 
-    def on_tool_result(self, tool_name: str, args: dict, result: ToolResult) -> str | None:
+    def on_tool_result(
+        self, tool_name: str, args: dict, result: ToolResult
+    ) -> str | None:
         return None
 
     def on_round_complete(self, tool_names: list[str] | None, **kwargs) -> list[str]:
@@ -178,9 +180,17 @@ def test_no_progress_failed_edit_does_not_reset_streak() -> None:
 def test_edit_failure_guard_counts_blocked_edit() -> None:
     g = EditFailureGuard(soft_threshold=2, hard_threshold=4, short_old_str_chars=40)
     g.reset()
-    m1 = g.on_tool_result("edit", {"old_str": "x"}, ToolResult(error="Edit blocked: re-read `solution.py`"))
+    m1 = g.on_tool_result(
+        "edit",
+        {"old_str": "x"},
+        ToolResult(error="Edit blocked: re-read `solution.py`"),
+    )
     assert m1 and "blocked" in (m1 or "").lower()
     assert g.failure_streak == 1
-    m2 = g.on_tool_result("edit", {"old_str": "x"}, ToolResult(error="Edit blocked: re-read `solution.py`"))
+    m2 = g.on_tool_result(
+        "edit",
+        {"old_str": "x"},
+        ToolResult(error="Edit blocked: re-read `solution.py`"),
+    )
     assert m2 and "2+" in m2
     assert g.failure_streak == 2

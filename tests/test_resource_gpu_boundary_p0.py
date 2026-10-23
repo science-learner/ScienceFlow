@@ -16,18 +16,18 @@ import os
 
 import pytest
 
-from scienceflow.core.tools.bash_tool import BashTool
-from scienceflow.solver.lnr.resource_runtime.gpu_feedback import build_gpu_boundary_feedback
-from scienceflow.solver.lnr.resource_runtime.unified_store import (
+from scienceflow.runtime.safety.tooling.bash import BashTool
+from scienceflow.research.solver.lnr.resources.runtime.control.gpu.gpu_feedback import build_gpu_boundary_feedback
+from scienceflow.research.solver.lnr.resources.runtime.execution.state.unified_store import (
     UnifiedResourceStore,
     format_resource_run_summary,
     summarize_resource_run,
 )
-from scienceflow.solver.lnr.resource_runtime.utilization import (
+from scienceflow.research.solver.lnr.resources.runtime.execution.state.utilization import (
     normalize_cuda_visible_devices_for_task_pool,
     process_tree_gpu_placement_snapshot,
 )
-from scienceflow.solver.lnr.resource_runtime.workspace_gpu_guard import (
+from scienceflow.research.solver.lnr.resources.runtime.control.gpu.workspace_gpu_guard import (
     cleanup_workspace_gpu_processes,
     scan_workspace_gpu_processes,
 )
@@ -54,11 +54,11 @@ def test_cuda_visible_mapping_rejects_outside_ordinal_for_task_pool() -> None:
 
 def test_process_tree_gpu_placement_snapshot_reports_violation(monkeypatch) -> None:
     monkeypatch.setattr(
-        "scienceflow.solver.lnr.resource_runtime.utilization.process_tree_pids",
+        "scienceflow.research.solver.lnr.resources.runtime.execution.state.utilization.process_tree_pids",
         lambda root_pid: {123, 456},
     )
     monkeypatch.setattr(
-        "scienceflow.solver.lnr.resource_runtime.utilization.sample_nvidia_compute_apps",
+        "scienceflow.research.solver.lnr.resources.runtime.execution.state.utilization.sample_nvidia_compute_apps",
         lambda timeout_sec=1.5: {
             "available": True,
             "apps": [
@@ -115,7 +115,7 @@ def test_workspace_gpu_scan_matches_workspace_and_skips_unsafe(monkeypatch, tmp_
         return rows[pid]
 
     monkeypatch.setattr(
-        "scienceflow.solver.lnr.resource_runtime.workspace_gpu_guard.read_proc_info",
+        "scienceflow.research.solver.lnr.resources.runtime.control.gpu.workspace_gpu_guard.read_proc_info",
         fake_proc,
     )
 
@@ -147,7 +147,7 @@ def test_workspace_gpu_cleanup_dry_run_reports_would_kill(monkeypatch, tmp_path)
     workspace.mkdir()
     uid = os.getuid() if hasattr(os, "getuid") else 1000
     monkeypatch.setattr(
-        "scienceflow.solver.lnr.resource_runtime.workspace_gpu_guard.read_proc_info",
+        "scienceflow.research.solver.lnr.resources.runtime.control.gpu.workspace_gpu_guard.read_proc_info",
         lambda pid: {
             "pid": pid,
             "exists": True,
@@ -205,7 +205,7 @@ async def test_bash_tool_stops_boundary_violation_and_records_cleanup(monkeypatc
     )
 
     monkeypatch.setattr(
-        "scienceflow.core.tools.bash_tool._process_tree_gpu_placement_snapshot",
+        "scienceflow.runtime.safety.tooling.bash._process_tree_gpu_placement_snapshot",
         lambda root_pid, allowed: {
             "available": True,
             "root_pid": root_pid,
@@ -215,7 +215,7 @@ async def test_bash_tool_stops_boundary_violation_and_records_cleanup(monkeypatc
         },
     )
     monkeypatch.setattr(
-        "scienceflow.core.tools.bash_tool._cleanup_workspace_gpu_processes",
+        "scienceflow.runtime.safety.tooling.bash._cleanup_workspace_gpu_processes",
         lambda **kwargs: {
             "available": True,
             "matched_processes": [],

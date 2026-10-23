@@ -20,9 +20,9 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
-from deepcraft_core import Memory
+from inquirycraft.memory import Memory
 
-from scienceflow.core.agent import ScienceAgent
+from scienceflow.agent import ScienceAgent
 
 
 class _FakeLLMStream:

@@ -1,0 +1,12 @@
+{
+  "baseline": "baseline_v1",
+  "category_sha256": {
+    "context": "100d5268101cb0a29494252457f25d2608ec86807ad2c9ee682bd128f600163f",
+    "error_text": "1d9f95d9c5481eee2ca362bb1fe88879a57208531a75b0ddcac0d21a0b903b5b",
+    "mechanism": "bff9e71504e6e9a909595ce1412907f696f20464db23593957561f222dccc8ef",
+    "schema": "4c4ed9c67937a77168138376de904e25693157b6b97715c5a64c520dfc1bbbaf",
+    "workspace": "59646dd397ec346c554f1c4a3b973273e961100695a3119e6aa4a390076771df"
+  },
+  "contract": "scienceflow_tool_runtime",
+  "version": 1
+}

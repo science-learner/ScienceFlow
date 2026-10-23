@@ -1,0 +1,35 @@
+{
+  "case_id": "performance_microbench",
+  "context": {
+    "operations": [
+      "context_build",
+      "event_build",
+      "memory_append_retrieve",
+      "tool_dispatch"
+    ],
+    "repeats": 11,
+    "warmup": 100
+  },
+  "mechanism": {
+    "metrics": {
+      "context_build": {
+        "median_ms": 0.001136,
+        "p95_ms": 0.001207
+      },
+      "event_build": {
+        "median_ms": 0.001627,
+        "p95_ms": 0.001665
+      },
+      "memory_append_retrieve": {
+        "median_ms": 0.01873,
+        "p95_ms": 0.018901
+      },
+      "tool_dispatch": {
+        "median_ms": 0.001539,
+        "p95_ms": 0.001621
+      }
+    }
+  },
+  "schema_version": 1,
+  "workspace": []
+}

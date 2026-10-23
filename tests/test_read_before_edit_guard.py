@@ -10,7 +10,7 @@
 # The name of Huawei and the contributors may not be used to endorse or promote
 # products derived from this software without specific prior written permission.
 
-"""Tests for read-before-edit enforcement on ``ScienceAgent._execute_tool_maybe_edit_guard``."""
+"""Tests for the read-before-edit policy owner."""
 
 from __future__ import annotations
 
@@ -19,11 +19,16 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from deepcraft_core.tool import ToolResult
+from inquirycraft.tools import ToolResult
+
+from scienceflow.runtime.safety.execution.agent_runtime.edit_guard import (
+    _execute_tool_maybe_edit_guard,
+    _record_read_for_edit_guard,
+)
 
 
 def _bare_agent_for_edit_guard(tmp_path: Path):
-    from scienceflow.core.agent import ScienceAgent
+    from scienceflow.agent import ScienceAgent
 
     agent = ScienceAgent.__new__(ScienceAgent)
     agent._workspace_dir = tmp_path
@@ -44,7 +49,8 @@ def _bare_agent_for_edit_guard(tmp_path: Path):
 async def test_edit_blocked_without_prior_read(tmp_path: Path) -> None:
     (tmp_path / "solution.py").write_text("a = 1\n", encoding="utf-8")
     agent, execute_mock = _bare_agent_for_edit_guard(tmp_path)
-    res = await agent._execute_tool_maybe_edit_guard(
+    res = await _execute_tool_maybe_edit_guard(
+        agent,
         "edit",
         {"path": "solution.py", "old_str": "a", "new_str": "b"},
     )
@@ -58,8 +64,9 @@ async def test_edit_blocked_without_prior_read(tmp_path: Path) -> None:
 async def test_edit_allowed_after_read_record(tmp_path: Path) -> None:
     (tmp_path / "foo.py").write_text("x\n", encoding="utf-8")
     agent, execute_mock = _bare_agent_for_edit_guard(tmp_path)
-    agent._record_read_for_edit_guard("foo.py")
-    res = await agent._execute_tool_maybe_edit_guard(
+    _record_read_for_edit_guard(agent, "foo.py")
+    res = await _execute_tool_maybe_edit_guard(
+        agent,
         "edit",
         {"path": "foo.py", "old_str": "x", "new_str": "y"},
     )
@@ -72,9 +79,10 @@ async def test_edit_blocked_after_file_changed_after_read(tmp_path: Path) -> Non
     p = tmp_path / "bar.py"
     p.write_text("v1\n", encoding="utf-8")
     agent, execute_mock = _bare_agent_for_edit_guard(tmp_path)
-    agent._record_read_for_edit_guard("bar.py")
+    _record_read_for_edit_guard(agent, "bar.py")
     p.write_text("v2\n", encoding="utf-8")
-    res = await agent._execute_tool_maybe_edit_guard(
+    res = await _execute_tool_maybe_edit_guard(
+        agent,
         "edit",
         {"path": "bar.py", "old_str": "v2", "new_str": "v3"},
     )
@@ -84,11 +92,13 @@ async def test_edit_blocked_after_file_changed_after_read(tmp_path: Path) -> Non
 
 
 @pytest.mark.asyncio
-async def test_successful_edit_refreshes_guard_for_followup_edit(tmp_path: Path) -> None:
+async def test_successful_edit_refreshes_guard_for_followup_edit(
+    tmp_path: Path,
+) -> None:
     p = tmp_path / "chain.py"
     p.write_text("v1\n", encoding="utf-8")
     agent, execute_mock = _bare_agent_for_edit_guard(tmp_path)
-    agent._record_read_for_edit_guard("chain.py")
+    _record_read_for_edit_guard(agent, "chain.py")
 
     writes = iter(["v2\n", "v3\n"])
 
@@ -97,11 +107,13 @@ async def test_successful_edit_refreshes_guard_for_followup_edit(tmp_path: Path)
         return ToolResult(output="edited")
 
     execute_mock.side_effect = _apply_edit
-    first = await agent._execute_tool_maybe_edit_guard(
+    first = await _execute_tool_maybe_edit_guard(
+        agent,
         "edit",
         {"path": "chain.py", "old_str": "v1", "new_str": "v2"},
     )
-    second = await agent._execute_tool_maybe_edit_guard(
+    second = await _execute_tool_maybe_edit_guard(
+        agent,
         "edit",
         {"path": "chain.py", "old_str": "v2", "new_str": "v3"},
     )
@@ -125,11 +137,13 @@ async def test_successful_write_seeds_guard_for_followup_edit(tmp_path: Path) ->
         return ToolResult(output="edited")
 
     execute_mock.side_effect = _apply_tool
-    written = await agent._execute_tool_maybe_edit_guard(
+    written = await _execute_tool_maybe_edit_guard(
+        agent,
         "write",
         {"path": "new_solution.py", "content": "x = 1\n"},
     )
-    edited = await agent._execute_tool_maybe_edit_guard(
+    edited = await _execute_tool_maybe_edit_guard(
+        agent,
         "edit",
         {"path": "new_solution.py", "old_str": "x = 1", "new_str": "y = 2"},
     )
@@ -143,7 +157,8 @@ async def test_successful_write_seeds_guard_for_followup_edit(tmp_path: Path) ->
 async def test_non_edit_tools_bypass_guard(tmp_path: Path) -> None:
     agent, execute_mock = _bare_agent_for_edit_guard(tmp_path)
     execute_mock.return_value = ToolResult(output="read content")
-    res = await agent._execute_tool_maybe_edit_guard(
+    res = await _execute_tool_maybe_edit_guard(
+        agent,
         "read",
         {"path": "solution.py"},
     )

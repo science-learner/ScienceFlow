@@ -15,8 +15,8 @@ from pathlib import Path
 
 import pytest
 
-from scienceflow.solver.lnr.replay_prepare import ReplayPrepareError, prepare_lnr_replay
-from scienceflow.solver.lnr.resume.memory_state import inspect_resume_memory_messages
+from scienceflow.research.solver.lnr.transitions.replay_prepare import ReplayPrepareError, prepare_lnr_replay
+from scienceflow.research.solver.lnr.transitions.resume.memory_state import inspect_resume_memory_messages
 
 
 def _write_jsonl(path: Path, records: list[dict]) -> None:

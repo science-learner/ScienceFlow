@@ -18,14 +18,11 @@ from types import SimpleNamespace
 
 import pytest
 
-from scienceflow.core.agent.run_control.embedded_fullrun import _evaluate_embedded_candidate
-from scienceflow.safety.execution_policy import EnsureFullRunResult
-from scienceflow.gates import GateService
-from scienceflow.gates.evaluator import (
-    EvalContext,
-    EvaluationRequest,
-    EvaluatorManager,
-)
+from scienceflow.research.quality.assessment import CandidateAssessmentService
+from scienceflow.foundation.contracts import EvalContext, EvaluationRequest
+from scienceflow.research.quality.embedded_fullrun import _evaluate_embedded_candidate
+from scienceflow.research.quality.evaluator import EvaluatorManager
+from scienceflow.runtime.safety.policy.execution_policy import EnsureFullRunResult
 
 
 def _write(path: Path, text: str) -> None:
@@ -50,7 +47,7 @@ def _evaluate(
         cfg={},
         metadata={"metric_event": dict(metric_event or {})},
     )
-    outcomes = GateService.default().evaluate(
+    outcomes = CandidateAssessmentService.default().evaluate(
         EvaluationRequest(context=ctx, trigger="stage_end")
     )
     assert len(outcomes) == 1
@@ -102,6 +99,38 @@ def test_stage_accepts_valid_complete_run_result_without_submission(tmp_path: Pa
     assert outcome.event.extra["artifact_ready"] is False
     assert outcome.decision.action == "accept"
     assert outcome.decision.candidate_ready is True
+
+
+def test_metric_only_stage_does_not_bind_stale_workspace_submission(
+    tmp_path: Path,
+) -> None:
+    _write(tmp_path / "dataset" / "sample_submission.csv", "id,target\n1,0\n")
+    _write(tmp_path / "submission.csv", "id,target\n1,0.9\n")
+
+    outcome = _evaluate(
+        tmp_path,
+        task_id="nomad2018-predict-transparent-conductors",
+        task_profile="mlebench",
+        metric_event={
+            "metric_value": 0.31,
+            "metric_name": "Final Validation Score",
+            "lower_is_better": True,
+            "validation_ok": True,
+            "selection_eligible": True,
+            "metric_validity": "high",
+            "val_score_type": "holdout",
+            "execution_scale": "direct_full",
+            "bash_cmd": "python3 solution.py",
+            "solution_sha": "new-score-source",
+            "stage_signal_kind": "metric_only",
+            "candidate_artifact_attached": False,
+        },
+    )
+
+    assert outcome.event.evaluator_backend == "result_signal"
+    assert outcome.event.metric_value == pytest.approx(0.31)
+    assert outcome.event.artifact_path == ""
+    assert outcome.event.extra["artifact_ready"] is False
 
 
 @pytest.mark.parametrize(
@@ -186,7 +215,7 @@ def test_final_gate_does_not_use_result_signal_without_artifact(tmp_path: Path) 
         },
     )
 
-    outcomes = GateService.default().evaluate(
+    outcomes = CandidateAssessmentService.default().evaluate(
         EvaluationRequest(context=ctx, trigger="global_merge")
     )
 
@@ -244,7 +273,7 @@ def test_unified_entry_normalizes_backend_exception(
         cfg={},
     )
 
-    outcomes = GateService(manager).evaluate(
+    outcomes = CandidateAssessmentService(manager).evaluate(
         EvaluationRequest(context=ctx, trigger="stage_end")
     )
 
@@ -259,7 +288,7 @@ def test_embedded_fullrun_uses_unified_service_for_nomad2018(tmp_path: Path) -> 
     _write(tmp_path / "submission.csv", "id,target\n1,0.5\n")
     agent = SimpleNamespace(
         _workspace_dir=tmp_path,
-        _scienceflow_evaluation_service=GateService.default(),
+        _scienceflow_evaluation_service=CandidateAssessmentService.default(),
         _scienceflow_evaluation_cfg=SimpleNamespace(
             exp_id="nomad2018-predict-transparent-conductors"
         ),

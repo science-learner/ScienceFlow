@@ -14,15 +14,17 @@ from __future__ import annotations
 
 import csv
 
-from scienceflow.solver.lnr.resource_runtime.review.research_cadence import (
+import pytest
+
+from scienceflow.research.solver.lnr.resources.runtime.review.evidence.research_cadence import (
     build_research_cadence_facts,
     is_comparable_live_metric,
     normalize_validation_protocol,
     route_metric_evidence,
     validation_protocols_comparable,
 )
-from scienceflow.solver.lnr.prompts import build_first_user_prompt
-from scienceflow.solver.lnr.stage.metric_semantics import classify_metric_semantics
+from scienceflow.research.solver.lnr.support.prompts import build_first_user_prompt
+from scienceflow.research.solver.lnr.lifecycle.stage.metrics.metric_semantics import classify_metric_semantics
 from tests.lnr_resource_test_utils import make_observer
 
 
@@ -155,6 +157,22 @@ def test_metric_semantics_capture_scale_and_route_from_value_hint() -> None:
 
     assert semantics["execution_scale"] == "pilot"
     assert semantics["route_id"] == "resnet_v1"
+
+
+def test_metric_semantics_accept_explicit_benchmark_objective() -> None:
+    semantics = classify_metric_semantics(
+        metric_value=2.5,
+        data={
+            "bash_cmd": "python solve.py",
+            "stdout_tail": "FINAL radii_sum=2.5",
+            "metric_protocol": "benchmark",
+        },
+        workspace_source_text="",
+    )
+
+    assert semantics["val_score_type"] == "benchmark"
+    assert semantics["selection_eligible"] is True
+    assert semantics["selection_score"] == pytest.approx(2.5)
 
 
 def test_ml_prompt_renders_pilot_value_hint_as_literal_json() -> None:

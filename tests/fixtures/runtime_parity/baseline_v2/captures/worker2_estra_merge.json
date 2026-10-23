@@ -1,0 +1,1125 @@
+{
+  "case_id": "worker2_estra_merge",
+  "context": {
+    "candidates": [
+      {
+        "candidate_id": "W00:S01",
+        "lower_is_better": false,
+        "metric_name": "score",
+        "metric_validity": "high",
+        "metric_value": 0.2,
+        "selection_eligible": true,
+        "snapshot_path": "<workspace>/workers/W00/snapshots/S01",
+        "submission_sha": "sha-w00",
+        "validation_ok": true
+      },
+      {
+        "candidate_id": "W01:S01",
+        "lower_is_better": false,
+        "metric_name": "score",
+        "metric_validity": "high",
+        "metric_value": 0.4,
+        "selection_eligible": true,
+        "snapshot_path": "<workspace>/workers/W01/snapshots/S01",
+        "submission_sha": "sha-w01",
+        "validation_ok": true
+      }
+    ],
+    "join_packets": [
+      {
+        "artifact_refs": [
+          {
+            "path": "sidecars/sidecar-w00/workspace/analysis.json",
+            "type": "sidecar_analysis"
+          }
+        ],
+        "inject": {
+          "estra_evidence": true,
+          "parent_next_prompt": true,
+          "resource_context": true
+        },
+        "join_version": 1,
+        "packet_path": "sidecars/sidecar-w00/join_packet.json",
+        "parent_job_id": "job-w00",
+        "parent_worker_id": "W00",
+        "quality_gate": "review",
+        "sidecar_id": "sidecar-w00",
+        "summary_for_estra": "route-alpha validated; metric=0.20. next: merge route-alpha. 1 helper artifact(s) ready",
+        "summary_for_parent": "route-alpha validated; metric=0.20. next: merge route-alpha. 1 helper artifact(s) ready"
+      },
+      {
+        "artifact_refs": [
+          {
+            "path": "sidecars/sidecar-w01/workspace/analysis.json",
+            "type": "sidecar_analysis"
+          }
+        ],
+        "inject": {
+          "estra_evidence": true,
+          "parent_next_prompt": true,
+          "resource_context": true
+        },
+        "join_version": 1,
+        "packet_path": "sidecars/sidecar-w01/join_packet.json",
+        "parent_job_id": "job-w01",
+        "parent_worker_id": "W01",
+        "quality_gate": "review",
+        "sidecar_id": "sidecar-w01",
+        "summary_for_estra": "route-beta validated; metric=0.40. next: merge route-beta. 1 helper artifact(s) ready",
+        "summary_for_parent": "route-beta validated; metric=0.40. next: merge route-beta. 1 helper artifact(s) ready"
+      }
+    ],
+    "recommendations": "magent_recommendations:\n  - sidecar_id: sidecar-w00; quality_gate: review\n    parent_summary: route-alpha validated; metric=0.20. next: merge route-alpha. 1 helper artifact(s) ready\n    artifacts: sidecar_analysis:sidecars/sidecar-w00/workspace/analysis.json\n  - sidecar_id: sidecar-w01; quality_gate: review\n    parent_summary: route-beta validated; metric=0.40. next: merge route-beta. 1 helper artifact(s) ready\n    artifacts: sidecar_analysis:sidecars/sidecar-w01/workspace/analysis.json",
+    "worker_results": [
+      {
+        "stage_id": "S01",
+        "status": "success",
+        "stop_reason": "budget_expired",
+        "worker_id": "W00"
+      },
+      {
+        "stage_id": "S01",
+        "status": "success",
+        "stop_reason": "budget_expired",
+        "worker_id": "W01"
+      }
+    ],
+    "workers": [
+      "W00",
+      "W01"
+    ]
+  },
+  "mechanism": {
+    "manifest": {
+      "agent_error": "",
+      "agent_status": "completed",
+      "artifact_path": "submission.csv",
+      "candidate_count": 2,
+      "fallback_final_sources": [],
+      "final_count": 3,
+      "finals": [
+        {
+          "artifact_exists": true,
+          "artifact_path": "submission.csv",
+          "candidate_id": "final_00",
+          "final_dir": "<workspace>/merge/finals/final_00",
+          "metric_event": {}
+        },
+        {
+          "artifact_exists": true,
+          "artifact_path": "submission.csv",
+          "candidate_id": "final_01",
+          "final_dir": "<workspace>/merge/finals/final_01",
+          "metric_event": {}
+        },
+        {
+          "artifact_exists": true,
+          "artifact_path": "submission.csv",
+          "candidate_id": "final_02",
+          "final_dir": "<workspace>/merge/finals/final_02",
+          "metric_event": {}
+        }
+      ],
+      "merge_mode": "worker_reduce",
+      "packed_candidate_count": 2,
+      "promoted_finals": [
+        {
+          "artifact_sha": "cad5d20cdf457be391384db5f6f111e013c6ca1d24ad6808aae8373a88c6ce76",
+          "canonical_artifact": "<workspace>/workers/W00/snapshots/S01/submission.csv",
+          "canonical_kind": "candidate_snapshot",
+          "final_id": "final_00"
+        },
+        {
+          "artifact_sha": "2d23bd4c8a3edd804c91276cfb32f6a7e33c5f41db3cd8f718a45db1a3e59871",
+          "canonical_artifact": "<workspace>/workers/W01/snapshots/S01/submission.csv",
+          "canonical_kind": "candidate_snapshot",
+          "final_id": "final_01"
+        },
+        {
+          "artifact_sha": "b12a8f4bda5c465a3e4ee5ad29846c9c29d7a254de60b1b902d0cce5b4912c0a",
+          "canonical_artifact": "<workspace>/merge/submission_snapshots/b12a8f4bda5c465a/submission.csv",
+          "canonical_kind": "merge_snapshot",
+          "final_id": "final_02"
+        }
+      ],
+      "required_final_count": 3,
+      "requirement_met": true,
+      "status": "success",
+      "submission_links": [
+        {
+          "group": "merge_candidate",
+          "kind": "symlink",
+          "path": "candidates/W00-S01.csv",
+          "source": "<workspace>/workers/W00/snapshots/S01/submission.csv",
+          "target": "../../workers/W00/snapshots/S01/submission.csv"
+        },
+        {
+          "group": "merge_candidate",
+          "kind": "symlink",
+          "path": "candidates/W01-S01.csv",
+          "source": "<workspace>/workers/W01/snapshots/S01/submission.csv",
+          "target": "../../workers/W01/snapshots/S01/submission.csv"
+        },
+        {
+          "group": "merge_final",
+          "kind": "symlink",
+          "path": "finals/final_00.csv",
+          "source": "<workspace>/workers/W00/snapshots/S01/submission.csv",
+          "target": "../../workers/W00/snapshots/S01/submission.csv"
+        },
+        {
+          "group": "merge_final",
+          "kind": "symlink",
+          "path": "finals/final_01.csv",
+          "source": "<workspace>/workers/W01/snapshots/S01/submission.csv",
+          "target": "../../workers/W01/snapshots/S01/submission.csv"
+        },
+        {
+          "group": "merge_final",
+          "kind": "symlink",
+          "path": "finals/final_02.csv",
+          "source": "<workspace>/merge/submission_snapshots/b12a8f4bda5c465a/submission.csv",
+          "target": "../../merge/submission_snapshots/b12a8f4bda5c465a/submission.csv"
+        }
+      ],
+      "valid_final_count": 3,
+      "workspace": "<workspace>/merge/global_merge_workspace"
+    },
+    "merge_calls": [
+      {
+        "budget": 120.0,
+        "candidate_roots": [
+          "solution.py",
+          "submission.csv",
+          "solution.py",
+          "submission.csv"
+        ],
+        "requires_three": true
+      }
+    ],
+    "sequence": [
+      "worker_W00_isolated",
+      "worker_W01_isolated",
+      "estra_join_W00",
+      "estra_join_W01",
+      "global_merge",
+      "finals_exposed"
+    ],
+    "worker_isolation": {
+      "W00": "W00\n",
+      "W01": "W01\n"
+    }
+  },
+  "schema_version": 1,
+  "workspace": [
+    {
+      "kind": "directory",
+      "path": "merge"
+    },
+    {
+      "kind": "directory",
+      "path": "merge/candidates"
+    },
+    {
+      "kind": "directory",
+      "path": "merge/candidates/W00-S01"
+    },
+    {
+      "content": {
+        "artifact_sha": "cad5d20cdf457be391384db5f6f111e013c6ca1d24ad6808aae8373a88c6ce76",
+        "artifact_source": "<workspace>/workers/W00/snapshots/S01/submission.csv",
+        "candidate_dir": "W00-S01",
+        "candidate_id": "W00:S01",
+        "candidate_ready": true,
+        "lower_is_better": false,
+        "merge_payload_files": [],
+        "metric_name": "score",
+        "metric_validity": "high",
+        "metric_value": 0.2,
+        "packed_artifact": "submission.csv",
+        "selection_eligible": true,
+        "snapshot_path": "<workspace>/workers/W00/snapshots/S01",
+        "source_artifact": "<workspace>/workers/W00/snapshots/S01/submission.csv",
+        "submission_sha": "cad5d20cdf457be391384db5f6f111e013c6ca1d24ad6808aae8373a88c6ce76",
+        "submission_status": "ok",
+        "validation_ok": true
+      },
+      "kind": "file",
+      "path": "merge/candidates/W00-S01/metadata.json",
+      "size": 861
+    },
+    {
+      "kind": "symlink",
+      "path": "merge/candidates/W00-S01/solution.py",
+      "target": "../../../workers/W00/snapshots/S01/solution.py"
+    },
+    {
+      "kind": "symlink",
+      "path": "merge/candidates/W00-S01/submission.csv",
+      "target": "../../../workers/W00/snapshots/S01/submission.csv"
+    },
+    {
+      "kind": "directory",
+      "path": "merge/candidates/W01-S01"
+    },
+    {
+      "content": {
+        "artifact_sha": "2d23bd4c8a3edd804c91276cfb32f6a7e33c5f41db3cd8f718a45db1a3e59871",
+        "artifact_source": "<workspace>/workers/W01/snapshots/S01/submission.csv",
+        "candidate_dir": "W01-S01",
+        "candidate_id": "W01:S01",
+        "candidate_ready": true,
+        "lower_is_better": false,
+        "merge_payload_files": [],
+        "metric_name": "score",
+        "metric_validity": "high",
+        "metric_value": 0.4,
+        "packed_artifact": "submission.csv",
+        "selection_eligible": true,
+        "snapshot_path": "<workspace>/workers/W01/snapshots/S01",
+        "source_artifact": "<workspace>/workers/W01/snapshots/S01/submission.csv",
+        "submission_sha": "2d23bd4c8a3edd804c91276cfb32f6a7e33c5f41db3cd8f718a45db1a3e59871",
+        "submission_status": "ok",
+        "validation_ok": true
+      },
+      "kind": "file",
+      "path": "merge/candidates/W01-S01/metadata.json",
+      "size": 861
+    },
+    {
+      "kind": "symlink",
+      "path": "merge/candidates/W01-S01/solution.py",
+      "target": "../../../workers/W01/snapshots/S01/solution.py"
+    },
+    {
+      "kind": "symlink",
+      "path": "merge/candidates/W01-S01/submission.csv",
+      "target": "../../../workers/W01/snapshots/S01/submission.csv"
+    },
+    {
+      "content": {
+        "artifact_path": "submission.csv",
+        "candidate_count": 2,
+        "candidates": [
+          {
+            "artifact_sha": "2d23bd4c8a3edd804c91276cfb32f6a7e33c5f41db3cd8f718a45db1a3e59871",
+            "artifact_source": "<workspace>/workers/W01/snapshots/S01/submission.csv",
+            "candidate_dir": "W01-S01",
+            "candidate_id": "W01:S01",
+            "candidate_ready": true,
+            "lower_is_better": false,
+            "merge_payload_files": [],
+            "metric_name": "score",
+            "metric_validity": "high",
+            "metric_value": 0.4,
+            "packed_artifact": "submission.csv",
+            "selection_eligible": true,
+            "snapshot_path": "<workspace>/workers/W01/snapshots/S01",
+            "source_artifact": "<workspace>/workers/W01/snapshots/S01/submission.csv",
+            "submission_sha": "2d23bd4c8a3edd804c91276cfb32f6a7e33c5f41db3cd8f718a45db1a3e59871",
+            "submission_status": "ok",
+            "validation_ok": true
+          },
+          {
+            "artifact_sha": "cad5d20cdf457be391384db5f6f111e013c6ca1d24ad6808aae8373a88c6ce76",
+            "artifact_source": "<workspace>/workers/W00/snapshots/S01/submission.csv",
+            "candidate_dir": "W00-S01",
+            "candidate_id": "W00:S01",
+            "candidate_ready": true,
+            "lower_is_better": false,
+            "merge_payload_files": [],
+            "metric_name": "score",
+            "metric_validity": "high",
+            "metric_value": 0.2,
+            "packed_artifact": "submission.csv",
+            "selection_eligible": true,
+            "snapshot_path": "<workspace>/workers/W00/snapshots/S01",
+            "source_artifact": "<workspace>/workers/W00/snapshots/S01/submission.csv",
+            "submission_sha": "cad5d20cdf457be391384db5f6f111e013c6ca1d24ad6808aae8373a88c6ce76",
+            "submission_status": "ok",
+            "validation_ok": true
+          }
+        ],
+        "prediction_payload_bytes": 0
+      },
+      "kind": "file",
+      "path": "merge/candidates/candidate_index.json",
+      "size": 1995
+    },
+    {
+      "kind": "directory",
+      "path": "merge/finals"
+    },
+    {
+      "kind": "directory",
+      "path": "merge/finals/final_00"
+    },
+    {
+      "content": {
+        "artifact_exists": true,
+        "artifact_path": "submission.csv",
+        "candidate_id": "final_00",
+        "final_dir": "<workspace>/merge/finals/final_00",
+        "metric_event": {}
+      },
+      "kind": "file",
+      "path": "merge/finals/final_00/eval_result.json",
+      "size": 213
+    },
+    {
+      "content": "deterministic final 0\n",
+      "kind": "file",
+      "path": "merge/finals/final_00/merge_report.md",
+      "size": 22
+    },
+    {
+      "kind": "symlink",
+      "path": "merge/finals/final_00/submission.csv",
+      "target": "../../../workers/W00/snapshots/S01/submission.csv"
+    },
+    {
+      "kind": "directory",
+      "path": "merge/finals/final_01"
+    },
+    {
+      "content": {
+        "artifact_exists": true,
+        "artifact_path": "submission.csv",
+        "candidate_id": "final_01",
+        "final_dir": "<workspace>/merge/finals/final_01",
+        "metric_event": {}
+      },
+      "kind": "file",
+      "path": "merge/finals/final_01/eval_result.json",
+      "size": 213
+    },
+    {
+      "content": "deterministic final 1\n",
+      "kind": "file",
+      "path": "merge/finals/final_01/merge_report.md",
+      "size": 22
+    },
+    {
+      "kind": "symlink",
+      "path": "merge/finals/final_01/submission.csv",
+      "target": "../../../workers/W01/snapshots/S01/submission.csv"
+    },
+    {
+      "kind": "directory",
+      "path": "merge/finals/final_02"
+    },
+    {
+      "content": {
+        "artifact_exists": true,
+        "artifact_path": "submission.csv",
+        "candidate_id": "final_02",
+        "final_dir": "<workspace>/merge/finals/final_02",
+        "metric_event": {}
+      },
+      "kind": "file",
+      "path": "merge/finals/final_02/eval_result.json",
+      "size": 213
+    },
+    {
+      "content": "deterministic final 2\n",
+      "kind": "file",
+      "path": "merge/finals/final_02/merge_report.md",
+      "size": 22
+    },
+    {
+      "kind": "symlink",
+      "path": "merge/finals/final_02/submission.csv",
+      "target": "../../submission_snapshots/b12a8f4bda5c465a/submission.csv"
+    },
+    {
+      "content": [
+        {
+          "candidate_id": "W00:S01",
+          "lower_is_better": false,
+          "metric_name": "score",
+          "metric_validity": "high",
+          "metric_value": 0.2,
+          "selection_eligible": true,
+          "snapshot_path": "<workspace>/workers/W00/snapshots/S01",
+          "submission_sha": "sha-w00",
+          "validation_ok": true
+        },
+        {
+          "candidate_id": "W01:S01",
+          "lower_is_better": false,
+          "metric_name": "score",
+          "metric_validity": "high",
+          "metric_value": 0.4,
+          "selection_eligible": true,
+          "snapshot_path": "<workspace>/workers/W01/snapshots/S01",
+          "submission_sha": "sha-w01",
+          "validation_ok": true
+        }
+      ],
+      "kind": "file",
+      "path": "merge/global_candidates.jsonl",
+      "size": 612
+    },
+    {
+      "content": {
+        "agent_error": "",
+        "agent_status": "completed",
+        "artifact_path": "submission.csv",
+        "candidate_count": 2,
+        "created_at": 1700000100.0,
+        "fallback_final_sources": [],
+        "final_count": 3,
+        "finals": [
+          {
+            "artifact_exists": true,
+            "artifact_path": "submission.csv",
+            "candidate_id": "final_00",
+            "final_dir": "<workspace>/merge/finals/final_00",
+            "metric_event": {}
+          },
+          {
+            "artifact_exists": true,
+            "artifact_path": "submission.csv",
+            "candidate_id": "final_01",
+            "final_dir": "<workspace>/merge/finals/final_01",
+            "metric_event": {}
+          },
+          {
+            "artifact_exists": true,
+            "artifact_path": "submission.csv",
+            "candidate_id": "final_02",
+            "final_dir": "<workspace>/merge/finals/final_02",
+            "metric_event": {}
+          }
+        ],
+        "merge_mode": "worker_reduce",
+        "packed_candidate_count": 2,
+        "promoted_finals": [
+          {
+            "artifact_sha": "cad5d20cdf457be391384db5f6f111e013c6ca1d24ad6808aae8373a88c6ce76",
+            "canonical_artifact": "<workspace>/workers/W00/snapshots/S01/submission.csv",
+            "canonical_kind": "candidate_snapshot",
+            "final_id": "final_00"
+          },
+          {
+            "artifact_sha": "2d23bd4c8a3edd804c91276cfb32f6a7e33c5f41db3cd8f718a45db1a3e59871",
+            "canonical_artifact": "<workspace>/workers/W01/snapshots/S01/submission.csv",
+            "canonical_kind": "candidate_snapshot",
+            "final_id": "final_01"
+          },
+          {
+            "artifact_sha": "b12a8f4bda5c465a3e4ee5ad29846c9c29d7a254de60b1b902d0cce5b4912c0a",
+            "canonical_artifact": "<workspace>/merge/submission_snapshots/b12a8f4bda5c465a/submission.csv",
+            "canonical_kind": "merge_snapshot",
+            "final_id": "final_02"
+          }
+        ],
+        "required_final_count": 3,
+        "requirement_met": true,
+        "status": "success",
+        "submission_links": [
+          {
+            "group": "merge_candidate",
+            "kind": "symlink",
+            "path": "candidates/W00-S01.csv",
+            "source": "<workspace>/workers/W00/snapshots/S01/submission.csv",
+            "target": "../../workers/W00/snapshots/S01/submission.csv"
+          },
+          {
+            "group": "merge_candidate",
+            "kind": "symlink",
+            "path": "candidates/W01-S01.csv",
+            "source": "<workspace>/workers/W01/snapshots/S01/submission.csv",
+            "target": "../../workers/W01/snapshots/S01/submission.csv"
+          },
+          {
+            "group": "merge_final",
+            "kind": "symlink",
+            "path": "finals/final_00.csv",
+            "source": "<workspace>/workers/W00/snapshots/S01/submission.csv",
+            "target": "../../workers/W00/snapshots/S01/submission.csv"
+          },
+          {
+            "group": "merge_final",
+            "kind": "symlink",
+            "path": "finals/final_01.csv",
+            "source": "<workspace>/workers/W01/snapshots/S01/submission.csv",
+            "target": "../../workers/W01/snapshots/S01/submission.csv"
+          },
+          {
+            "group": "merge_final",
+            "kind": "symlink",
+            "path": "finals/final_02.csv",
+            "source": "<workspace>/merge/submission_snapshots/b12a8f4bda5c465a/submission.csv",
+            "target": "../../merge/submission_snapshots/b12a8f4bda5c465a/submission.csv"
+          }
+        ],
+        "valid_final_count": 3,
+        "workspace": "<workspace>/merge/global_merge_workspace"
+      },
+      "kind": "file",
+      "path": "merge/global_merge_manifest.json",
+      "size": 3663
+    },
+    {
+      "kind": "directory",
+      "path": "merge/global_merge_workspace"
+    },
+    {
+      "kind": "directory",
+      "path": "merge/global_merge_workspace/candidates"
+    },
+    {
+      "kind": "directory",
+      "path": "merge/global_merge_workspace/candidates/W00-S01"
+    },
+    {
+      "content": {
+        "artifact_sha": "cad5d20cdf457be391384db5f6f111e013c6ca1d24ad6808aae8373a88c6ce76",
+        "artifact_source": "<workspace>/workers/W00/snapshots/S01/submission.csv",
+        "candidate_dir": "W00-S01",
+        "candidate_id": "W00:S01",
+        "candidate_ready": true,
+        "lower_is_better": false,
+        "merge_payload_files": [],
+        "metric_name": "score",
+        "metric_validity": "high",
+        "metric_value": 0.2,
+        "packed_artifact": "submission.csv",
+        "selection_eligible": true,
+        "snapshot_path": "<workspace>/workers/W00/snapshots/S01",
+        "source_artifact": "<workspace>/workers/W00/snapshots/S01/submission.csv",
+        "submission_sha": "cad5d20cdf457be391384db5f6f111e013c6ca1d24ad6808aae8373a88c6ce76",
+        "submission_status": "ok",
+        "validation_ok": true
+      },
+      "kind": "file",
+      "path": "merge/global_merge_workspace/candidates/W00-S01/metadata.json",
+      "size": 861
+    },
+    {
+      "kind": "symlink",
+      "path": "merge/global_merge_workspace/candidates/W00-S01/solution.py",
+      "target": "../../../../workers/W00/snapshots/S01/solution.py"
+    },
+    {
+      "kind": "symlink",
+      "path": "merge/global_merge_workspace/candidates/W00-S01/submission.csv",
+      "target": "../../../../workers/W00/snapshots/S01/submission.csv"
+    },
+    {
+      "kind": "directory",
+      "path": "merge/global_merge_workspace/candidates/W01-S01"
+    },
+    {
+      "content": {
+        "artifact_sha": "2d23bd4c8a3edd804c91276cfb32f6a7e33c5f41db3cd8f718a45db1a3e59871",
+        "artifact_source": "<workspace>/workers/W01/snapshots/S01/submission.csv",
+        "candidate_dir": "W01-S01",
+        "candidate_id": "W01:S01",
+        "candidate_ready": true,
+        "lower_is_better": false,
+        "merge_payload_files": [],
+        "metric_name": "score",
+        "metric_validity": "high",
+        "metric_value": 0.4,
+        "packed_artifact": "submission.csv",
+        "selection_eligible": true,
+        "snapshot_path": "<workspace>/workers/W01/snapshots/S01",
+        "source_artifact": "<workspace>/workers/W01/snapshots/S01/submission.csv",
+        "submission_sha": "2d23bd4c8a3edd804c91276cfb32f6a7e33c5f41db3cd8f718a45db1a3e59871",
+        "submission_status": "ok",
+        "validation_ok": true
+      },
+      "kind": "file",
+      "path": "merge/global_merge_workspace/candidates/W01-S01/metadata.json",
+      "size": 861
+    },
+    {
+      "kind": "symlink",
+      "path": "merge/global_merge_workspace/candidates/W01-S01/solution.py",
+      "target": "../../../../workers/W01/snapshots/S01/solution.py"
+    },
+    {
+      "kind": "symlink",
+      "path": "merge/global_merge_workspace/candidates/W01-S01/submission.csv",
+      "target": "../../../../workers/W01/snapshots/S01/submission.csv"
+    },
+    {
+      "content": {
+        "artifact_path": "submission.csv",
+        "candidate_count": 2,
+        "candidates": [
+          {
+            "artifact_sha": "2d23bd4c8a3edd804c91276cfb32f6a7e33c5f41db3cd8f718a45db1a3e59871",
+            "artifact_source": "<workspace>/workers/W01/snapshots/S01/submission.csv",
+            "candidate_dir": "W01-S01",
+            "candidate_id": "W01:S01",
+            "candidate_ready": true,
+            "lower_is_better": false,
+            "merge_payload_files": [],
+            "metric_name": "score",
+            "metric_validity": "high",
+            "metric_value": 0.4,
+            "packed_artifact": "submission.csv",
+            "selection_eligible": true,
+            "snapshot_path": "<workspace>/workers/W01/snapshots/S01",
+            "source_artifact": "<workspace>/workers/W01/snapshots/S01/submission.csv",
+            "submission_sha": "2d23bd4c8a3edd804c91276cfb32f6a7e33c5f41db3cd8f718a45db1a3e59871",
+            "submission_status": "ok",
+            "validation_ok": true
+          },
+          {
+            "artifact_sha": "cad5d20cdf457be391384db5f6f111e013c6ca1d24ad6808aae8373a88c6ce76",
+            "artifact_source": "<workspace>/workers/W00/snapshots/S01/submission.csv",
+            "candidate_dir": "W00-S01",
+            "candidate_id": "W00:S01",
+            "candidate_ready": true,
+            "lower_is_better": false,
+            "merge_payload_files": [],
+            "metric_name": "score",
+            "metric_validity": "high",
+            "metric_value": 0.2,
+            "packed_artifact": "submission.csv",
+            "selection_eligible": true,
+            "snapshot_path": "<workspace>/workers/W00/snapshots/S01",
+            "source_artifact": "<workspace>/workers/W00/snapshots/S01/submission.csv",
+            "submission_sha": "cad5d20cdf457be391384db5f6f111e013c6ca1d24ad6808aae8373a88c6ce76",
+            "submission_status": "ok",
+            "validation_ok": true
+          }
+        ],
+        "prediction_payload_bytes": 0
+      },
+      "kind": "file",
+      "path": "merge/global_merge_workspace/candidates/candidate_index.json",
+      "size": 1995
+    },
+    {
+      "kind": "directory",
+      "path": "merge/global_merge_workspace/evidence"
+    },
+    {
+      "content": [
+        {
+          "candidate_id": "W00:S01",
+          "lower_is_better": false,
+          "metric_name": "score",
+          "metric_validity": "high",
+          "metric_value": 0.2,
+          "selection_eligible": true,
+          "snapshot_path": "<workspace>/workers/W00/snapshots/S01",
+          "submission_sha": "sha-w00",
+          "validation_ok": true
+        },
+        {
+          "candidate_id": "W01:S01",
+          "lower_is_better": false,
+          "metric_name": "score",
+          "metric_validity": "high",
+          "metric_value": 0.4,
+          "selection_eligible": true,
+          "snapshot_path": "<workspace>/workers/W01/snapshots/S01",
+          "submission_sha": "sha-w01",
+          "validation_ok": true
+        }
+      ],
+      "kind": "file",
+      "path": "merge/global_merge_workspace/evidence/global_candidates.jsonl",
+      "size": 612
+    },
+    {
+      "content": {
+        "candidate_count": 2,
+        "candidate_evidence": "global_candidates.jsonl",
+        "worker_results": "worker_results.json"
+      },
+      "kind": "file",
+      "path": "merge/global_merge_workspace/evidence/index.json",
+      "size": 121
+    },
+    {
+      "content": [
+        {
+          "stage_id": "S01",
+          "status": "success",
+          "stop_reason": "budget_expired",
+          "worker_id": "W00"
+        },
+        {
+          "stage_id": "S01",
+          "status": "success",
+          "stop_reason": "budget_expired",
+          "worker_id": "W01"
+        }
+      ],
+      "kind": "file",
+      "path": "merge/global_merge_workspace/evidence/worker_results.json",
+      "size": 237
+    },
+    {
+      "kind": "directory",
+      "path": "merge/global_merge_workspace/finals"
+    },
+    {
+      "kind": "directory",
+      "path": "merge/global_merge_workspace/finals/final_00"
+    },
+    {
+      "content": "deterministic final 0\n",
+      "kind": "file",
+      "path": "merge/global_merge_workspace/finals/final_00/merge_report.md",
+      "size": 22
+    },
+    {
+      "kind": "symlink",
+      "path": "merge/global_merge_workspace/finals/final_00/submission.csv",
+      "target": "../../../../workers/W00/snapshots/S01/submission.csv"
+    },
+    {
+      "kind": "directory",
+      "path": "merge/global_merge_workspace/finals/final_01"
+    },
+    {
+      "content": "deterministic final 1\n",
+      "kind": "file",
+      "path": "merge/global_merge_workspace/finals/final_01/merge_report.md",
+      "size": 22
+    },
+    {
+      "kind": "symlink",
+      "path": "merge/global_merge_workspace/finals/final_01/submission.csv",
+      "target": "../../../../workers/W01/snapshots/S01/submission.csv"
+    },
+    {
+      "kind": "directory",
+      "path": "merge/global_merge_workspace/finals/final_02"
+    },
+    {
+      "content": "deterministic final 2\n",
+      "kind": "file",
+      "path": "merge/global_merge_workspace/finals/final_02/merge_report.md",
+      "size": 22
+    },
+    {
+      "kind": "symlink",
+      "path": "merge/global_merge_workspace/finals/final_02/submission.csv",
+      "target": "../../../submission_snapshots/b12a8f4bda5c465a/submission.csv"
+    },
+    {
+      "content": "The exploration phase is complete.\n\nContinue as the same worker and perform the final cross-worker reduction for this task:\ncombine two isolated deterministic workers\n\nThe complete structured history is under `evidence/`. Candidate artifacts from all\nworkers are under `candidates/`. There are 2 packed candidates. Read\n`evidence/index.json`, `candidates/candidate_index.json`, and candidate metadata before\ndeciding. Treat validation protocol, metric validity, lineage, route diversity, and\nprediction compatibility as evidence; do not assume every score is directly comparable.\n\nIndependently decide whether selection, voting, blending, stacking, calibration, or\nanother task-appropriate aggregation is justified. Implement the reduction yourself.\nYour job is not merely to pick one winner: produce defensible final artifact variants\nthat a downstream system or human can evaluate.\n\nRules:\n- Use only public training/validation data and candidate files visible in this workspace.\n- Do not use private/test labels or any private score.\n- Do not mechanically average incompatible outputs or class identifiers.\n- With small or weak validation sets, prefer route-diverse uniform or strongly\n  regularized blends over sharply optimized weights.\n- Interpret uncertainty, confidence, variance, and probability columns through the\n  task metric; do not assume that increasing or independently averaging them is safer.\n- Use optional `merge_payload/` prediction artifacts only after checking sample IDs,\n  shapes, class order, semantics, and validation provenance.\n- For optimization artifacts, do not blindly average invalid structures. Either copy\n  the best valid artifact or construct a new valid artifact from candidate evidence.\n- Do not retrain models or copy model weights into this workspace; use retained prediction artifacts when available.\n- Do not create root-level output artifacts. Every output must live under\n  `finals/final_*`.\n- Keep the work reproducible. Write any helper scripts you use.\n- Finish within about 2 minutes.\n\nRequired outputs:\n- Create exactly 3 distinct final artifacts under `finals/final_00/`, `finals/final_01/`, `finals/final_02/`.\n- Each final directory must contain `submission.csv`.\n- Each final directory must contain `merge_report.md` explaining inputs and method.\n- Do not duplicate byte-identical artifacts or make cosmetic perturbations merely to\n  satisfy the count.\n- If a blend is not appropriate, use distinct defensible candidate fallbacks.\n- If the available evidence cannot support 3 honest variants, produce every\n  defensible distinct variant available and explain the shortfall.\n\nThe system will run the configured evaluator on every `finals/final_*` directory.\nIt will expose the final directories as the complete merge output set.\n",
+      "kind": "file",
+      "path": "merge/global_merge_workspace/merge_task.md",
+      "size": 2784
+    },
+    {
+      "kind": "directory",
+      "path": "merge/submission_snapshots"
+    },
+    {
+      "kind": "directory",
+      "path": "merge/submission_snapshots/b12a8f4bda5c465a"
+    },
+    {
+      "content": "id,target\n1,0.30\n",
+      "kind": "file",
+      "path": "merge/submission_snapshots/b12a8f4bda5c465a/submission.csv",
+      "size": 17
+    },
+    {
+      "content": [
+        {
+          "stage_id": "S01",
+          "status": "success",
+          "stop_reason": "budget_expired",
+          "worker_id": "W00"
+        },
+        {
+          "stage_id": "S01",
+          "status": "success",
+          "stop_reason": "budget_expired",
+          "worker_id": "W01"
+        }
+      ],
+      "kind": "file",
+      "path": "merge/worker_results.json",
+      "size": 237
+    },
+    {
+      "kind": "directory",
+      "path": "submissions"
+    },
+    {
+      "content": {
+        "artifact_path": "submission.csv",
+        "created_at": 1700000100.0,
+        "links": [
+          {
+            "group": "merge_candidate",
+            "kind": "symlink",
+            "path": "candidates/W00-S01.csv",
+            "source": "<workspace>/workers/W00/snapshots/S01/submission.csv",
+            "target": "../../workers/W00/snapshots/S01/submission.csv"
+          },
+          {
+            "group": "merge_candidate",
+            "kind": "symlink",
+            "path": "candidates/W01-S01.csv",
+            "source": "<workspace>/workers/W01/snapshots/S01/submission.csv",
+            "target": "../../workers/W01/snapshots/S01/submission.csv"
+          },
+          {
+            "group": "merge_final",
+            "kind": "symlink",
+            "path": "finals/final_00.csv",
+            "source": "<workspace>/workers/W00/snapshots/S01/submission.csv",
+            "target": "../../workers/W00/snapshots/S01/submission.csv"
+          },
+          {
+            "group": "merge_final",
+            "kind": "symlink",
+            "path": "finals/final_01.csv",
+            "source": "<workspace>/workers/W01/snapshots/S01/submission.csv",
+            "target": "../../workers/W01/snapshots/S01/submission.csv"
+          },
+          {
+            "group": "merge_final",
+            "kind": "symlink",
+            "path": "finals/final_02.csv",
+            "source": "<workspace>/merge/submission_snapshots/b12a8f4bda5c465a/submission.csv",
+            "target": "../../merge/submission_snapshots/b12a8f4bda5c465a/submission.csv"
+          }
+        ],
+        "merge_dir": "<workspace>/merge"
+      },
+      "kind": "file",
+      "path": "submissions/.scienceflow_submission_links.json",
+      "size": 1635
+    },
+    {
+      "kind": "directory",
+      "path": "submissions/candidates"
+    },
+    {
+      "kind": "symlink",
+      "path": "submissions/candidates/W00-S01.csv",
+      "target": "../../workers/W00/snapshots/S01/submission.csv"
+    },
+    {
+      "kind": "symlink",
+      "path": "submissions/candidates/W01-S01.csv",
+      "target": "../../workers/W01/snapshots/S01/submission.csv"
+    },
+    {
+      "kind": "directory",
+      "path": "submissions/finals"
+    },
+    {
+      "kind": "symlink",
+      "path": "submissions/finals/final_00.csv",
+      "target": "../../workers/W00/snapshots/S01/submission.csv"
+    },
+    {
+      "kind": "symlink",
+      "path": "submissions/finals/final_01.csv",
+      "target": "../../workers/W01/snapshots/S01/submission.csv"
+    },
+    {
+      "kind": "symlink",
+      "path": "submissions/finals/final_02.csv",
+      "target": "../../merge/submission_snapshots/b12a8f4bda5c465a/submission.csv"
+    },
+    {
+      "kind": "directory",
+      "path": "workers"
+    },
+    {
+      "kind": "directory",
+      "path": "workers/W00"
+    },
+    {
+      "kind": "directory",
+      "path": "workers/W00/resource"
+    },
+    {
+      "content": [
+        {
+          "artifact_refs": [
+            {
+              "path": "sidecars/sidecar-w00/workspace/analysis.json",
+              "type": "sidecar_analysis"
+            }
+          ],
+          "inject": {
+            "estra_evidence": true,
+            "parent_next_prompt": true,
+            "resource_context": true
+          },
+          "join_version": 1,
+          "parent_job_id": "job-w00",
+          "parent_worker_id": "W00",
+          "quality_gate": "review",
+          "sidecar_id": "sidecar-w00",
+          "summary_for_estra": "route-alpha validated; metric=0.20. next: merge route-alpha. 1 helper artifact(s) ready",
+          "summary_for_parent": "route-alpha validated; metric=0.20. next: merge route-alpha. 1 helper artifact(s) ready"
+        }
+      ],
+      "kind": "file",
+      "path": "workers/W00/resource/estra_magent_join_packets.jsonl",
+      "size": 550
+    },
+    {
+      "kind": "directory",
+      "path": "workers/W00/resource/sidecars"
+    },
+    {
+      "kind": "directory",
+      "path": "workers/W00/resource/sidecars/sidecar-w00"
+    },
+    {
+      "content": {
+        "artifact_refs": [
+          {
+            "path": "sidecars/sidecar-w00/workspace/analysis.json",
+            "type": "sidecar_analysis"
+          }
+        ],
+        "inject": {
+          "estra_evidence": true,
+          "parent_next_prompt": true,
+          "resource_context": true
+        },
+        "join_version": 1,
+        "parent_job_id": "job-w00",
+        "parent_worker_id": "W00",
+        "quality_gate": "review",
+        "sidecar_id": "sidecar-w00",
+        "summary_for_estra": "route-alpha validated; metric=0.20. next: merge route-alpha. 1 helper artifact(s) ready",
+        "summary_for_parent": "route-alpha validated; metric=0.20. next: merge route-alpha. 1 helper artifact(s) ready"
+      },
+      "kind": "file",
+      "path": "workers/W00/resource/sidecars/sidecar-w00/join_packet.json",
+      "size": 612
+    },
+    {
+      "kind": "directory",
+      "path": "workers/W00/snapshots"
+    },
+    {
+      "kind": "directory",
+      "path": "workers/W00/snapshots/S01"
+    },
+    {
+      "content": "ROUTE = 'route-alpha'\n",
+      "kind": "file",
+      "path": "workers/W00/snapshots/S01/solution.py",
+      "size": 22
+    },
+    {
+      "content": "id,target\n1,0.20\n",
+      "kind": "file",
+      "path": "workers/W00/snapshots/S01/submission.csv",
+      "size": 17
+    },
+    {
+      "content": "W00\n",
+      "kind": "file",
+      "path": "workers/W00/worker_id.txt",
+      "size": 4
+    },
+    {
+      "kind": "directory",
+      "path": "workers/W01"
+    },
+    {
+      "kind": "directory",
+      "path": "workers/W01/resource"
+    },
+    {
+      "content": [
+        {
+          "artifact_refs": [
+            {
+              "path": "sidecars/sidecar-w01/workspace/analysis.json",
+              "type": "sidecar_analysis"
+            }
+          ],
+          "inject": {
+            "estra_evidence": true,
+            "parent_next_prompt": true,
+            "resource_context": true
+          },
+          "join_version": 1,
+          "parent_job_id": "job-w01",
+          "parent_worker_id": "W01",
+          "quality_gate": "review",
+          "sidecar_id": "sidecar-w01",
+          "summary_for_estra": "route-beta validated; metric=0.40. next: merge route-beta. 1 helper artifact(s) ready",
+          "summary_for_parent": "route-beta validated; metric=0.40. next: merge route-beta. 1 helper artifact(s) ready"
+        }
+      ],
+      "kind": "file",
+      "path": "workers/W01/resource/estra_magent_join_packets.jsonl",
+      "size": 546
+    },
+    {
+      "kind": "directory",
+      "path": "workers/W01/resource/sidecars"
+    },
+    {
+      "kind": "directory",
+      "path": "workers/W01/resource/sidecars/sidecar-w01"
+    },
+    {
+      "content": {
+        "artifact_refs": [
+          {
+            "path": "sidecars/sidecar-w01/workspace/analysis.json",
+            "type": "sidecar_analysis"
+          }
+        ],
+        "inject": {
+          "estra_evidence": true,
+          "parent_next_prompt": true,
+          "resource_context": true
+        },
+        "join_version": 1,
+        "parent_job_id": "job-w01",
+        "parent_worker_id": "W01",
+        "quality_gate": "review",
+        "sidecar_id": "sidecar-w01",
+        "summary_for_estra": "route-beta validated; metric=0.40. next: merge route-beta. 1 helper artifact(s) ready",
+        "summary_for_parent": "route-beta validated; metric=0.40. next: merge route-beta. 1 helper artifact(s) ready"
+      },
+      "kind": "file",
+      "path": "workers/W01/resource/sidecars/sidecar-w01/join_packet.json",
+      "size": 608
+    },
+    {
+      "kind": "directory",
+      "path": "workers/W01/snapshots"
+    },
+    {
+      "kind": "directory",
+      "path": "workers/W01/snapshots/S01"
+    },
+    {
+      "content": "ROUTE = 'route-beta'\n",
+      "kind": "file",
+      "path": "workers/W01/snapshots/S01/solution.py",
+      "size": 21
+    },
+    {
+      "content": "id,target\n1,0.40\n",
+      "kind": "file",
+      "path": "workers/W01/snapshots/S01/submission.csv",
+      "size": 17
+    },
+    {
+      "content": "W01\n",
+      "kind": "file",
+      "path": "workers/W01/worker_id.txt",
+      "size": 4
+    }
+  ]
+}

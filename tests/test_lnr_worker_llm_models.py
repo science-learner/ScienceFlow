@@ -15,20 +15,29 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from scienceflow.config.settings import Config, apply_parallel_manifest_agent_overrides
-from scienceflow.solver.lnr.solver import LnrSolver
+from scienceflow.foundation.config.schema.settings import (
+    Config,
+    apply_parallel_manifest_agent_overrides,
+)
+from types import SimpleNamespace
+
+from scienceflow.research.solver.lnr.orchestration.coordinator.run import (
+    agent_coordination,
+)
 
 
 def _solver_for_worker(cfg: Config, *, worker_index: int, worker_count: int = 4):
-    solver = LnrSolver.__new__(LnrSolver)
-    solver.cfg = cfg
-    solver.worker_index = worker_index
-    solver.worker_count = worker_count
-    solver.worker_id = f"W{worker_index:02d}"
     events: list[dict[str, Any]] = []
-    solver._jsonl = lambda _name, payload: events.append(payload)
-    solver._worker_uid_prefix = lambda: solver.worker_id
-    return solver, events
+    worker_id = f"W{worker_index:02d}"
+    worker = SimpleNamespace(
+        cfg=cfg,
+        worker_index=worker_index,
+        worker_count=worker_count,
+        worker_id=worker_id,
+        _jsonl=lambda _name, payload: events.append(payload),
+        _worker_uid_prefix=lambda: worker_id,
+    )
+    return worker, events
 
 
 def test_worker_code_models_pin_primary_and_keep_failover_pool() -> None:
@@ -37,11 +46,15 @@ def test_worker_code_models_pin_primary_and_keep_failover_pool() -> None:
     cfg.agent.code.model = "fallback-model"
     cfg.agent.code.models = ["model-a", "model-b", "model-c"]
     cfg.agent.code.api_keys = ["key-a", "key-b", "key-c"]
-    cfg.agent.code.base_urls = ["https://a.example/v1", "https://b.example/v1", "https://c.example/v1"]
+    cfg.agent.code.base_urls = [
+        "https://a.example/v1",
+        "https://b.example/v1",
+        "https://c.example/v1",
+    ]
     cfg.agent.code.api_routing_mode = "sticky_failover"
 
     solver, events = _solver_for_worker(cfg, worker_index=1)
-    stage = solver._worker_llm_stage_override()
+    stage = agent_coordination._worker_llm_stage_override(solver)
 
     assert stage is not None
     assert stage.model == "model-b"
@@ -49,7 +62,11 @@ def test_worker_code_models_pin_primary_and_keep_failover_pool() -> None:
     assert stage.api_key == "key-b"
     assert stage.api_keys == ["key-b", "key-c", "key-a"]
     assert stage.base_url == "https://b.example/v1"
-    assert stage.base_urls == ["https://b.example/v1", "https://c.example/v1", "https://a.example/v1"]
+    assert stage.base_urls == [
+        "https://b.example/v1",
+        "https://c.example/v1",
+        "https://a.example/v1",
+    ]
     assert stage.api_sticky_id == "exp-a:W01"
     assert stage.api_sticky_primary_index == 0
     assert events[-1]["event"] == "worker_model_endpoint_assigned"
@@ -66,15 +83,55 @@ def test_worker_code_models_cycle_shorter_lists_and_broadcast_single_url() -> No
     cfg.agent.code.base_urls = ["https://shared.example/v1"]
 
     solver, _events = _solver_for_worker(cfg, worker_index=3)
-    stage = solver._worker_llm_stage_override()
+    stage = agent_coordination._worker_llm_stage_override(solver)
 
     assert stage is not None
     assert stage.model == "model-b"
-    assert stage.models == ["model-b", "model-a", "model-b", "model-a", "model-b", "model-a"]
+    assert stage.models == [
+        "model-b",
+        "model-a",
+        "model-b",
+        "model-a",
+        "model-b",
+        "model-a",
+    ]
     assert stage.api_key == "key-a"
     assert stage.api_keys == ["key-a", "key-b", "key-c", "key-a", "key-b", "key-c"]
     assert stage.base_url == "https://shared.example/v1"
     assert stage.base_urls == ["https://shared.example/v1"] * 6
+
+
+def test_worker_spreads_aliases_while_retaining_each_models_endpoints(tmp_path) -> None:
+    registry = tmp_path / "models.json"
+    registry.write_text(
+        json.dumps(
+            {
+                "models": {
+                    "deepseek": {
+                        "model": "deepseek-v4-flash",
+                        "endpoints": [
+                            {"url": "https://a.example/v1", "key": "a"},
+                            {"url": "https://b.example/v1", "key": "b"},
+                        ],
+                    },
+                    "qwen": {
+                        "model": "qwen3-coder",
+                        "endpoints": [{"url": "https://c.example/v1", "key": "c"}],
+                    },
+                }
+            }
+        )
+    )
+    cfg = Config()
+    cfg.agent.code.model_aliases = ["deepseek", "qwen"]
+    cfg.agent.code.model_config_path = str(registry)
+
+    solver, _events = _solver_for_worker(cfg, worker_index=1)
+    stage = agent_coordination._worker_llm_stage_override(solver)
+
+    assert stage.model_aliases == ["qwen", "deepseek"]
+    assert stage.models == ["qwen3-coder", "deepseek-v4-flash", "deepseek-v4-flash"]
+    assert stage.api_keys == ["c", "a", "b"]
 
 
 def test_worker_without_models_preserves_existing_sticky_key_pool_behavior() -> None:
@@ -84,7 +141,7 @@ def test_worker_without_models_preserves_existing_sticky_key_pool_behavior() -> 
     cfg.agent.code.api_routing_mode = "sticky_failover"
 
     solver, events = _solver_for_worker(cfg, worker_index=2)
-    stage = solver._worker_llm_stage_override()
+    stage = agent_coordination._worker_llm_stage_override(solver)
 
     assert stage is not None
     assert stage.model == cfg.agent.code.model
@@ -106,7 +163,7 @@ def test_worker_feedback_models_can_pin_primary_endpoint() -> None:
     ]
 
     solver, events = _solver_for_worker(cfg, worker_index=2)
-    stage = solver._worker_llm_stage_override("feedback")
+    stage = agent_coordination._worker_llm_stage_override(solver, "feedback")
 
     assert stage is not None
     assert stage.model == "judge-c"

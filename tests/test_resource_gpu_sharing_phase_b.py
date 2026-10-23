@@ -15,12 +15,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from scienceflow.core.tools.resource_classifier import (
+from scienceflow.runtime.safety.tooling.resource_management.resource_policy import (
     RESOURCE_GPU_LIGHT_TRAIN,
     RESOURCE_GPU_TT_LIGHT,
     RESOURCE_HEAVY_GPU_CANDIDATE,
 )
-from scienceflow.solver.lnr.resource_runtime.gpu_sharing import share_waiters_for_primary
+from scienceflow.research.solver.lnr.resources.runtime.control.gpu.gpu_sharing import share_waiters_for_primary
 from tests.lnr_resource_test_utils import make_observer
 
 
@@ -152,7 +152,7 @@ def _drive_primary_share_review(observer, job_id: str):
 
 
 def test_phase_b_grants_tt_shared_lease_and_waiter_acquires(tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr("scienceflow.solver.lnr.resource_runtime.runtime.sample_nvidia_smi", _fake_sample)
+    monkeypatch.setattr("scienceflow.research.solver.lnr.resources.runtime.execution.facade.sample_nvidia_smi", _fake_sample)
     primary_observer, waiter_observer, primary, waiter = _make_pair(tmp_path)
 
     decision = _drive_primary_share_review(primary_observer, primary)
@@ -173,7 +173,7 @@ def test_phase_b_grants_tt_shared_lease_and_waiter_acquires(tmp_path, monkeypatc
 
 
 def test_active_share_review_returns_direct_shared_grant(tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr("scienceflow.solver.lnr.resource_runtime.runtime.sample_nvidia_smi", _fake_sample)
+    monkeypatch.setattr("scienceflow.research.solver.lnr.resources.runtime.execution.facade.sample_nvidia_smi", _fake_sample)
     common = {
         "gpu_pool": ["0"],
         "assignment": "lease",
@@ -222,7 +222,7 @@ def test_active_share_review_returns_direct_shared_grant(tmp_path, monkeypatch) 
 
 
 def test_post_arbiter_observe_more_records_share_without_grant(tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr("scienceflow.solver.lnr.resource_runtime.runtime.sample_nvidia_smi", _fake_sample)
+    monkeypatch.setattr("scienceflow.research.solver.lnr.resources.runtime.execution.facade.sample_nvidia_smi", _fake_sample)
     primary_observer, waiter_observer, primary, waiter = _make_pair(tmp_path)
     primary_observer._promote(primary_observer._jobs[primary], reason="test_visible", elapsed_sec=600.0)
 
@@ -251,7 +251,7 @@ def test_post_arbiter_observe_more_records_share_without_grant(tmp_path, monkeyp
 
 
 def test_shared_secondary_release_returns_primary_to_exclusive(tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr("scienceflow.solver.lnr.resource_runtime.runtime.sample_nvidia_smi", _fake_sample)
+    monkeypatch.setattr("scienceflow.research.solver.lnr.resources.runtime.execution.facade.sample_nvidia_smi", _fake_sample)
     primary_observer, waiter_observer, primary, waiter = _make_pair(tmp_path)
     _drive_primary_share_review(primary_observer, primary)
     assert waiter_observer.queue_try_acquire(waiter, inferred_class=RESOURCE_GPU_TT_LIGHT, gpu_ids=["0"])["acquired"] is True
@@ -266,7 +266,7 @@ def test_shared_secondary_release_returns_primary_to_exclusive(tmp_path, monkeyp
 
 
 def test_shared_runtime_degradation_revokes_secondary_only(tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr("scienceflow.solver.lnr.resource_runtime.runtime.sample_nvidia_smi", _fake_sample)
+    monkeypatch.setattr("scienceflow.research.solver.lnr.resources.runtime.execution.facade.sample_nvidia_smi", _fake_sample)
     primary_observer, waiter_observer, primary, waiter = _make_pair(tmp_path)
     _drive_primary_share_review(primary_observer, primary)
     assert waiter_observer.queue_try_acquire(waiter, inferred_class=RESOURCE_GPU_TT_LIGHT, gpu_ids=["0"])["acquired"] is True
@@ -295,7 +295,7 @@ def test_shared_runtime_degradation_revokes_secondary_only(tmp_path, monkeypatch
 
 
 def test_shared_runtime_primary_cpu_busy_unknown_progress_keeps_secondary(tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr("scienceflow.solver.lnr.resource_runtime.runtime.sample_nvidia_smi", _fake_sample)
+    monkeypatch.setattr("scienceflow.research.solver.lnr.resources.runtime.execution.facade.sample_nvidia_smi", _fake_sample)
     primary_observer, waiter_observer, primary, waiter = _make_pair(tmp_path)
     _drive_primary_share_review(primary_observer, primary)
     assert waiter_observer.queue_try_acquire(waiter, inferred_class=RESOURCE_GPU_TT_LIGHT, gpu_ids=["0"])["acquired"] is True
@@ -324,7 +324,7 @@ def test_shared_runtime_primary_cpu_busy_unknown_progress_keeps_secondary(tmp_pa
 
 
 def test_shared_secondary_self_terminates_after_revocation(tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr("scienceflow.solver.lnr.resource_runtime.runtime.sample_nvidia_smi", _fake_sample)
+    monkeypatch.setattr("scienceflow.research.solver.lnr.resources.runtime.execution.facade.sample_nvidia_smi", _fake_sample)
     primary_observer, waiter_observer, primary, waiter = _make_pair(tmp_path)
     _drive_primary_share_review(primary_observer, primary)
     assert waiter_observer.queue_try_acquire(waiter, inferred_class=RESOURCE_GPU_TT_LIGHT, gpu_ids=["0"])["acquired"] is True
@@ -353,7 +353,7 @@ def test_shared_secondary_self_terminates_after_revocation(tmp_path, monkeypatch
 
 
 def test_policy_deferred_light_train_requires_llm_before_grant(tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr("scienceflow.solver.lnr.resource_runtime.runtime.sample_nvidia_smi", _fake_sample)
+    monkeypatch.setattr("scienceflow.research.solver.lnr.resources.runtime.execution.facade.sample_nvidia_smi", _fake_sample)
     common = {
         "gpu_pool": ["0"],
         "assignment": "lease",
@@ -386,7 +386,7 @@ def test_policy_deferred_light_train_requires_llm_before_grant(tmp_path, monkeyp
     assert result["acquired"] is False
 
 def test_llm_mode_share_review_requires_arbiter_grant_before_shared_lease(tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr("scienceflow.solver.lnr.resource_runtime.runtime.sample_nvidia_smi", _fake_sample)
+    monkeypatch.setattr("scienceflow.research.solver.lnr.resources.runtime.execution.facade.sample_nvidia_smi", _fake_sample)
     common = {
         "gpu_pool": ["0"],
         "assignment": "lease",
@@ -439,7 +439,7 @@ def test_llm_mode_share_review_requires_arbiter_grant_before_shared_lease(tmp_pa
 
 
 def test_revocable_heavy_trial_requires_arbiter_grant_before_shared_lease(tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr("scienceflow.solver.lnr.resource_runtime.runtime.sample_nvidia_smi", _fake_sample)
+    monkeypatch.setattr("scienceflow.research.solver.lnr.resources.runtime.execution.facade.sample_nvidia_smi", _fake_sample)
     common = {
         "gpu_pool": ["0"],
         "assignment": "lease",
@@ -509,7 +509,7 @@ def test_revocable_heavy_trial_requires_arbiter_grant_before_shared_lease(tmp_pa
     assert lease_meta["shared_effective_slot_weight"] == 0.5
 
 def test_feature_share_light_train_soft_red_feedback_reaches_arbiter_path(tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr("scienceflow.solver.lnr.resource_runtime.runtime.sample_nvidia_smi", _fake_sample)
+    monkeypatch.setattr("scienceflow.research.solver.lnr.resources.runtime.execution.facade.sample_nvidia_smi", _fake_sample)
     observer, _ = make_observer(
         tmp_path,
         worker_id="W00",
@@ -549,7 +549,7 @@ def test_feature_share_light_train_soft_red_feedback_reaches_arbiter_path(tmp_pa
 
 
 def test_feature_share_light_train_hard_schema_feedback_still_blocks(tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr("scienceflow.solver.lnr.resource_runtime.runtime.sample_nvidia_smi", _fake_sample)
+    monkeypatch.setattr("scienceflow.research.solver.lnr.resources.runtime.execution.facade.sample_nvidia_smi", _fake_sample)
     observer, _ = make_observer(
         tmp_path,
         worker_id="W00",
@@ -594,7 +594,7 @@ def test_feature_share_light_train_hard_schema_feedback_still_blocks(tmp_path, m
     assert decision["reason"] == "post_feedback_blocked_class"
 
 def test_soft_red_heavy_feedback_expires_when_gpu_slot_is_empty(tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr("scienceflow.solver.lnr.resource_runtime.runtime.sample_nvidia_smi", _fake_sample)
+    monkeypatch.setattr("scienceflow.research.solver.lnr.resources.runtime.execution.facade.sample_nvidia_smi", _fake_sample)
     observer, _ = make_observer(
         tmp_path,
         worker_id="W00",
@@ -623,7 +623,7 @@ def test_soft_red_heavy_feedback_expires_when_gpu_slot_is_empty(tmp_path, monkey
 
 
 def test_soft_red_heavy_feedback_still_blocks_when_gpu_slot_has_holder(tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr("scienceflow.solver.lnr.resource_runtime.runtime.sample_nvidia_smi", _fake_sample)
+    monkeypatch.setattr("scienceflow.research.solver.lnr.resources.runtime.execution.facade.sample_nvidia_smi", _fake_sample)
     observer, _ = make_observer(
         tmp_path,
         worker_id="W00",

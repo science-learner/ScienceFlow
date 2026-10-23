@@ -15,14 +15,16 @@ from __future__ import annotations
 import asyncio
 import types
 
-from deepcraft_core import Message
+from inquirycraft.memory import Message
 
-from scienceflow.solver.lnr.resource_advisory import (
+from scienceflow.agent.core.ports.callback_ports import resolve_agent_callback
+from scienceflow.research.solver.lnr.resources.resource_advisory import (
     RESOURCE_ADVISORY_BEGIN,
     RESOURCE_ADVISORY_END,
     parse_inline_resource_advisory_response,
 )
-from scienceflow.solver.lnr.solver import LnrSolver
+from scienceflow.research.solver.lnr.orchestration.coordinator.resource import construction
+from scienceflow.research.solver.lnr.orchestration.coordinator.run import coordination
 
 
 class _FakeMemoryCtx:
@@ -61,6 +63,7 @@ class _FakeAgent:
         self.memory = types.SimpleNamespace(add_message=lambda *_args, **_kwargs: None)
         self.tool_call = tool_call
         self.run_calls = []
+        self.ephemeral_calls = []
 
     async def run(self, request=None, *, first_round_tool_choice=None):
         self.run_calls.append((request, first_round_tool_choice))
@@ -68,7 +71,8 @@ class _FakeAgent:
         assert self._lnr_transient_tool_choice_none is False
         assert self._lnr_transient_turn_kind == "inline_resource_advisory"
         assert "RESOURCE_ADVISORY_REQUEST" in self._lnr_transient_user_prompt
-        callback = self._lnr_text_only_callback
+        callback = resolve_agent_callback(self, "text_only_decision")
+        assert callback is not None
         if self.tool_call:
             self._lnr_resource_advisory_tool_call_rejected = True
             return await callback(
@@ -92,16 +96,58 @@ class _FakeAgent:
             max_steps=1,
         )
 
+    async def run_ephemeral_agentic_route_prompt(
+        self,
+        prompt,
+        *,
+        trigger,
+        base_messages=None,
+        system_messages=None,
+        timeout=None,
+        llm_role=None,
+    ):
+        self.ephemeral_calls.append(
+            {
+                "prompt": prompt,
+                "trigger": trigger,
+                "base_messages": list(base_messages or []),
+                "system_messages": list(system_messages or []),
+                "timeout": timeout,
+                "llm_role": llm_role,
+            }
+        )
+        response = await self.llm.ask_tool_stream(
+            messages=[*(base_messages or []), Message.user_message(prompt)],
+            system_msgs=list(system_messages or []),
+            timeout=timeout,
+            tools=[],
+            tool_choice="none",
+            parallel_tool_calls=False,
+            collect_all_tool_calls=True,
+        )
+        return response.content
 
-def _solver_with_agent(agent):
-    solver = object.__new__(LnrSolver)
-    solver.lhr = types.SimpleNamespace(
-        resource_main_agent_advisory_enabled=True,
-        resource_main_agent_advisory_timeout_sec=60.0,
-        resource_advisory_mode="inline_memory_edit",
+
+class _ResourceAdvisoryOwnerFixture:
+    _resource_advisory_prompt = staticmethod(construction._resource_advisory_prompt)
+    _drop_dangling_tool_call_tail = staticmethod(
+        construction._drop_dangling_tool_call_tail
     )
-    solver._resource_main_agent_ref = agent
-    return solver
+    _ask_agent_tool_stream_guarded = staticmethod(
+        coordination._ask_agent_tool_stream_guarded
+    )
+
+    def __init__(self, agent):
+        self.lhr = types.SimpleNamespace(
+            resource_main_agent_advisory_enabled=True,
+            resource_main_agent_advisory_timeout_sec=60.0,
+            resource_advisory_mode="inline_memory_edit",
+        )
+        self._resource_main_agent_ref = agent
+
+
+def _owner_with_agent(agent):
+    return _ResourceAdvisoryOwnerFixture(agent)
 
 
 def test_inline_resource_advisory_response_parser():
@@ -120,9 +166,9 @@ def test_inline_resource_advisory_response_parser():
 
 def test_resource_advisory_uses_inline_main_agent_turn_and_memory_edit():
     agent = _FakeAgent()
-    solver = _solver_with_agent(agent)
+    owner = _owner_with_agent(agent)
 
-    decider = solver._make_resource_main_agent_advisory_decider()
+    decider = construction._make_resource_main_agent_advisory_decider(owner)
     result = asyncio.run(decider({"proposal_id": "p1", "proposal_type": "kill_proposal", "reason_code": "low_value"}))
 
     assert agent.run_calls == [(None, None)]
@@ -138,9 +184,9 @@ def test_resource_advisory_uses_inline_main_agent_turn_and_memory_edit():
 
 def test_resource_advisory_tool_call_is_rejected_not_executed():
     agent = _FakeAgent(tool_call=True)
-    solver = _solver_with_agent(agent)
+    owner = _owner_with_agent(agent)
 
-    decider = solver._make_resource_main_agent_advisory_decider()
+    decider = construction._make_resource_main_agent_advisory_decider(owner)
     result = asyncio.run(decider({"proposal_id": "p2", "proposal_type": "kill_proposal"}))
 
     assert result["preference"] == "unknown"
@@ -152,9 +198,9 @@ def test_resource_advisory_tool_call_is_rejected_not_executed():
 def test_resource_advisory_defers_when_agent_not_idle_without_stream_llm():
     agent = _FakeAgent()
     agent.state = types.SimpleNamespace(name="RUNNING")
-    solver = _solver_with_agent(agent)
+    owner = _owner_with_agent(agent)
 
-    decider = solver._make_resource_main_agent_advisory_decider()
+    decider = construction._make_resource_main_agent_advisory_decider(owner)
     result = asyncio.run(decider({"proposal_id": "p3", "proposal_type": "kill_proposal"}))
 
     assert result["preference"] == "unknown"
@@ -166,12 +212,14 @@ def test_resource_advisory_captures_blocked_state_with_no_tools_stream_call():
     agent = _FakeAgent()
     agent.llm = _FakeStreamingLLM()
     agent.state = types.SimpleNamespace(name="RUNNING")
-    solver = _solver_with_agent(agent)
+    owner = _owner_with_agent(agent)
 
-    decider = solver._make_resource_main_agent_advisory_decider()
+    decider = construction._make_resource_main_agent_advisory_decider(owner)
     result = asyncio.run(decider({"proposal_id": "p4", "proposal_type": "kill_proposal", "reason_code": "low_progress"}))
 
     assert agent.run_calls == []
+    assert agent.ephemeral_calls[0]["trigger"] == "resource_main_agent_advisory"
+    assert agent.ephemeral_calls[0]["llm_role"] == "code"
     assert len(agent.llm.calls) == 1
     assert agent.llm.calls[0]["tools"] == []
     assert agent.llm.calls[0]["tool_choice"] == "none"
@@ -187,12 +235,14 @@ def test_resource_advisory_safe_state_uses_cache_friendly_direct_no_tools_call()
     agent = _FakeAgent()
     agent.llm = _FakeStreamingLLM()
     agent.state = types.SimpleNamespace(name="IDLE")
-    solver = _solver_with_agent(agent)
+    owner = _owner_with_agent(agent)
 
-    decider = solver._make_resource_main_agent_advisory_decider()
+    decider = construction._make_resource_main_agent_advisory_decider(owner)
     result = asyncio.run(decider({"proposal_id": "p5", "proposal_type": "kill_proposal", "reason_code": "low_value"}))
 
     assert agent.run_calls == []
+    assert agent.ephemeral_calls[0]["trigger"] == "resource_main_agent_advisory"
+    assert agent.ephemeral_calls[0]["llm_role"] == "code"
     assert len(agent.llm.calls) == 1
     call = agent.llm.calls[0]
     assert call["tools"] == []

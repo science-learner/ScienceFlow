@@ -1,0 +1,760 @@
+{
+  "case_id": "deepcraft_runtime_tool_turn",
+  "context": {
+    "answer": "DEEPCRAFT_PARITY_OK",
+    "conversation": [
+      {
+        "content": "runtime parity system",
+        "role": "system"
+      },
+      {
+        "content": "write stable fixture",
+        "role": "user"
+      },
+      {
+        "content": "",
+        "reasoning_content": "write deterministic output",
+        "role": "assistant",
+        "tool_calls": [
+          {
+            "function": {
+              "arguments": "{\"text\":\"stable\"}",
+              "name": "write_fixture"
+            },
+            "id": "call-fixed",
+            "type": "function"
+          }
+        ]
+      },
+      {
+        "content": "fixture.txt",
+        "name": "write_fixture",
+        "role": "tool",
+        "tool_call_id": "call-fixed"
+      },
+      {
+        "content": "DEEPCRAFT_PARITY_OK",
+        "role": "assistant"
+      }
+    ],
+    "requests": [
+      {
+        "max_tokens": null,
+        "messages": [
+          {
+            "content": "runtime parity system",
+            "role": "system"
+          },
+          {
+            "content": "write stable fixture",
+            "role": "user"
+          }
+        ],
+        "metadata": {},
+        "model": "recorded-model",
+        "temperature": null,
+        "timeout": 300.0,
+        "tool_choice": "auto",
+        "tools": [
+          {
+            "function": {
+              "description": "write deterministic fixture",
+              "name": "write_fixture",
+              "parameters": {
+                "properties": {
+                  "text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "text"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "function"
+          }
+        ]
+      },
+      {
+        "max_tokens": null,
+        "messages": [
+          {
+            "content": "runtime parity system",
+            "role": "system"
+          },
+          {
+            "content": "write stable fixture",
+            "role": "user"
+          },
+          {
+            "content": "",
+            "reasoning_content": "write deterministic output",
+            "role": "assistant",
+            "tool_calls": [
+              {
+                "function": {
+                  "arguments": "{\"text\":\"stable\"}",
+                  "name": "write_fixture"
+                },
+                "id": "call-fixed",
+                "type": "function"
+              }
+            ]
+          },
+          {
+            "content": "fixture.txt",
+            "name": "write_fixture",
+            "role": "tool",
+            "tool_call_id": "call-fixed"
+          }
+        ],
+        "metadata": {},
+        "model": "recorded-model",
+        "temperature": null,
+        "timeout": 300.0,
+        "tool_choice": "auto",
+        "tools": [
+          {
+            "function": {
+              "description": "write deterministic fixture",
+              "name": "write_fixture",
+              "parameters": {
+                "properties": {
+                  "text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "text"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "function"
+          }
+        ]
+      }
+    ]
+  },
+  "mechanism": [
+    {
+      "agent_id": "agent-fixed",
+      "event_id": "event:1",
+      "parent_event_id": null,
+      "payload": {
+        "model": "recorded-model"
+      },
+      "run_id": "run-fixed",
+      "schema_version": "1.0",
+      "sequence": 1,
+      "session_id": "session-fixed",
+      "timestamp": "<timestamp>",
+      "turn_id": null,
+      "type": "session.started"
+    },
+    {
+      "agent_id": "agent-fixed",
+      "event_id": "event:2",
+      "parent_event_id": "event:1",
+      "payload": {
+        "role": "user"
+      },
+      "run_id": "run-fixed",
+      "schema_version": "1.0",
+      "sequence": 2,
+      "session_id": "session-fixed",
+      "timestamp": "<timestamp>",
+      "turn_id": null,
+      "type": "memory.appended"
+    },
+    {
+      "agent_id": "agent-fixed",
+      "event_id": "event:3",
+      "parent_event_id": null,
+      "payload": {
+        "turn": 1
+      },
+      "run_id": "run-fixed",
+      "schema_version": "1.0",
+      "sequence": 3,
+      "session_id": "session-fixed",
+      "timestamp": "<timestamp>",
+      "turn_id": 1,
+      "type": "agent.turn.started"
+    },
+    {
+      "agent_id": "agent-fixed",
+      "event_id": "event:4",
+      "parent_event_id": "event:3",
+      "payload": {
+        "message_count": 2,
+        "tool_count": 1
+      },
+      "run_id": "run-fixed",
+      "schema_version": "1.0",
+      "sequence": 4,
+      "session_id": "session-fixed",
+      "timestamp": "<timestamp>",
+      "turn_id": 1,
+      "type": "llm.requested"
+    },
+    {
+      "agent_id": "agent-fixed",
+      "event_id": "event:5",
+      "parent_event_id": "event:4",
+      "payload": {
+        "cached_input_tokens": 2,
+        "finish_reason": "tool_calls",
+        "input_tokens": 11,
+        "output_tokens": 4,
+        "tool_call_count": 1
+      },
+      "run_id": "run-fixed",
+      "schema_version": "1.0",
+      "sequence": 5,
+      "session_id": "session-fixed",
+      "timestamp": "<timestamp>",
+      "turn_id": 1,
+      "type": "llm.completed"
+    },
+    {
+      "agent_id": "agent-fixed",
+      "event_id": "event:6",
+      "parent_event_id": null,
+      "payload": {
+        "role": "assistant"
+      },
+      "run_id": "run-fixed",
+      "schema_version": "1.0",
+      "sequence": 6,
+      "session_id": "session-fixed",
+      "timestamp": "<timestamp>",
+      "turn_id": 1,
+      "type": "memory.appended"
+    },
+    {
+      "agent_id": "agent-fixed",
+      "event_id": "event:7",
+      "parent_event_id": null,
+      "payload": {
+        "name": "write_fixture",
+        "tool_call_id": "call-fixed"
+      },
+      "run_id": "run-fixed",
+      "schema_version": "1.0",
+      "sequence": 7,
+      "session_id": "session-fixed",
+      "timestamp": "<timestamp>",
+      "turn_id": 1,
+      "type": "tool.requested"
+    },
+    {
+      "agent_id": "agent-fixed",
+      "event_id": "event:8",
+      "parent_event_id": "event:7",
+      "payload": {
+        "name": "write_fixture",
+        "tool_call_id": "call-fixed"
+      },
+      "run_id": "run-fixed",
+      "schema_version": "1.0",
+      "sequence": 8,
+      "session_id": "session-fixed",
+      "timestamp": "<timestamp>",
+      "turn_id": 1,
+      "type": "tool.started"
+    },
+    {
+      "agent_id": "agent-fixed",
+      "event_id": "event:9",
+      "parent_event_id": "event:7",
+      "payload": {
+        "name": "write_fixture",
+        "output_bytes": 11,
+        "preview": "fixture.txt",
+        "tool_call_id": "call-fixed"
+      },
+      "run_id": "run-fixed",
+      "schema_version": "1.0",
+      "sequence": 9,
+      "session_id": "session-fixed",
+      "timestamp": "<timestamp>",
+      "turn_id": 1,
+      "type": "tool.completed"
+    },
+    {
+      "agent_id": "agent-fixed",
+      "event_id": "event:10",
+      "parent_event_id": null,
+      "payload": {
+        "name": "write_fixture",
+        "role": "tool"
+      },
+      "run_id": "run-fixed",
+      "schema_version": "1.0",
+      "sequence": 10,
+      "session_id": "session-fixed",
+      "timestamp": "<timestamp>",
+      "turn_id": 1,
+      "type": "memory.appended"
+    },
+    {
+      "agent_id": "agent-fixed",
+      "event_id": "event:11",
+      "parent_event_id": null,
+      "payload": {
+        "turn": 1
+      },
+      "run_id": "run-fixed",
+      "schema_version": "1.0",
+      "sequence": 11,
+      "session_id": "session-fixed",
+      "timestamp": "<timestamp>",
+      "turn_id": 1,
+      "type": "agent.turn.completed"
+    },
+    {
+      "agent_id": "agent-fixed",
+      "event_id": "event:12",
+      "parent_event_id": null,
+      "payload": {
+        "turn": 2
+      },
+      "run_id": "run-fixed",
+      "schema_version": "1.0",
+      "sequence": 12,
+      "session_id": "session-fixed",
+      "timestamp": "<timestamp>",
+      "turn_id": 2,
+      "type": "agent.turn.started"
+    },
+    {
+      "agent_id": "agent-fixed",
+      "event_id": "event:13",
+      "parent_event_id": "event:12",
+      "payload": {
+        "message_count": 4,
+        "tool_count": 1
+      },
+      "run_id": "run-fixed",
+      "schema_version": "1.0",
+      "sequence": 13,
+      "session_id": "session-fixed",
+      "timestamp": "<timestamp>",
+      "turn_id": 2,
+      "type": "llm.requested"
+    },
+    {
+      "agent_id": "agent-fixed",
+      "event_id": "event:14",
+      "parent_event_id": "event:13",
+      "payload": {
+        "cached_input_tokens": 0,
+        "finish_reason": "stop",
+        "input_tokens": 17,
+        "output_tokens": 1,
+        "tool_call_count": 0
+      },
+      "run_id": "run-fixed",
+      "schema_version": "1.0",
+      "sequence": 14,
+      "session_id": "session-fixed",
+      "timestamp": "<timestamp>",
+      "turn_id": 2,
+      "type": "llm.completed"
+    },
+    {
+      "agent_id": "agent-fixed",
+      "event_id": "event:15",
+      "parent_event_id": null,
+      "payload": {
+        "role": "assistant"
+      },
+      "run_id": "run-fixed",
+      "schema_version": "1.0",
+      "sequence": 15,
+      "session_id": "session-fixed",
+      "timestamp": "<timestamp>",
+      "turn_id": 2,
+      "type": "memory.appended"
+    },
+    {
+      "agent_id": "agent-fixed",
+      "event_id": "event:16",
+      "parent_event_id": null,
+      "payload": {
+        "turn": 2
+      },
+      "run_id": "run-fixed",
+      "schema_version": "1.0",
+      "sequence": 16,
+      "session_id": "session-fixed",
+      "timestamp": "<timestamp>",
+      "turn_id": 2,
+      "type": "agent.turn.completed"
+    },
+    {
+      "agent_id": "agent-fixed",
+      "event_id": "event:17",
+      "parent_event_id": null,
+      "payload": {
+        "turns": 2
+      },
+      "run_id": "run-fixed",
+      "schema_version": "1.0",
+      "sequence": 17,
+      "session_id": "session-fixed",
+      "timestamp": "<timestamp>",
+      "turn_id": 2,
+      "type": "session.completed"
+    }
+  ],
+  "schema_version": 1,
+  "workspace": [
+    {
+      "content": [
+        {
+          "agent_id": "agent-fixed",
+          "event_id": "event:1",
+          "parent_event_id": null,
+          "payload": {
+            "model": "recorded-model"
+          },
+          "run_id": "run-fixed",
+          "schema_version": "1.0",
+          "sequence": 1,
+          "session_id": "session-fixed",
+          "timestamp": "<timestamp>",
+          "turn_id": null,
+          "type": "session.started"
+        },
+        {
+          "agent_id": "agent-fixed",
+          "event_id": "event:2",
+          "parent_event_id": "event:1",
+          "payload": {
+            "role": "user"
+          },
+          "run_id": "run-fixed",
+          "schema_version": "1.0",
+          "sequence": 2,
+          "session_id": "session-fixed",
+          "timestamp": "<timestamp>",
+          "turn_id": null,
+          "type": "memory.appended"
+        },
+        {
+          "agent_id": "agent-fixed",
+          "event_id": "event:3",
+          "parent_event_id": null,
+          "payload": {
+            "turn": 1
+          },
+          "run_id": "run-fixed",
+          "schema_version": "1.0",
+          "sequence": 3,
+          "session_id": "session-fixed",
+          "timestamp": "<timestamp>",
+          "turn_id": 1,
+          "type": "agent.turn.started"
+        },
+        {
+          "agent_id": "agent-fixed",
+          "event_id": "event:4",
+          "parent_event_id": "event:3",
+          "payload": {
+            "message_count": 2,
+            "tool_count": 1
+          },
+          "run_id": "run-fixed",
+          "schema_version": "1.0",
+          "sequence": 4,
+          "session_id": "session-fixed",
+          "timestamp": "<timestamp>",
+          "turn_id": 1,
+          "type": "llm.requested"
+        },
+        {
+          "agent_id": "agent-fixed",
+          "event_id": "event:5",
+          "parent_event_id": "event:4",
+          "payload": {
+            "cached_input_tokens": 2,
+            "finish_reason": "tool_calls",
+            "input_tokens": 11,
+            "output_tokens": 4,
+            "tool_call_count": 1
+          },
+          "run_id": "run-fixed",
+          "schema_version": "1.0",
+          "sequence": 5,
+          "session_id": "session-fixed",
+          "timestamp": "<timestamp>",
+          "turn_id": 1,
+          "type": "llm.completed"
+        },
+        {
+          "agent_id": "agent-fixed",
+          "event_id": "event:6",
+          "parent_event_id": null,
+          "payload": {
+            "role": "assistant"
+          },
+          "run_id": "run-fixed",
+          "schema_version": "1.0",
+          "sequence": 6,
+          "session_id": "session-fixed",
+          "timestamp": "<timestamp>",
+          "turn_id": 1,
+          "type": "memory.appended"
+        },
+        {
+          "agent_id": "agent-fixed",
+          "event_id": "event:7",
+          "parent_event_id": null,
+          "payload": {
+            "name": "write_fixture",
+            "tool_call_id": "call-fixed"
+          },
+          "run_id": "run-fixed",
+          "schema_version": "1.0",
+          "sequence": 7,
+          "session_id": "session-fixed",
+          "timestamp": "<timestamp>",
+          "turn_id": 1,
+          "type": "tool.requested"
+        },
+        {
+          "agent_id": "agent-fixed",
+          "event_id": "event:8",
+          "parent_event_id": "event:7",
+          "payload": {
+            "name": "write_fixture",
+            "tool_call_id": "call-fixed"
+          },
+          "run_id": "run-fixed",
+          "schema_version": "1.0",
+          "sequence": 8,
+          "session_id": "session-fixed",
+          "timestamp": "<timestamp>",
+          "turn_id": 1,
+          "type": "tool.started"
+        },
+        {
+          "agent_id": "agent-fixed",
+          "event_id": "event:9",
+          "parent_event_id": "event:7",
+          "payload": {
+            "name": "write_fixture",
+            "output_bytes": 11,
+            "preview": "fixture.txt",
+            "tool_call_id": "call-fixed"
+          },
+          "run_id": "run-fixed",
+          "schema_version": "1.0",
+          "sequence": 9,
+          "session_id": "session-fixed",
+          "timestamp": "<timestamp>",
+          "turn_id": 1,
+          "type": "tool.completed"
+        },
+        {
+          "agent_id": "agent-fixed",
+          "event_id": "event:10",
+          "parent_event_id": null,
+          "payload": {
+            "name": "write_fixture",
+            "role": "tool"
+          },
+          "run_id": "run-fixed",
+          "schema_version": "1.0",
+          "sequence": 10,
+          "session_id": "session-fixed",
+          "timestamp": "<timestamp>",
+          "turn_id": 1,
+          "type": "memory.appended"
+        },
+        {
+          "agent_id": "agent-fixed",
+          "event_id": "event:11",
+          "parent_event_id": null,
+          "payload": {
+            "turn": 1
+          },
+          "run_id": "run-fixed",
+          "schema_version": "1.0",
+          "sequence": 11,
+          "session_id": "session-fixed",
+          "timestamp": "<timestamp>",
+          "turn_id": 1,
+          "type": "agent.turn.completed"
+        },
+        {
+          "agent_id": "agent-fixed",
+          "event_id": "event:12",
+          "parent_event_id": null,
+          "payload": {
+            "turn": 2
+          },
+          "run_id": "run-fixed",
+          "schema_version": "1.0",
+          "sequence": 12,
+          "session_id": "session-fixed",
+          "timestamp": "<timestamp>",
+          "turn_id": 2,
+          "type": "agent.turn.started"
+        },
+        {
+          "agent_id": "agent-fixed",
+          "event_id": "event:13",
+          "parent_event_id": "event:12",
+          "payload": {
+            "message_count": 4,
+            "tool_count": 1
+          },
+          "run_id": "run-fixed",
+          "schema_version": "1.0",
+          "sequence": 13,
+          "session_id": "session-fixed",
+          "timestamp": "<timestamp>",
+          "turn_id": 2,
+          "type": "llm.requested"
+        },
+        {
+          "agent_id": "agent-fixed",
+          "event_id": "event:14",
+          "parent_event_id": "event:13",
+          "payload": {
+            "cached_input_tokens": 0,
+            "finish_reason": "stop",
+            "input_tokens": 17,
+            "output_tokens": 1,
+            "tool_call_count": 0
+          },
+          "run_id": "run-fixed",
+          "schema_version": "1.0",
+          "sequence": 14,
+          "session_id": "session-fixed",
+          "timestamp": "<timestamp>",
+          "turn_id": 2,
+          "type": "llm.completed"
+        },
+        {
+          "agent_id": "agent-fixed",
+          "event_id": "event:15",
+          "parent_event_id": null,
+          "payload": {
+            "role": "assistant"
+          },
+          "run_id": "run-fixed",
+          "schema_version": "1.0",
+          "sequence": 15,
+          "session_id": "session-fixed",
+          "timestamp": "<timestamp>",
+          "turn_id": 2,
+          "type": "memory.appended"
+        },
+        {
+          "agent_id": "agent-fixed",
+          "event_id": "event:16",
+          "parent_event_id": null,
+          "payload": {
+            "turn": 2
+          },
+          "run_id": "run-fixed",
+          "schema_version": "1.0",
+          "sequence": 16,
+          "session_id": "session-fixed",
+          "timestamp": "<timestamp>",
+          "turn_id": 2,
+          "type": "agent.turn.completed"
+        },
+        {
+          "agent_id": "agent-fixed",
+          "event_id": "event:17",
+          "parent_event_id": null,
+          "payload": {
+            "turns": 2
+          },
+          "run_id": "run-fixed",
+          "schema_version": "1.0",
+          "sequence": 17,
+          "session_id": "session-fixed",
+          "timestamp": "<timestamp>",
+          "turn_id": 2,
+          "type": "session.completed"
+        }
+      ],
+      "kind": "file",
+      "path": "events.jsonl",
+      "size": 5548
+    },
+    {
+      "content": "stable",
+      "kind": "file",
+      "path": "fixture.txt",
+      "size": 6
+    },
+    {
+      "content": [
+        {
+          "message": {
+            "content": "runtime parity system",
+            "role": "system"
+          },
+          "schema_version": "1.0",
+          "sequence": 1
+        },
+        {
+          "message": {
+            "content": "write stable fixture",
+            "role": "user"
+          },
+          "schema_version": "1.0",
+          "sequence": 2
+        },
+        {
+          "message": {
+            "content": "",
+            "reasoning_content": "write deterministic output",
+            "role": "assistant",
+            "tool_calls": [
+              {
+                "function": {
+                  "arguments": "{\"text\":\"stable\"}",
+                  "name": "write_fixture"
+                },
+                "id": "call-fixed",
+                "type": "function"
+              }
+            ]
+          },
+          "schema_version": "1.0",
+          "sequence": 3
+        },
+        {
+          "message": {
+            "content": "fixture.txt",
+            "name": "write_fixture",
+            "role": "tool",
+            "tool_call_id": "call-fixed"
+          },
+          "schema_version": "1.0",
+          "sequence": 4
+        },
+        {
+          "message": {
+            "content": "DEEPCRAFT_PARITY_OK",
+            "role": "assistant"
+          },
+          "schema_version": "1.0",
+          "sequence": 5
+        }
+      ],
+      "kind": "file",
+      "path": "session.jsonl",
+      "size": 693
+    }
+  ]
+}

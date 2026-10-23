@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from scienceflow.solver.lnr.resource_runtime.control_profile import (
+from scienceflow.research.solver.lnr.resources.runtime.control.admission.control_profile import (
     apply_control_profile_to_decision_delay,
     build_resource_control_profile,
 )

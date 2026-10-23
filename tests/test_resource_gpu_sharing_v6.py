@@ -15,9 +15,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from scienceflow.core.tools.resource_classifier import RESOURCE_GPU_TT_LIGHT, RESOURCE_UNKNOWN_GPU_EXEC
-from scienceflow.solver.lnr.resource_runtime.review.arbiter import enforce_proposal_action_allowlist
-from scienceflow.solver.lnr.resource_runtime.gpu_sharing import (
+from scienceflow.runtime.safety.tooling.resource_management.resource_policy import RESOURCE_GPU_TT_LIGHT, RESOURCE_UNKNOWN_GPU_EXEC
+from scienceflow.research.solver.lnr.resources.runtime.review.decision.arbiter import enforce_proposal_action_allowlist
+from scienceflow.research.solver.lnr.resources.runtime.control.gpu.gpu_sharing import (
     build_gpu_share_config,
     evaluate_share_phase_a,
     secondary_estimated_peak_gb,
@@ -115,7 +115,7 @@ def test_gpu_share_phase_a_emits_candidate_and_eligible_events(tmp_path, monkeyp
             ],
         }
 
-    monkeypatch.setattr("scienceflow.solver.lnr.resource_runtime.runtime.sample_nvidia_smi", fake_sample)
+    monkeypatch.setattr("scienceflow.research.solver.lnr.resources.runtime.execution.facade.sample_nvidia_smi", fake_sample)
     observer, _sm = make_observer(
         tmp_path,
         worker_id="W00",
@@ -166,7 +166,7 @@ def test_gpu_share_handoff_opens_v5_periodic_review_for_weak_primary(tmp_path, m
             ],
         }
 
-    monkeypatch.setattr("scienceflow.solver.lnr.resource_runtime.runtime.sample_nvidia_smi", fake_sample)
+    monkeypatch.setattr("scienceflow.research.solver.lnr.resources.runtime.execution.facade.sample_nvidia_smi", fake_sample)
     observer, _sm = make_observer(
         tmp_path,
         worker_id="W00",

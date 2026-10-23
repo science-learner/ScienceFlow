@@ -13,21 +13,22 @@
 from __future__ import annotations
 
 import json
+import shutil
 from types import SimpleNamespace
+from pathlib import Path
 
 import pytest
-from deepcraft_core import Message
-from deepcraft_core.tool import ToolCall
-from deepcraft_core.tool.base import Function
+from inquirycraft.memory import Function, Message, ToolCall
 
-from scienceflow.core.tools.bash_tool import BashTool
+from scienceflow.runtime.safety.tooling.bash import BashTool
 from tests.lnr_resource_test_utils import event_types, make_observer, payloads
 
-from scienceflow.solver.lnr.resume import (
+from scienceflow.research.solver.lnr.transitions.resume import (
     inspect_agent_resume_state,
     inspect_resume_memory_messages,
     resume_loaded_agent_from_memory,
 )
+from scienceflow.research.state.knowledge.memory.records.agent_records import load_agent_memory
 
 
 def _bash_call(call_id: str = "call_1", command: str = "python train.py") -> ToolCall:
@@ -115,6 +116,23 @@ def test_resume_memory_continues_after_user_when_llm_failed_before_response() ->
 
     assert state.action == "continue_llm"
     assert state.reason == "last_user_request_waiting_for_llm"
+
+
+def test_old_workspace_memory_loads_without_rewrite(tmp_path: Path) -> None:
+    fixture = Path(__file__).parent / "fixtures" / "legacy_resume_workspace"
+    workspace = tmp_path / "legacy_workspace"
+    shutil.copytree(fixture, workspace)
+    agent_dir = workspace / ".agent_memory" / "ScienceAgent"
+    before = {path.name: path.read_bytes() for path in agent_dir.iterdir()}
+
+    memory = load_agent_memory(workspace / ".agent_memory", "ScienceAgent", 200)
+    agent = SimpleNamespace(memory=memory)
+    state = inspect_agent_resume_state(agent)
+
+    assert state.action == "execute_pending_tool"
+    assert state.pending_tool_calls[0].tool_call_id == "call-legacy-resume"
+    assert state.pending_tool_calls[0].tool_name == "bash"
+    assert {path.name: path.read_bytes() for path in agent_dir.iterdir()} == before
 
 
 @pytest.mark.asyncio

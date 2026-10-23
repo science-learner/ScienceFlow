@@ -18,8 +18,8 @@ from pathlib import Path
 
 import pytest
 
-from scienceflow.solver.lnr.snapshot_store import SnapshotStore
-from scienceflow.solver.lnr.workspace_snapshot import WorkspaceSnapshotStore
+from scienceflow.research.solver.lnr.lifecycle.snapshots.snapshot_store import SnapshotStore
+from scienceflow.research.solver.lnr.lifecycle.snapshots.workspace_snapshot import WorkspaceSnapshotStore
 
 
 def test_snapshot_store_falls_back_when_primary_copy_fails(tmp_path: Path, monkeypatch) -> None:
@@ -398,7 +398,7 @@ def test_snapshot_restore_preserves_live_logs_without_workspace_git(tmp_path: Pa
             raise AssertionError("restore must not delete live .logs")
         return original_rmtree(path, *args, **kwargs)
 
-    monkeypatch.setattr("scienceflow.solver.lnr.snapshot_store.shutil.rmtree", fail_on_logs)
+    monkeypatch.setattr("scienceflow.research.solver.lnr.lifecycle.snapshots.snapshot_store.shutil.rmtree", fail_on_logs)
     archive = store.restore(snap)
 
     assert archive.is_dir()

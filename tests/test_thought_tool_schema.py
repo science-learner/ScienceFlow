@@ -17,12 +17,12 @@ from __future__ import annotations
 import json
 from types import SimpleNamespace
 
-from scienceflow.core.agent import (
+from scienceflow.agent import (
     _compress_tool_call_for_memory,
     inject_thought_into_tool_params,
 )
-from scienceflow.core.agent.memory.memory_utils import _THOUGHT_TOOL_PARAM
-from scienceflow.core.tools import create_tool_collection
+from scienceflow.research.state.knowledge.memory.agent.memory_utils import _THOUGHT_TOOL_PARAM
+from scienceflow.runtime.safety.execution.agent_runtime.tool_composition import create_tool_collection
 
 
 def test_inject_thought_adds_required_property() -> None:
@@ -77,6 +77,6 @@ def test_compress_tool_call_drops_thought_from_memory() -> None:
 
 
 def test_workspace_interaction_log_thought_head_style() -> None:
-    from scienceflow.utils.workspace_interaction_log import _head_style_for_first_line
+    from scienceflow.runtime.observability.interaction_log import _head_style_for_first_line
 
     assert _head_style_for_first_line("[thought] probe") is not None

@@ -10,7 +10,7 @@
 # The name of Huawei and the contributors may not be used to endorse or promote
 # products derived from this software without specific prior written permission.
 
-from scienceflow.core.agent.run_control.embedded_fullrun import (
+from scienceflow.research.quality.embedded_fullrun import (
     _score_contract_errors,
     _validate_llm_metric_interpretation,
 )

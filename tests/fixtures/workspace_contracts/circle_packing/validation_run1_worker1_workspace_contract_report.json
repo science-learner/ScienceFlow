@@ -1,0 +1,21 @@
+{
+  "actual_worker_count": 1,
+  "additional_paths": [
+    "workers/wXX/workspace/.scienceflow_global_merge/.logs",
+    "workers/wXX/workspace/.scienceflow_global_merge/.logs/interaction",
+    "workers/wXX/workspace/.scienceflow_global_merge/.logs/interaction/interaction.log",
+    "workers/wXX/workspace/.scienceflow_global_merge/.logs/interaction/tool_outputs",
+    "workers/wXX/workspace/.scienceflow_global_merge/.logs/interaction/tool_outputs/index.txt",
+    "workers/wXX/workspace/.scienceflow_global_merge/.logs/traj_interaction",
+    "workers/wXX/workspace/.scienceflow_global_merge/.logs/traj_interaction/tool_outputs",
+    "workers/wXX/workspace/.scienceflow_global_merge/.logs/traj_interaction/tool_outputs/index.txt",
+    "workers/wXX/workspace/.scienceflow_global_merge/.logs/traj_interaction/traj_interaction.log"
+  ],
+  "checked_path_count": 193,
+  "compatible": true,
+  "expected_worker_count": 1,
+  "mismatched_entries": [],
+  "missing_paths": [],
+  "mode": "compatible",
+  "schema_version": "1.0"
+}

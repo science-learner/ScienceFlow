@@ -1,0 +1,230 @@
+{
+  "case_id": "snapshot_stop_resume_recovery",
+  "context": {
+    "cancelled_policy_calls": 0,
+    "captured_files": 1,
+    "continued_answer": "RECOVERY_OK",
+    "failure_type": "RuntimeError",
+    "manual_stop_type": "CancelledError",
+    "preserved_log": "preserved after failure\n",
+    "restored_solution": "VALUE = 'stage'\n",
+    "snapshot_id": "S01-fixed"
+  },
+  "mechanism": {
+    "lifecycle": [
+      {
+        "payload": {
+          "worker_id": "W00",
+          "workspace": "<workspace>/live"
+        },
+        "phase": "started"
+      },
+      {
+        "payload": {
+          "error": "simulated worker failure",
+          "error_type": "RuntimeError",
+          "worker_id": "W00",
+          "workspace": "<workspace>/live"
+        },
+        "phase": "failed"
+      },
+      {
+        "payload": {
+          "worker_id": "W00",
+          "workspace": "<workspace>/live"
+        },
+        "phase": "started"
+      },
+      {
+        "payload": {
+          "worker_id": "W00",
+          "workspace": "<workspace>/live"
+        },
+        "phase": "completed"
+      }
+    ],
+    "manual_stop_state": "IDLE",
+    "restore": {
+      "restored_bytes": 16,
+      "restored_files": 1,
+      "restored_symlinks": 0
+    },
+    "runtime_events": [
+      {
+        "agent_id": "W00",
+        "event_id": "event:1",
+        "parent_event_id": null,
+        "payload": {
+          "worker_id": "W00",
+          "workspace": "<workspace>/live"
+        },
+        "run_id": "snapshot-run",
+        "schema_version": "1.0",
+        "sequence": 1,
+        "session_id": "snapshot-session",
+        "timestamp": "<timestamp>",
+        "turn_id": null,
+        "type": "hosted.started"
+      },
+      {
+        "agent_id": "W00",
+        "event_id": "event:2",
+        "parent_event_id": null,
+        "payload": {
+          "error": "simulated worker failure",
+          "error_type": "RuntimeError",
+          "worker_id": "W00",
+          "workspace": "<workspace>/live"
+        },
+        "run_id": "snapshot-run",
+        "schema_version": "1.0",
+        "sequence": 2,
+        "session_id": "snapshot-session",
+        "timestamp": "<timestamp>",
+        "turn_id": null,
+        "type": "hosted.failed"
+      },
+      {
+        "agent_id": "W00",
+        "event_id": "event:3",
+        "parent_event_id": null,
+        "payload": {
+          "worker_id": "W00",
+          "workspace": "<workspace>/live"
+        },
+        "run_id": "snapshot-run",
+        "schema_version": "1.0",
+        "sequence": 3,
+        "session_id": "snapshot-session",
+        "timestamp": "<timestamp>",
+        "turn_id": null,
+        "type": "hosted.started"
+      },
+      {
+        "agent_id": "W00",
+        "event_id": "event:4",
+        "parent_event_id": null,
+        "payload": {
+          "worker_id": "W00",
+          "workspace": "<workspace>/live"
+        },
+        "run_id": "snapshot-run",
+        "schema_version": "1.0",
+        "sequence": 4,
+        "session_id": "snapshot-session",
+        "timestamp": "<timestamp>",
+        "turn_id": null,
+        "type": "hosted.completed"
+      }
+    ],
+    "runtime_state": "IDLE",
+    "sequence": [
+      "started",
+      "failed",
+      "started",
+      "completed"
+    ]
+  },
+  "schema_version": 1,
+  "workspace": [
+    {
+      "content": [
+        {
+          "agent_id": "W00",
+          "event_id": "event:1",
+          "parent_event_id": null,
+          "payload": {
+            "worker_id": "W00",
+            "workspace": "<workspace>/live"
+          },
+          "run_id": "snapshot-run",
+          "schema_version": "1.0",
+          "sequence": 1,
+          "session_id": "snapshot-session",
+          "timestamp": "<timestamp>",
+          "turn_id": null,
+          "type": "hosted.started"
+        },
+        {
+          "agent_id": "W00",
+          "event_id": "event:2",
+          "parent_event_id": null,
+          "payload": {
+            "error": "simulated worker failure",
+            "error_type": "RuntimeError",
+            "worker_id": "W00",
+            "workspace": "<workspace>/live"
+          },
+          "run_id": "snapshot-run",
+          "schema_version": "1.0",
+          "sequence": 2,
+          "session_id": "snapshot-session",
+          "timestamp": "<timestamp>",
+          "turn_id": null,
+          "type": "hosted.failed"
+        },
+        {
+          "agent_id": "W00",
+          "event_id": "event:3",
+          "parent_event_id": null,
+          "payload": {
+            "worker_id": "W00",
+            "workspace": "<workspace>/live"
+          },
+          "run_id": "snapshot-run",
+          "schema_version": "1.0",
+          "sequence": 3,
+          "session_id": "snapshot-session",
+          "timestamp": "<timestamp>",
+          "turn_id": null,
+          "type": "hosted.started"
+        },
+        {
+          "agent_id": "W00",
+          "event_id": "event:4",
+          "parent_event_id": null,
+          "payload": {
+            "worker_id": "W00",
+            "workspace": "<workspace>/live"
+          },
+          "run_id": "snapshot-run",
+          "schema_version": "1.0",
+          "sequence": 4,
+          "session_id": "snapshot-session",
+          "timestamp": "<timestamp>",
+          "turn_id": null,
+          "type": "hosted.completed"
+        }
+      ],
+      "kind": "file",
+      "path": "events.jsonl",
+      "size": 1564
+    },
+    {
+      "kind": "directory",
+      "path": "live"
+    },
+    {
+      "kind": "directory",
+      "path": "live/.logs"
+    },
+    {
+      "content": "preserved after failure\n",
+      "kind": "file",
+      "path": "live/.logs/interaction.log",
+      "size": 24
+    },
+    {
+      "content": "continued from VALUE = 'stage'\n",
+      "kind": "file",
+      "path": "live/result.md",
+      "size": 31
+    },
+    {
+      "content": "VALUE = 'stage'\n",
+      "kind": "file",
+      "path": "live/solution.py",
+      "size": 16
+    }
+  ]
+}

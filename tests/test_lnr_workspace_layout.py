@@ -18,29 +18,33 @@ from types import SimpleNamespace
 
 import pytest
 
-from scienceflow.core.agent.tools.tool_output_artifacts import ToolOutputArtifactStore
-from scienceflow.config.settings import Config, prep_cfg
-from scienceflow.core.tools.bash_tool import BashTool
-from scienceflow.core.tools.ls_tool import LsTool
-from scienceflow.core.tools.read_tool import ReadTool
-from scienceflow.solver.lnr.snapshot_store import SnapshotStore
-from scienceflow.solver.lnr.stage_logs import (
+from scienceflow.runtime.safety.policy.agent_policies.artifacts import ToolOutputArtifactStore
+from scienceflow.foundation.config.schema.settings import Config, prep_cfg
+from inquirycraft.tools import LsTool, ReadTool
+from scienceflow.runtime.safety.tooling.bash import BashTool
+from scienceflow.research.solver.lnr.lifecycle.snapshots.snapshot_store import SnapshotStore
+from scienceflow.research.solver.lnr.lifecycle.records.stage_logs import (
     attach_stage_interaction_handlers,
     ensure_stage_log_dir,
     stage_log_dir,
 )
-from scienceflow.solver.lnr.worker_layout import ensure_lnr_worker_layout, lnr_worker_layout
-from scienceflow.utils.workspace_git import (
+from scienceflow.research.solver.lnr.lifecycle.workspace.worker_layout import (
+    ensure_lnr_worker_layout,
+    lnr_worker_layout,
+)
+from scienceflow.research.state.workspace.storage.git import (
     auto_checkpoint_workspace_source,
     ensure_workspace_source_git,
 )
-from scienceflow.utils.workspace_interaction_log import (
+from scienceflow.runtime.observability.interaction_log import (
     attach_workspace_interaction_logger,
     close_workspace_interaction_logger,
 )
 
 
-def test_lnr_worker_layout_uses_workspace_logs_snapshots_siblings(tmp_path: Path) -> None:
+def test_lnr_worker_layout_uses_workspace_logs_snapshots_siblings(
+    tmp_path: Path,
+) -> None:
     layout = lnr_worker_layout(tmp_path, SimpleNamespace(worker_dirname="workers"), 0)
 
     assert layout.root == tmp_path / "workers" / "w00"
@@ -48,7 +52,9 @@ def test_lnr_worker_layout_uses_workspace_logs_snapshots_siblings(tmp_path: Path
     assert layout.logs == layout.root / "logs"
     assert layout.snapshots == layout.root / "snapshots"
 
-    ensured = ensure_lnr_worker_layout(tmp_path, SimpleNamespace(worker_dirname="workers"), 1)
+    ensured = ensure_lnr_worker_layout(
+        tmp_path, SimpleNamespace(worker_dirname="workers"), 1
+    )
     assert ensured.root == tmp_path / "workers" / "w01"
     assert ensured.workspace.is_dir()
     assert ensured.logs.is_dir()
@@ -66,7 +72,9 @@ def test_lnr_worker_layout_uses_workspace_logs_snapshots_siblings(tmp_path: Path
     assert prepped.submission_dir == (layout.workspace / "submissions").resolve()
 
 
-def test_lnr_worker_layout_keeps_control_artifacts_outside_workspace(tmp_path: Path) -> None:
+def test_lnr_worker_layout_keeps_control_artifacts_outside_workspace(
+    tmp_path: Path,
+) -> None:
     worker_root = tmp_path / "workers" / "w00"
     workspace = worker_root / "workspace"
     logs = worker_root / "logs"
@@ -81,7 +89,9 @@ def test_lnr_worker_layout_keeps_control_artifacts_outside_workspace(tmp_path: P
     assert lg is not None
     attach_stage_interaction_handlers(lg, workspace, color=False)
     lg.info("hello lnr")
-    close_workspace_interaction_logger(worker_root, layout="split", log_dir_override=logs)
+    close_workspace_interaction_logger(
+        worker_root, layout="split", log_dir_override=logs
+    )
     assert (logs / "interaction" / "interaction.log").is_file()
     assert (logs / "traj_interaction" / "traj_interaction.log").is_file()
     assert "hello lnr" in (
@@ -114,10 +124,16 @@ def test_lnr_worker_layout_keeps_control_artifacts_outside_workspace(tmp_path: P
     tool_log = (workspace / ".logs" / "tool.log").read_text(encoding="utf-8")
     assert f"raw_id={ref.raw_id}" in tool_log
     assert "full_output=" in tool_log
-    assert not (workspace / ".logs" / "interaction" / "tool_outputs" / ref.raw_id).exists()
-    assert not (workspace / "logs" / "interaction" / "tool_outputs" / ref.raw_id).exists()
+    assert not (
+        workspace / ".logs" / "interaction" / "tool_outputs" / ref.raw_id
+    ).exists()
+    assert not (
+        workspace / "logs" / "interaction" / "tool_outputs" / ref.raw_id
+    ).exists()
 
-    init = ensure_workspace_source_git(workspace, track_globs=["*.py"], initial_commit=True)
+    init = ensure_workspace_source_git(
+        workspace, track_globs=["*.py"], initial_commit=True
+    )
     assert init.ready is True
     (workspace / "solution.py").write_text("print(2)\n", encoding="utf-8")
     (workspace / "submission.csv").write_text("id,target\n1,0.1\n", encoding="utf-8")
@@ -156,7 +172,9 @@ def test_lnr_worker_layout_keeps_control_artifacts_outside_workspace(tmp_path: P
     (workspace / "logs" / "agent.log").write_text("runtime\n", encoding="utf-8")
     (workspace / ".memory").mkdir()
     (workspace / ".memory" / "agent.txt").write_text("hidden\n", encoding="utf-8")
-    (stage_log_dir(workspace) / "stage.log").write_text("stage-local\n", encoding="utf-8")
+    (stage_log_dir(workspace) / "stage.log").write_text(
+        "stage-local\n", encoding="utf-8"
+    )
 
     snap = snapshot_store.capture(
         stage_id="S01",
@@ -168,14 +186,24 @@ def test_lnr_worker_layout_keeps_control_artifacts_outside_workspace(tmp_path: P
         node_uid="W00-L01-S01",
     )
     assert snap.snapshot_path.parent == worker_root / "snapshots"
-    assert (snap.snapshot_path / "solution.py").read_text(encoding="utf-8") == "print(3)\n"
-    assert (snap.snapshot_path / ".logs" / "stage.log").read_text(encoding="utf-8") == "stage-local\n"
+    assert (snap.snapshot_path / "solution.py").read_text(
+        encoding="utf-8"
+    ) == "print(3)\n"
+    assert (snap.snapshot_path / ".logs" / "stage.log").read_text(
+        encoding="utf-8"
+    ) == "stage-local\n"
     assert not (snap.snapshot_path / ".agent_memory").exists()
     assert not (snap.snapshot_path / ".memory").exists()
     assert not (snap.snapshot_path / "logs" / "agent.log").exists()
     assert (snap.snapshot_path / "logs" / "lhr_snapshot_meta.json").is_file()
-    assert (snap.snapshot_path / "logs" / "memory" / "ScienceAgent" / "short_term.json").is_file()
-    meta = json.loads((snap.snapshot_path / "logs" / "lhr_snapshot_meta.json").read_text(encoding="utf-8"))
+    assert (
+        snap.snapshot_path / "logs" / "memory" / "ScienceAgent" / "short_term.json"
+    ).is_file()
+    meta = json.loads(
+        (snap.snapshot_path / "logs" / "lhr_snapshot_meta.json").read_text(
+            encoding="utf-8"
+        )
+    )
     assert meta["copied_memory"] is True
     assert meta["copied_stage_logs"] is True
 
@@ -184,14 +212,18 @@ def test_lnr_worker_layout_keeps_control_artifacts_outside_workspace(tmp_path: P
     assert (workspace / "solution.py").read_text(encoding="utf-8") == "print(3)\n"
     assert (workspace / ".logs" / "stage.log").is_file()
     assert (workspace / ".agent_memory" / "ScienceAgent" / "short_term.json").is_file()
-    assert (workspace / ".memory" / "agent.txt").read_text(encoding="utf-8") == "hidden\n"
+    assert (workspace / ".memory" / "agent.txt").read_text(
+        encoding="utf-8"
+    ) == "hidden\n"
     assert (workspace / "logs" / "agent.log").read_text(encoding="utf-8") == "runtime\n"
     assert (worker_root / "snapshots" / "archives").is_dir()
     assert not (logs / "estra_archives").exists()
 
 
 @pytest.mark.asyncio
-async def test_lnr_hidden_stage_logs_are_blocked_from_agent_tools(tmp_path: Path) -> None:
+async def test_lnr_hidden_stage_logs_are_blocked_from_agent_tools(
+    tmp_path: Path,
+) -> None:
     hidden = ensure_stage_log_dir(tmp_path)
     (hidden / "stage.log").write_text("secret current stage\n", encoding="utf-8")
     prefixes = [".logs"]

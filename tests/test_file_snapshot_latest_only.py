@@ -17,16 +17,16 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
-from deepcraft_core.tool import ToolResult
+from inquirycraft.tools import EditTool, ToolResult, WriteTool, format_file_snapshot
 
-from scienceflow.core.agent.memory.memory_utils import (
+from scienceflow.research.state.knowledge.memory.agent.memory_utils import (
     collapse_stale_file_snapshots_before_add,
     extract_path_from_tool_feedback_text,
     maybe_collapse_stale_snapshots,
 )
-from scienceflow.core.tools.edit_tool import EditTool
-from scienceflow.core.tools.write_tool import WriteTool, format_file_snapshot_for_tool_return
-from scienceflow.core.mem.memory_context import compress_edit_success_output_for_memory
+from scienceflow.research.state.knowledge.context.memory_context import compress_edit_success_output_for_memory
+
+format_file_snapshot_for_tool_return = format_file_snapshot
 
 
 @pytest.mark.asyncio

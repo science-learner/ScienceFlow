@@ -1,0 +1,226 @@
+{
+  "case_id": "legacy_message_memory",
+  "context": {
+    "memory_messages": [
+      {
+        "content": "system",
+        "name": null,
+        "reasoning_content": null,
+        "role": "system",
+        "tool_call_id": null,
+        "tool_calls": null
+      },
+      {
+        "content": "用户输入",
+        "name": null,
+        "reasoning_content": null,
+        "role": "user",
+        "tool_call_id": null,
+        "tool_calls": null
+      },
+      {
+        "content": "",
+        "name": null,
+        "reasoning_content": "reasoning",
+        "role": "assistant",
+        "tool_call_id": null,
+        "tool_calls": [
+          {
+            "function": {
+              "arguments": "{\"path\":\"parity.txt\"}",
+              "name": "read"
+            },
+            "id": "call-fixed",
+            "type": "function"
+          }
+        ]
+      },
+      {
+        "content": "content",
+        "name": "read",
+        "reasoning_content": null,
+        "role": "tool",
+        "tool_call_id": "call-fixed",
+        "tool_calls": null
+      }
+    ],
+    "messages": [
+      {
+        "content": "system",
+        "name": null,
+        "reasoning_content": null,
+        "role": "system",
+        "tool_call_id": null,
+        "tool_calls": null
+      },
+      {
+        "content": "用户输入",
+        "name": null,
+        "reasoning_content": null,
+        "role": "user",
+        "tool_call_id": null,
+        "tool_calls": null
+      },
+      {
+        "content": "",
+        "name": null,
+        "reasoning_content": "reasoning",
+        "role": "assistant",
+        "tool_call_id": null,
+        "tool_calls": [
+          {
+            "function": {
+              "arguments": "{\"path\":\"parity.txt\"}",
+              "name": "read"
+            },
+            "id": "call-fixed",
+            "type": "function"
+          }
+        ]
+      },
+      {
+        "content": "content",
+        "name": "read",
+        "reasoning_content": null,
+        "role": "tool",
+        "tool_call_id": "call-fixed",
+        "tool_calls": null
+      }
+    ],
+    "to_dict": [
+      {
+        "content": "system",
+        "role": "system"
+      },
+      {
+        "content": "用户输入",
+        "role": "user"
+      },
+      {
+        "content": "",
+        "reasoning_content": "reasoning",
+        "role": "assistant",
+        "tool_calls": [
+          {
+            "function": {
+              "arguments": "{\"path\":\"parity.txt\"}",
+              "name": "read"
+            },
+            "id": "call-fixed",
+            "type": "function"
+          }
+        ]
+      },
+      {
+        "content": "content",
+        "name": "read",
+        "role": "tool",
+        "tool_call_id": "call-fixed"
+      }
+    ]
+  },
+  "mechanism": {
+    "deduped": [
+      {
+        "memory_record": {
+          "message": {
+            "content": "system",
+            "name": null,
+            "reasoning_content": null,
+            "role": "system",
+            "tool_call_id": null,
+            "tool_calls": null
+          }
+        },
+        "uuid": "u1"
+      },
+      {
+        "memory_record": {
+          "message": {
+            "content": "用户输入",
+            "name": null,
+            "reasoning_content": null,
+            "role": "user",
+            "tool_call_id": null,
+            "tool_calls": null
+          }
+        },
+        "uuid": "u2"
+      },
+      {
+        "memory_record": {
+          "message": {
+            "content": "",
+            "name": null,
+            "reasoning_content": "reasoning",
+            "role": "assistant",
+            "tool_call_id": null,
+            "tool_calls": [
+              {
+                "function": {
+                  "arguments": "{\"path\":\"parity.txt\"}",
+                  "name": "read"
+                },
+                "id": "call-fixed",
+                "type": "function"
+              }
+            ]
+          }
+        },
+        "uuid": "u3"
+      },
+      {
+        "memory_record": {
+          "message": {
+            "content": "content",
+            "name": "read",
+            "reasoning_content": null,
+            "role": "tool",
+            "tool_call_id": "call-fixed",
+            "tool_calls": null
+          }
+        },
+        "uuid": "u4"
+      }
+    ],
+    "repaired": [
+      {
+        "memory_record": {
+          "message": {
+            "content": "",
+            "name": null,
+            "reasoning_content": "reasoning",
+            "role": "assistant",
+            "tool_call_id": null,
+            "tool_calls": [
+              {
+                "function": {
+                  "arguments": "{\"path\":\"parity.txt\"}",
+                  "name": "read"
+                },
+                "id": "call-fixed",
+                "type": "function"
+              }
+            ]
+          }
+        },
+        "uuid": "u3"
+      },
+      {
+        "memory_record": {
+          "message": {
+            "content": "content",
+            "name": "read",
+            "reasoning_content": null,
+            "role": "tool",
+            "tool_call_id": "call-fixed",
+            "tool_calls": null
+          }
+        },
+        "uuid": "u4"
+      }
+    ]
+  },
+  "schema_version": 1,
+  "workspace": []
+}

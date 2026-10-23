@@ -14,20 +14,22 @@
 
 from __future__ import annotations
 
-from deepcraft_core import Memory
-from deepcraft_core import Message
+from inquirycraft.memory import Memory, Message
 
-from scienceflow.core.agent.run_control.embedded_fullrun import EmbeddedFullRunMixin
-from scienceflow.core.agent.tool_exec.single import SingleToolExecMixin
-from scienceflow.core.mem.memory_context import (
+from scienceflow.research.quality.embedded_fullrun import _inject_run_control_user_message
+from scienceflow.runtime.safety.execution.agent_runtime.tool_bundle_policy import (
+    add_message_after_current_tool_bundle,
+)
+from scienceflow.research.state.knowledge.context.memory_context import (
     _ensure_complete_tool_turn_prefix,
     _finalize_messages_for_llm,
     _sanitize_orphan_tool_messages,
 )
 
 
-class _RunControlDeferralDummy(SingleToolExecMixin, EmbeddedFullRunMixin):
-    pass
+class _RunControlDeferralDummy:
+    _add_message_after_current_tool_bundle = add_message_after_current_tool_bundle
+    _inject_run_control_user_message = _inject_run_control_user_message
 
 
 def test_complete_two_tool_turn_unchanged() -> None:

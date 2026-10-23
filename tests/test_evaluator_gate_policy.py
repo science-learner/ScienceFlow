@@ -17,8 +17,8 @@ from pathlib import Path
 
 import pytest
 
-from scienceflow.gates.evaluator import EvalContext, GateDecision, MetricEvent
-from scienceflow.gates import (
+from scienceflow.foundation.contracts import EvalContext, GateDecision, MetricEvent
+from scienceflow.research.quality.gate import (
     GateManager,
     format_invalid_evaluator_feedback,
     legacy_score_contract_enabled,

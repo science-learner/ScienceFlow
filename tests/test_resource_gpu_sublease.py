@@ -10,7 +10,7 @@
 # The name of Huawei and the contributors may not be used to endorse or promote
 # products derived from this software without specific prior written permission.
 
-from scienceflow.safety.resource.gpu_sublease import plan_gpu_sublease
+from scienceflow.runtime.safety.resource.lifecycle.gpu_sublease import plan_gpu_sublease
 from tests.lnr_resource_test_utils import make_observer
 
 

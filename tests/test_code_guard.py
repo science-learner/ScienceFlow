@@ -10,7 +10,7 @@
 # The name of Huawei and the contributors may not be used to endorse or promote
 # products derived from this software without specific prior written permission.
 
-"""Tests for scienceflow.safety.code_guard."""
+"""Tests for scienceflow.runtime.safety.policy.code_guard."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pytest
 
-from scienceflow.safety.code_guard import _check_writes_result_md, pre_execution_guard
+from scienceflow.runtime.safety.policy.code_guard import _check_writes_result_md, pre_execution_guard
 
 
 def test_check_writes_result_md_detects_open_write() -> None:
