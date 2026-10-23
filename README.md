@@ -17,10 +17,6 @@ recoverable stages, preserves the best artifacts, and exposes the full process t
 TUI and Web monitor.
 </p>
 
-> [!IMPORTANT]
-> **ScienceFlow 0.2.0.**
-> Research runs, model settings, and local sessions use the documented workspace contracts.
-
 ## News
 
 - **[2026-09]** Released the ScienceFlow harness preview for long-horizon scientific research agents, with TUI and Web interfaces.
@@ -32,23 +28,22 @@ TUI and Web monitor.
 
 ### Install
 
-Install ScienceFlow with <a href="https://pipx.pypa.io/latest/how-to/install-pipx.html">pipx</a> so
-the command is available from any directory while its Python dependencies remain isolated:
+Create an isolated Conda environment, then install ScienceFlow from PyPI:
 
 ```bash
-pipx install scienceflow==0.2.0
+conda create -n scienceflow python=3.12 -y
+conda activate scienceflow
+python -m pip install scienceflow==0.2.0
 scienceflow --help
 ```
 
 <details>
 <summary><strong>Other installation methods</strong></summary>
 
-**Conda**
+**pipx**
 
 ```bash
-conda create -n scienceflow python=3.12 -y
-conda activate scienceflow
-python -m pip install scienceflow==0.2.0
+pipx install scienceflow==0.2.0
 ```
 
 **uv**
@@ -132,7 +127,7 @@ See the [runtime guide](docs/public/RUNTIME_GUIDE.md) for workspace and executio
 ## How it works
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/science-learner/ScienceFlow/v0.2.0/docs/public/scienceflow/assets/scienceflow_system_architecture.png" alt="ScienceFlow system architecture" width="100%">
+  <img src="https://raw.githubusercontent.com/science-learner/ScienceFlow/150b0a0f3aafb5eee4b7e3cc5e560dfe044a073b/docs/public/scienceflow/assets/scienceflow_system_architecture.png" alt="ScienceFlow system architecture" width="100%">
 </p>
 
 1. **Explore:** isolated workers advance executable workspaces under explicit CPU, GPU,
@@ -219,7 +214,7 @@ runs.
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/science-learner/ScienceFlow/v0.2.0/docs/public/scienceflow/assets/mlebench_top10_any_medal.png" alt="Representative full MLE-bench Any-Medal leaderboard" width="100%">
+  <img src="https://raw.githubusercontent.com/science-learner/ScienceFlow/150b0a0f3aafb5eee4b7e3cc5e560dfe044a073b/docs/public/scienceflow/assets/mlebench_top10_any_medal.png" alt="Representative full MLE-bench Any-Medal leaderboard" width="100%">
 </p>
 
 ## Citation

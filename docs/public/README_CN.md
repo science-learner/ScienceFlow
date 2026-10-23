@@ -10,10 +10,6 @@
   <a href="../../README.md"><b>English</b></a>
 </p>
 
-> [!IMPORTANT]
-> **ScienceFlow 0.2.0。**
-> 研究任务、模型配置和本地会话使用文档所述的工作区约定。
-
 ScienceFlow 是一个端到端自动研究 Agent 框架，面向持续数小时或数天的高效、稳定且目标一致的研究过程。它以可恢复的可执行工作空间为核心，将持久状态、自适应探索与证据感知执行控制统一起来，使 Agent 能够在保留已验证进展的同时继续、调整或恢复研究路线。
 
 ScienceFlow 文档使用 **iqcraft** 作为 InquiryCraft 的简称；Python 包、import 与 CLI 示例仍统一使用
@@ -32,23 +28,22 @@ ScienceFlow 在机器学习、科学建模和数学优化任务上持续开展�
 
 ### 安装
 
-推荐使用 [`pipx`](https://pipx.pypa.io/latest/how-to/install-pipx.html) 安装。ScienceFlow 的
-Python 依赖会保持隔离，同时 `scienceflow` 命令可以在任意目录直接使用：
+先创建独立的 Conda 环境，再从 PyPI 安装 ScienceFlow：
 
 ```bash
-pipx install scienceflow==0.2.0
+conda create -n scienceflow python=3.12 -y
+conda activate scienceflow
+python -m pip install scienceflow==0.2.0
 scienceflow --help
 ```
 
 <details>
 <summary><strong>其他安装方式</strong></summary>
 
-**Conda**
+**pipx**
 
 ```bash
-conda create -n scienceflow python=3.12 -y
-conda activate scienceflow
-python -m pip install scienceflow==0.2.0
+pipx install scienceflow==0.2.0
 ```
 
 **uv**
