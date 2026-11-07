@@ -25,6 +25,9 @@ from scienceflow.research.solver.lnr.orchestration.coordinator.shared import (
     normalize_workspace_git_track_globs,
     time,
 )
+from scienceflow.research.state.workspace.adapters.agent_visible_text import (
+    HiddenPathPolicy,
+)
 
 
 def _make_agent(self, *, load_existing_memory: bool) -> Any:
@@ -131,20 +134,15 @@ def _configure_agent_workspace_surface(self, agent: Any) -> None:
         str(getattr(self.cfg, "exp_id", "") or self.task_root_dir.name),
     )
     setattr(agent, "_workspace_relative_path_mode", True)
-    setattr(agent, "_agent_hidden_workspace_filenames", (self.ledger_filename,))
-    setattr(
-        agent,
-        "_agent_hidden_workspace_path_prefixes",
-        (
-            self.ledger_filename,
-            "logs",
-            "submission_snapshots",
-            ".logs",
-            ".agent_memory",
-            ".git",
-            ".memory",
-            ".scienceflow_checkpoints",
-        ),
+    hidden_prefixes = (
+        self.ledger_filename,
+        "logs",
+        "submission_snapshots",
+        ".logs",
+        ".agent_memory",
+        ".git",
+        ".memory",
+        ".scienceflow_checkpoints",
     )
     hidden_denied_prefixes = (
         "logs",
@@ -158,9 +156,21 @@ def _configure_agent_workspace_surface(self, agent: Any) -> None:
         "submission_history",
         "submissions",
     )
+    hidden_policy = HiddenPathPolicy(
+        prefixes=hidden_prefixes,
+        filenames=(self.ledger_filename,),
+        denied_prefixes=hidden_denied_prefixes,
+    )
+    setattr(agent, "_hidden_path_policy", hidden_policy)
+    setattr(agent, "_agent_hidden_workspace_filenames", hidden_policy.filenames)
+    setattr(
+        agent,
+        "_agent_hidden_workspace_path_prefixes",
+        hidden_policy.prefixes,
+    )
     apply_denials = getattr(agent, "_apply_agent_hidden_path_denials", None)
     if callable(apply_denials):
-        apply_denials(hidden_denied_prefixes)
+        apply_denials(hidden_policy.denied_prefixes)
     setattr(agent, "_agentic_route_log_dir_override", self.log_dir / "agentic_route")
     self._attach_lnr_interaction_logger(agent)
 

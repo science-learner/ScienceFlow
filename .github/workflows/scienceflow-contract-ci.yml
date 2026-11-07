@@ -57,6 +57,7 @@ jobs:
       - name: Verify ScienceAgent prompt/runtime contracts
         run: >-
           python -m pytest -q
+          tests/test_agent_visible_text.py
           tests/test_science_agent_repl_construction.py
           tests/test_science_agent_repl_memory.py
           tests/test_science_agent_repl_run_loop.py

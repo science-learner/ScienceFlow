@@ -15,9 +15,11 @@ from scienceflow.research.state.knowledge.context.memory_context import (
 from scienceflow.research.state.knowledge.memory.agent.resource_feedback_memory import (
     ResourceFeedbackMemoryDeduper,
 )
+from scienceflow.research.state.workspace.adapters.agent_visible_text import (
+    project_tool_output,
+    redact_hidden_paths,
+)
 from scienceflow.research.state.workspace.adapters.path_hygiene import (
-    _hide_agent_hidden_workspace_file_lines,
-    _hide_agent_hidden_workspace_filename_mentions,
     _sanitize_agent_visible_paths,
     _tool_request_mentions_hidden_workspace_file,
     _workspace_relative_path_mode_enabled,
@@ -88,9 +90,23 @@ def _prepare_tool_feedback_for_memory(
         feedback,
         max_chars=self._exec_feedback_max_chars,
     )
-    if not hidden_request:
-        feedback = _hide_agent_hidden_workspace_file_lines(self, feedback)
-    feedback = _hide_agent_hidden_workspace_filename_mentions(self, feedback)
+    if hidden_request:
+        # The raw result is replaced above, but coaching text may still mention
+        # a hidden path.  Keep the old safety net without line filtering.
+        feedback = redact_hidden_paths(
+            self,
+            feedback,
+            context="prose",
+            marker=False,
+        )
+    else:
+        feedback = project_tool_output(
+            self,
+            feedback,
+            tool_name=tool_name,
+            args=args,
+            marker=True,
+        )
 
     if ref is not None:
         store.append_index(

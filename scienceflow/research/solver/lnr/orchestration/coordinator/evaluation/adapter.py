@@ -38,6 +38,9 @@ from scienceflow.research.solver.lnr.orchestration.coordinator.shared import (
     read_ledger,
     time,
 )
+from scienceflow.research.state.workspace.adapters.agent_visible_text import (
+    rewrite_agent_visible_paths,
+)
 
 
 class EvaluationAdapterOwner:
@@ -633,18 +636,38 @@ class EvaluationAdapterOwner:
             self.estra_tokens_cached += tc
             self.estra_llm_calls += 1
 
-    def _sanitize_agent_visible_payload(self, agent: Any, value: Any) -> Any:
+    def _sanitize_agent_visible_payload(
+        self,
+        agent: Any,
+        value: Any,
+        *,
+        redact_hidden: bool = True,
+    ) -> Any:
         if isinstance(value, str):
-            return agent._sanitize_agent_visible_paths(value)
+            if redact_hidden:
+                return agent._sanitize_agent_visible_paths(value)
+            return rewrite_agent_visible_paths(agent, value)
         if isinstance(value, dict):
             return {
-                str(k): self._sanitize_agent_visible_payload(agent, v)
+                str(k): self._sanitize_agent_visible_payload(
+                    agent, v, redact_hidden=redact_hidden
+                )
                 for k, v in value.items()
             }
         if isinstance(value, list):
-            return [self._sanitize_agent_visible_payload(agent, v) for v in value]
+            return [
+                self._sanitize_agent_visible_payload(
+                    agent, v, redact_hidden=redact_hidden
+                )
+                for v in value
+            ]
         if isinstance(value, tuple):
-            return tuple(self._sanitize_agent_visible_payload(agent, v) for v in value)
+            return tuple(
+                self._sanitize_agent_visible_payload(
+                    agent, v, redact_hidden=redact_hidden
+                )
+                for v in value
+            )
         return value
 
     def _sanitize_agent_prompt_surfaces(self, agent: Any) -> None:
@@ -652,7 +675,7 @@ class EvaluationAdapterOwner:
             value = getattr(agent, attr, None)
             if isinstance(value, str) and value:
                 try:
-                    setattr(agent, attr, agent._sanitize_agent_visible_paths(value))
+                    setattr(agent, attr, rewrite_agent_visible_paths(agent, value))
                 except Exception:
                     logger.debug(
                         "[lnr] prompt path sanitize skipped for %s", attr, exc_info=True
@@ -663,7 +686,9 @@ class EvaluationAdapterOwner:
                 setattr(
                     agent,
                     "_tools_with_thought",
-                    self._sanitize_agent_visible_payload(agent, tools),
+                    self._sanitize_agent_visible_payload(
+                        agent, tools, redact_hidden=False
+                    ),
                 )
             except Exception:
                 logger.debug("[lnr] tool schema path sanitize skipped", exc_info=True)

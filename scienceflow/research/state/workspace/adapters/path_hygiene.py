@@ -4,16 +4,19 @@
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
 from typing import Any, Sequence
 
 from inquirycraft.memory import Message
 from inquirycraft.tools import ToolResult
 
-from scienceflow.research.state.workspace.session.agent_contracts import (
-    _HOST_ABSOLUTE_VISIBLE_PATH_RE,
-    _WSP_ABSOLUTE_VISIBLE_PREFIX_RE,
+from scienceflow.research.state.workspace.adapters.agent_visible_text import (
+    path_mentions_hidden_file,
+    project_agent_visible_text,
+    redact_hidden_paths,
+    request_mentions_hidden_paths,
+    rewrite_agent_visible_paths,
+    text_mentions_hidden_prefix,
 )
 from scienceflow.research.state.knowledge.memory.agent.memory_utils import _assistant_message_from_api
 
@@ -143,124 +146,35 @@ def _apply_agent_hidden_path_denials(self, prefixes: Sequence[str | Path]) -> No
 
 
 def _text_mentions_hidden_workspace_prefix(self, text: str, prefix: str) -> bool:
-    raw = str(text or "").replace("\\", "/")
-    prefix = str(prefix or "").strip("/")
-    if not raw or not prefix:
-        return False
-    escaped = re.escape(prefix)
-    pattern = rf"(^|[\s'\"=;:&|(<>{{}}\[])(?:\./)?{escaped}(?=($|[\s'\"=;:&|/)<>}}\]]))"
-    return re.search(pattern, raw) is not None
+    return text_mentions_hidden_prefix(self, text, prefix)
 
 
 def _hide_agent_hidden_workspace_filename_mentions(self, text: str) -> str:
-    if not isinstance(text, str) or not text:
-        return text
-    out = text
-    for prefix in sorted(
-        _get_agent_hidden_workspace_path_prefixes(self), key=len, reverse=True
-    ):
-        escaped = re.escape(prefix)
-        out = re.sub(
-            rf"(?<![\w./-])(?:\./)?{escaped}(?=($|[\s'\"=;:&|/)<>}}\]]))",
-            "<hidden-control-path>",
-            out,
-        )
-    for name in _get_agent_hidden_workspace_filenames(self):
-        out = out.replace(name, "<hidden-control-file>")
-    return out
+    return project_agent_visible_text(self, text, surface="assistant")
 
 
 def _path_mentions_hidden_workspace_file(self, value: str) -> bool:
-    raw = str(value or "").replace("\\", "/").strip().strip("'\"")
-    if not raw:
-        return False
-    norm = _normalize_hidden_workspace_path(self, raw)
-    for prefix in _get_agent_hidden_workspace_path_prefixes(self):
-        if (
-            norm == prefix
-            or norm.startswith(prefix + "/")
-            or norm.endswith("/" + prefix)
-            or f"/{prefix}/" in norm
-        ):
-            return True
-    for name in _get_agent_hidden_workspace_filenames(self):
-        if (
-            norm == name
-            or norm.endswith("/" + name)
-            or raw == name
-            or raw.endswith("/" + name)
-        ):
-            return True
-    return False
+    return path_mentions_hidden_file(self, value)
 
 
 def _tool_request_mentions_hidden_workspace_file(
     self, tool_name: str, args: dict[str, Any]
 ) -> bool:
-    prefixes = _get_agent_hidden_workspace_path_prefixes(self)
-    names = _get_agent_hidden_workspace_filenames(self)
-    if not prefixes and not names:
-        return False
-    if tool_name in {"read", "write", "edit", "ls", "grep"}:
-        if _path_mentions_hidden_workspace_file(self, str(args.get("path") or "")):
-            return True
-    if tool_name == "bash":
-        cmd = str(args.get("command") or "")
-        if any(
-            _text_mentions_hidden_workspace_prefix(self, cmd, prefix)
-            for prefix in prefixes
-        ):
-            return True
-        return any(name in cmd for name in names)
-    return False
+    return request_mentions_hidden_paths(self, tool_name, args)
 
 
 def _hide_agent_hidden_workspace_file_lines(self, text: str) -> str:
-    if not isinstance(text, str) or not text:
-        return text
-    names = _get_agent_hidden_workspace_filenames(self)
-    prefixes = _get_agent_hidden_workspace_path_prefixes(self)
-    if not names and not prefixes:
-        return text
-    kept = []
-    removed = False
-    for line in text.splitlines():
-        if any(name in line for name in names) or any(
-            _text_mentions_hidden_workspace_prefix(self, line, prefix)
-            for prefix in prefixes
-        ):
-            removed = True
-            continue
-        kept.append(line)
-    if removed:
-        kept.append("[hidden control file entries omitted]")
-    return "\n".join(kept)
+    return redact_hidden_paths(
+        self,
+        text,
+        context="tool_output",
+        marker=True,
+    )
 
 
 def _sanitize_agent_visible_paths(self, text: str) -> str:
     """Rewrite model-visible host paths to workspace-relative or opaque labels."""
-    if not isinstance(text, str) or not text:
-        return text
-    if not _path_hygiene_enabled(self):
-        return _hide_agent_hidden_workspace_filename_mentions(self, text)
-    from scienceflow.research.state.knowledge.memory.records.agent_records import rewrite_workspace_abs_to_relative
-
-    out = rewrite_workspace_abs_to_relative(text, str(self._workspace_dir))
-    out = _WSP_ABSOLUTE_VISIBLE_PREFIX_RE.sub("./", out)
-
-    dataset_link = self._workspace_dir / "dataset"
-    try:
-        if dataset_link.exists():
-            out = _rewrite_abs_prefix_to_label(out, dataset_link.resolve(), "dataset")
-    except OSError:
-        pass
-
-    if _workspace_relative_path_mode_enabled(self):
-        out = _HOST_ABSOLUTE_VISIBLE_PATH_RE.sub(
-            lambda m: _host_abs_placeholder(m.group(0)),
-            out,
-        )
-    return _hide_agent_hidden_workspace_filename_mentions(self, out)
+    return project_agent_visible_text(self, text, surface="assistant")
 
 
 def _sanitize_message_agent_visible_paths(self, message: Message) -> Message:
@@ -401,9 +315,9 @@ def _maybe_rewrite_tool_result_paths(self, tool_result: ToolResult) -> ToolResul
     if tool_result is None or not _path_hygiene_enabled(self):
         return tool_result
     out = tool_result.output
-    new_out = _sanitize_agent_visible_paths(self, out) if isinstance(out, str) else out
+    new_out = rewrite_agent_visible_paths(self, out) if isinstance(out, str) else out
     err = tool_result.error
-    new_err = _sanitize_agent_visible_paths(self, err) if isinstance(err, str) else err
+    new_err = rewrite_agent_visible_paths(self, err) if isinstance(err, str) else err
     if new_out is out and new_err is err:
         return tool_result
     # Mutate in place when possible (ToolResult is pydantic; fall back to copy)
